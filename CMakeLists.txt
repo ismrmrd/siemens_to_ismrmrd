@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 2.6)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/deps/gadgetron/cmake)
+set(CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/gadgetron)
+
 
 find_package(Boost REQUIRED)
 find_package(ACE REQUIRED)
