@@ -151,8 +151,8 @@ namespace XProtocol
       return -1;
     }
   
-    output = boost::get<XProtocol::XNodeParamMap>(output).children_[0];
-
+	XProtocol::XNodeParamMap t =  boost::get<XProtocol::XNodeParamMap>(boost::get<XProtocol::XNodeParamMap>(output).children_[0]);
+	output = t;
     return 0;
   }
 

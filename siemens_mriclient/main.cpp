@@ -25,7 +25,7 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 	GadgetXMLNode out_n(&out_doc);
 
 	//Input Document
-	TiXmlDocument doc(mapfilename);
+	TiXmlDocument doc(mapfilename.c_str());
 	doc.LoadFile();
 	TiXmlHandle docHandle(&doc);
 
@@ -149,9 +149,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		return -1;
 	}
 
-	XProtocol::XNodeParamMap xmap = boost::get<XProtocol::XNodeParamMap>(n);
-	std::cout << "Nodes: " << xmap.children_.size() << std::endl;
-	return 0;
 	std::string xml_config = ProcessGadgetronParameterMap(n,parammap_file);
 
 	//std::cout << xml_config << std::endl;
