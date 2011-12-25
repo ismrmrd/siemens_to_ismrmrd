@@ -15,6 +15,7 @@
 #include "hoNDArray.h"
 #include "GadgetXml.h"
 #include "XNode.h"
+#include "FileInfo.h"
 
 std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::string mapfilename)
 {
@@ -60,6 +61,18 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 
 
 	return XmlToString(out_doc);
+}
+
+void print_usage() 
+{
+  ACE_DEBUG((LM_INFO, ACE_TEXT("Usage: \n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                      (default 9002)\n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                      (default localhost)\n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <DATA FILE>                 (default ./data.dat)\n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -m <PARAMETER MAP FILE>        (default ./parammap.xml)\n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <DUMP FILES OUTPUT PREFIX>  (default out)\n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>          (default default.xml)\n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                             (write only flag, do not connect to Gadgetron)\n") ));
 }
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
@@ -124,6 +137,18 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	}
 
 	ACE_DEBUG(( LM_INFO, ACE_TEXT("Siemens MRI Client\n") ));
+
+	if (!FileInfo(std::string(filename)).exists()) {
+	  ACE_DEBUG((LM_INFO, ACE_TEXT("Data file %s does not exist.\n"), filename));
+	  print_usage();
+	  return -1;
+	}
+
+	if (!FileInfo(std::string(parammap_file)).exists()) {
+	  ACE_DEBUG((LM_INFO, ACE_TEXT("Parameter map file %s does not exist.\n"), parammap_file));
+	  print_usage();
+	  return -1;
+	}
 
 	if (!write_to_file_only) {
 		ACE_DEBUG((LM_INFO, ACE_TEXT("  -- host          :            %s\n"), hostname));
