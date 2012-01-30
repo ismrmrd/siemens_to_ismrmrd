@@ -17,6 +17,9 @@
 #include "XNode.h"
 #include "FileInfo.h"
 
+#include "mri_hdf5_io.h"
+#include "hoNDArray_hdf5_io.h"
+
 std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::string mapfilename)
 {
 
@@ -70,14 +73,15 @@ void print_usage()
   ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                      (default localhost)\n") ));
   ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <DATA FILE>                 (default ./data.dat)\n") ));
   ACE_DEBUG((LM_INFO, ACE_TEXT("                  -m <PARAMETER MAP FILE>        (default ./parammap.xml)\n") ));
-  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <DUMP FILES OUTPUT PREFIX>  (default out)\n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <HDF5 output file>          (default out.h5)\n") ));
+  ACE_DEBUG((LM_INFO, ACE_TEXT("                  -g <HDF5 output group>         (/dataset)\n") ));
   ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>          (default default.xml)\n") ));
   ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                             (write only flag, do not connect to Gadgetron)\n") ));
 }
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 {
-	static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:o:c:m:w");
+	static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:o:c:m:g:w");
 
 	ACE_Get_Opt cmd_opts(argc, argv, options);
 
@@ -96,8 +100,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	ACE_TCHAR parammap_file[1024];
 	ACE_OS_String::strncpy(parammap_file, "parammap.xml", 1024);
 
-	ACE_TCHAR dump_file[1024];
-	ACE_OS_String::strncpy(dump_file, "out", 1024);
+	ACE_TCHAR hdf5_file[1024];
+	ACE_OS_String::strncpy(hdf5_file, "out.h5", 1024);
+
+	ACE_TCHAR hdf5_group[1024];
+	ACE_OS_String::strncpy(hdf5_group, "dataset", 1024);
 
 	bool write_to_file = false;
 	bool write_to_file_only = false;
@@ -121,7 +128,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			ACE_OS_String::strncpy(config_file, cmd_opts.opt_arg(), 1024);
 			break;
 		case 'o':
-			ACE_OS_String::strncpy(dump_file, cmd_opts.opt_arg(), 1024);
+			ACE_OS_String::strncpy(hdf5_file, cmd_opts.opt_arg(), 1024);
+			write_to_file = true;
+			break;
+		case 'g':
+			ACE_OS_String::strncpy(hdf5_group, cmd_opts.opt_arg(), 1024);
 			write_to_file = true;
 			break;
 		case 'w':
@@ -157,8 +168,18 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	}
 	ACE_DEBUG((LM_INFO, ACE_TEXT("  -- data          :            %s\n"), filename));
 	ACE_DEBUG((LM_INFO, ACE_TEXT("  -- parameter map :            %s\n"), parammap_file));
+
 	if (write_to_file) {
-		ACE_DEBUG((LM_INFO, ACE_TEXT("  -- output        :            %s\n"), dump_file));
+		if (FileInfo(std::string(filename)).exists()) {
+			boost::shared_ptr<H5File> f = OpenHF5File(hdf5_file);
+			if (HDF5LinkExists(f.get(), hdf5_group)) {
+				  ACE_DEBUG((LM_INFO, ACE_TEXT("HDF5 group \"%s\" already exists.\n"), hdf5_group));
+				  print_usage();
+				  return -1;
+			}
+		}
+		ACE_DEBUG((LM_INFO, ACE_TEXT("  -- output file   :            %s\n"), hdf5_file));
+		ACE_DEBUG((LM_INFO, ACE_TEXT("  -- output group  :            %s\n"), hdf5_group));
 	}
 
 
@@ -182,11 +203,15 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	memset(&acq_head_base, 0, sizeof(GadgetMessageAcquisition) );
 
 	if (write_to_file) {
-		std::string xmloutfilename = std::string(dump_file) + std::string(".xml");
-		std::ofstream xmloutfile;
-		xmloutfile.open (xmloutfilename.c_str());
-		xmloutfile.write(xml_config.c_str(),xml_config.size());
-		xmloutfile.close();
+		std::string hdf5filename(hdf5_file);
+		std::string hdf5xmlvar = std::string(hdf5_group) + std::string("/xml");
+		std::vector<unsigned int> xmldims(1,xml_config.length()+1); //+1 because of null termination
+		hoNDArray<char> tmp;
+		tmp.create(&xmldims);
+		memcpy(tmp.get_data_ptr(),xml_config.c_str(),tmp.get_number_of_elements());
+
+		hdf5_append_array(&tmp,hdf5filename.c_str(),hdf5xmlvar.c_str());
+
 	}
 
 
@@ -213,12 +238,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			ACE_DEBUG((LM_ERROR, ACE_TEXT("Unable to send XML parameters to the Gadgetron host")));
 			return -1;
 		}
-	}
-
-	FILE* outdatfile = 0;
-	if (write_to_file) {
-		std::string dataoutfile = std::string(dump_file) + std::string(".gmr");
-		outdatfile = ACE_OS::fopen(dataoutfile.c_str(),"wb");
 	}
 
 
@@ -304,8 +323,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			memcpy(m3->getObjectPtr()->get_data_ptr(), buf.get_data_ptr(), buf.get_number_of_elements()*sizeof(float)*2);
 
 			if (write_to_file) {
-				ACE_OS::fwrite(acq_head, sizeof(GadgetMessageAcquisition), 1, outdatfile);
-				ACE_OS::fwrite(buf.get_data_ptr(), sizeof(float),buf.get_number_of_elements()*2, outdatfile);
+				std::string hdf5filename = std::string(hdf5_file);
+				std::string hdf5datavar = std::string(hdf5_group) + std::string("/data");
+				hdf5_append_struct_with_data(m2->getObjectPtr(), m3->getObjectPtr(), hdf5filename.c_str(), hdf5datavar.c_str());
+
+//				ACE_OS::fwrite(acq_head, sizeof(GadgetMessageAcquisition), 1, outdatfile);
+//				ACE_OS::fwrite(buf.get_data_ptr(), sizeof(float),buf.get_number_of_elements()*2, outdatfile);
 			}
 
 			//Chain the message block together.
@@ -325,7 +348,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	}
 
 	if (write_to_file) {
-		ACE_OS::fclose(outdatfile);
+//		ACE_OS::fclose(outdatfile);
 	}
 
 	if (!write_to_file_only) {
