@@ -20,6 +20,18 @@
 #include "mri_hdf5_io.h"
 #include "hoNDArray_hdf5_io.h"
 
+bool is_number(const std::string& s)
+{
+	bool ret = true;
+	for (unsigned int i = 0; i < s.size(); i++) {
+		if (!std::isdigit(s.c_str()[i])) {
+			ret = false;
+			break;
+		}
+	}
+	return ret;
+}
+
 std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::string mapfilename)
 {
 
@@ -47,11 +59,44 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 				std::string source      = s->Value();
 				std::string destination = d->Value();
 
-				const XProtocol::XNode* n = boost::apply_visitor(XProtocol::getChildNodeByName(source), node);
+				std::vector<std::string> split_path;
+				boost::split( split_path, source, boost::is_any_of("."), boost::token_compress_on );
+
+				if (is_number(split_path[0])) {
+					std::cout << "First element of path (" << source << ") cannot be numeric" << std::endl;
+					continue;
+				}
+
+				std::string search_path = split_path[0];
+				for (unsigned int i = 1; i < split_path.size()-1; i++) {
+					if (is_number(split_path[i]) && (i != split_path.size())) {
+						std::cout << "Numeric index not supported inside path for source = " << source << std::endl;
+						continue;
+					}
+					search_path += std::string(".") + split_path[i];
+				}
+
+				int index = -1;
+				if (is_number(split_path[split_path.size()-1])) {
+					index = atoi(split_path[split_path.size()-1].c_str());
+				} else {
+					search_path += std::string(".") + split_path[split_path.size()-1];
+				}
+
+				const XProtocol::XNode* n = boost::apply_visitor(XProtocol::getChildNodeByName(search_path), node);
 
 				std::vector<std::string> parameters = boost::apply_visitor(XProtocol::getStringValueArray(), *n);
-				out_n.add(destination, parameters);
 
+				if (index >= 0) {
+					if (parameters.size() > index) {
+						out_n.add(destination, parameters[index]);
+					} else {
+						std::cout << "Parameter index (" << index << ") not valid for search path " << search_path << std::endl;
+						continue;
+					}
+				} else {
+					out_n.add(destination, parameters);
+				}
 			} else {
 				ACE_DEBUG(( LM_ERROR, ACE_TEXT("Malformed Gadgetron parameter map\n") ));
 			}
@@ -294,9 +339,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		acq_head->time_stamp               = next->mdh.ulTimeStamp;
 		acq_head->samples                  = next->mdh.ushSamplesInScan;
 		acq_head->channels                 = next->mdh.ushUsedChannels;
-		acq_head->position[0]              = next->mdh.sSD.sSlicePosVec.flSag;
-		acq_head->position[1]              = next->mdh.sSD.sSlicePosVec.flCor;
-		acq_head->position[2]              = next->mdh.sSD.sSlicePosVec.flTra;
+		acq_head->position[0]              = next->mdh.sSliceData.sSlicePosVec.flSag;
+		acq_head->position[1]              = next->mdh.sSliceData.sSlicePosVec.flCor;
+		acq_head->position[2]              = next->mdh.sSliceData.sSlicePosVec.flTra;
 
 		memcpy(acq_head->quarternion,
 				next->mdh.sSliceData.aflQuaternion,

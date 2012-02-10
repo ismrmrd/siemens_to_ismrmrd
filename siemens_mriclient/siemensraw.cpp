@@ -246,12 +246,12 @@ int SiemensRawData::UpdateMinMax()
 		SET_MAX(m_mdh_max.ushKSpaceCentreLineNo, next->mdh.ushKSpaceCentreLineNo);
 		SET_MIN(m_mdh_min.ushKSpaceCentrePartitionNo, next->mdh.ushKSpaceCentrePartitionNo);
 		SET_MAX(m_mdh_max.ushKSpaceCentrePartitionNo, next->mdh.ushKSpaceCentrePartitionNo);
-		for (int i = 0; i < MDH_NUMBEROFICEPROGRAMPARA; i++)
+		for (int i = 0; i < MDH_NUMBEROFICEPROGRAMPARA_VB; i++)
 		{
 			SET_MIN(m_mdh_min.aushIceProgramPara[i], next->mdh.aushIceProgramPara[i]);
 			SET_MAX(m_mdh_max.aushIceProgramPara[i], next->mdh.aushIceProgramPara[i]);
 		}
-		for (int i = 0; i < MDH_FREEHDRPARA; i++)
+		for (int i = 0; i < MDH_FREEHDRPARA_VB; i++)
 		{
 			SET_MIN(m_mdh_min.aushFreePara[i], next->mdh.aushFreePara[i]);
 			SET_MAX(m_mdh_max.aushFreePara[i], next->mdh.aushFreePara[i]);

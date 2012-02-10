@@ -1,11 +1,22 @@
+#ifndef SIEMENSRAW_H_
+#define SIEMENSRAW_H_
+
 #include <stdint.h>
 #include <iostream>
 #include <fstream>
 #include <map>
 #include <string>
 
-#define MDH_NUMBEROFICEPROGRAMPARA 4
-#define MDH_FREEHDRPARA            4
+#define MDH_NUMBEROFEVALINFOMASK   2
+
+#define MDH_NUMBEROFICEPROGRAMPARA_VB 4
+#define MDH_NUMBEROFICEPROGRAMPARA_VD 24
+
+#define MDH_FREEHDRPARA_VB 4
+
+#define MDH_DMA_LENGTH_MASK   (0x01FFFFFFL)
+#define MDH_PACK_BIT_MASK     (0x02000000L)
+#define MDH_ENABLE_FLAGS_MASK (0xFC000000L)
 
 enum Trajectory {
   TRAJECTORY_CARTESIAN = 0x01,
@@ -42,15 +53,19 @@ struct mdhSlicePosVec {
   float flTra;
 };
 
+/*
 struct mdhSD {
   mdhSlicePosVec sSlicePosVec;
 };
 
+*/
+
 struct mdhSliceData {
+  mdhSlicePosVec sSlicePosVec;
   float aflQuaternion[4];
 };
 
-
+/* This is the VB line header */
 struct sMDH
 {
   uint32_t ulFlagsAndDMALength;
@@ -73,11 +88,72 @@ struct sMDH
   uint16_t aushIceProgramPara[4];
   uint16_t aushFreePara[4];
 
-  mdhSD sSD;
   mdhSliceData sSliceData;
 
   uint16_t ushChannelId;
   uint16_t ushPTABPosNeg;
+};
+
+/* This is the VD line header */
+struct sScanHeader
+{
+	  uint32_t ulFlagsAndDMALength;
+	  int32_t lMeasUID;
+	  uint32_t ulScanCounter;
+	  uint32_t ulTimeStamp;
+	  uint32_t ulPMUTimeStamp;
+	  uint16_t ushSystemType;
+	  uint16_t ulPTABPosDelay;
+	  int32_t lPTABPosX;
+	  int32_t lPTABPosY;
+	  int32_t lPTABPosZ;
+	  uint32_t ulReserved1;
+	  uint32_t aulEvalInfoMask[2];
+	  uint16_t ushSamplesInScan;
+	  uint16_t ushUsedChannels;
+	  mdhLC sLC;
+	  mdhCutOff sCutOff;
+	  uint16_t ushKSpaceCentreColumn;
+	  uint16_t ushCoilSelect;
+	  float fReadOutOffcentre;
+	  uint32_t ulTimeSinceLastRF;
+	  uint16_t ushKSpaceCentreLineNo;
+	  uint16_t ushKSpaceCentrePartitionNo;
+	  mdhSliceData sSliceData;
+	  uint16_t aushIceProgramPara[24];
+	  uint16_t aushReservedPara[4];
+	  uint16_t ushApplicationCounter;
+	  uint16_t ushApplicationMask;
+	  uint32_t ulCRC;
+};
+
+typedef struct sChannelHeader
+{
+  uint32_t ulTypeAndChannelLength;
+  int32_t lMeasUID;
+  uint32_t ulScanCounter;
+  uint32_t ulReserved1;
+  uint32_t ulSequenceTime;
+  uint32_t ulUnused2;
+  uint16_t ulChannelId;
+  uint16_t ulUnused3;
+  uint32_t ulCRC;
+} sChannelHeader;
+
+struct MrParcRaidFileEntry
+{
+  uint32_t measId_;
+  uint32_t fileId_;
+  uint64_t off_;
+  uint64_t len_;
+  char patName_[64];
+  char protName_[64];
+};
+
+struct MrParcRaidFileHeader
+{
+  uint32_t hdSize_;
+  uint32_t count_;
 };
 
 
@@ -140,3 +216,5 @@ protected:
   std::map< std::string, std::string >  m_meas_yaps;
   SiemensBaseParameters  m_base_parameters;
 };
+
+#endif //SIEMENSRAW_H_
