@@ -38,7 +38,8 @@ const XNode* getChildNodeByName::operator()(const XNodeParamMap& node) const {
 	const XNode* ret = 0;
 	BOOST_FOREACH(XNode const& cnode, node.children_) {
 		const std::string& name = boost::apply_visitor(getNodeName(), cnode);
-		if (name.compare(level_) == 0) {
+		if (boost::iequals(name,level_)) {
+		//if (name.compare(level_) == 0) {
 			ret = &cnode;
 			break;
 		}

@@ -157,7 +157,7 @@ int main(int argc, char** argv)
 		MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[mhead.nr_buffers];
 		mhead.buffers.p = reinterpret_cast<void*>(buffers);
 
-		std::cout << "Number of parameter buffers: " << mhead.nr_buffers << std::endl;
+		//std::cout << "Number of parameter buffers: " << mhead.nr_buffers << std::endl;
 
 
 		char bufname_tmp[32];
