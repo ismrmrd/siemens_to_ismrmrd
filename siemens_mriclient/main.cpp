@@ -17,6 +17,7 @@
 #include "XNode.h"
 #include "FileInfo.h"
 
+#include "hdf5_core.h"
 #include "mri_hdf5_io.h"
 #include "hoNDArray_hdf5_io.h"
 #include "siemens_hdf5_datatypes.h"
@@ -295,31 +296,36 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	//Get the HDF5 file opened.
 	H5File hdf5file;
 	MeasurementHeader mhead;
-	try {
-		hdf5file = H5File(filename, H5F_ACC_RDONLY);
+	{
 
-		std::stringstream str;
-		str << "/files/" << hdf5_dataset_no << "/MeasurementHeader";
+		HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 
-		DataSet headds = hdf5file.openDataSet(str.str());
-		DataType dtype = headds.getDataType();
-		DataSpace headspace = headds.getSpace();
+		try {
+			hdf5file = H5File(filename, H5F_ACC_RDONLY);
 
-		boost::shared_ptr<DataType> headtype = getSiemensHDF5Type<MeasurementHeader>();
-		if (!(dtype == *headtype)) {
-			std::cout << "Wrong datatype for MeasurementHeader detected." << std::endl;
+			std::stringstream str;
+			str << "/files/" << hdf5_dataset_no << "/MeasurementHeader";
+
+			DataSet headds = hdf5file.openDataSet(str.str());
+			DataType dtype = headds.getDataType();
+			DataSpace headspace = headds.getSpace();
+
+			boost::shared_ptr<DataType> headtype = getSiemensHDF5Type<MeasurementHeader>();
+			if (!(dtype == *headtype)) {
+				std::cout << "Wrong datatype for MeasurementHeader detected." << std::endl;
+				return -1;
+			}
+
+
+			headds.read(&mhead, *headtype, headspace, headspace);
+
+			std::cout << "mhead.nr_buffers = " << mhead.nr_buffers << std::endl;
+		} catch (...) {
+			std::cout << "Error opening HDF5 file and reading dataset header." << std::endl;
 			return -1;
-		}
-
-
-		headds.read(&mhead, *headtype, headspace, headspace);
-
-		std::cout << "mhead.nr_buffers = " << mhead.nr_buffers << std::endl;
-	} catch (...) {
-		std::cout << "Error opening HDF5 file and reading dataset header." << std::endl;
-		return -1;
 	}
 
+	}
 	//Now we should have the measurement headers, so let's use the Meas header to create the gadgetron XML parameters
 	MeasurementHeaderBuffer* buffers = reinterpret_cast<MeasurementHeaderBuffer*>(mhead.buffers.p);
 
@@ -341,8 +347,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	}
 
 	//Get rid of dynamically allocated memory in header
-	ClearMeasurementHeader(&mhead);
-
+	{
+		HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+		ClearMeasurementHeader(&mhead);
+	}
 
 	//std::cout << xml_config << std::endl;
 
@@ -358,8 +366,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		tmp.create(&xmldims);
 		memcpy(tmp.get_data_ptr(),xml_config.c_str(),tmp.get_number_of_elements());
 
-		hdf5_append_array(&tmp,hdf5filename.c_str(),hdf5xmlvar.c_str());
-
+		{
+			HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+			hdf5_append_array(&tmp,hdf5filename.c_str(),hdf5xmlvar.c_str());
+		}
 	}
 
 
@@ -402,6 +412,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		std::stringstream str;
 		str << "/files/" << hdf5_dataset_no << "/data";
 
+		HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+
 		rawdataset = hdf5file.openDataSet(str.str());
 
 		DataType dtype = rawdataset.getDataType();
@@ -436,15 +448,21 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		sScanHeader_with_data scanhead;
 
 		offset[0] = a;
-		DataSpace space = rawdataset.getSpace();
-		space.selectHyperslab(H5S_SELECT_SET, &single_scan_dims[0], &offset[0]);
 
-		DataSpace memspace(2,&single_scan_dims[0]);
+		{
+			HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 
-		rawdataset.read( &scanhead, *rawdatatype, memspace, space);
+			DataSpace space = rawdataset.getSpace();
+			space.selectHyperslab(H5S_SELECT_SET, &single_scan_dims[0], &offset[0]);
+
+			DataSpace memspace(2,&single_scan_dims[0]);
+
+			rawdataset.read( &scanhead, *rawdatatype, memspace, space);
+		}
 
 		if (scanhead.scanHeader.aulEvalInfoMask[0] & 1) {
 			std::cout << "Last scan reached..." << std::endl;
+			HDF5Exclusive lock;
 			ClearsScanHeader_with_data(&scanhead);
 			break;
 		}
@@ -521,6 +539,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		}
 
 		if (write_to_file) {
+			HDF5Exclusive lock;
 			std::string hdf5filename = std::string(hdf5_file);
 			std::string hdf5datavar = std::string(hdf5_group) + std::string("/data");
 			hdf5_append_struct_with_data(m2->getObjectPtr(), m3->getObjectPtr(), hdf5filename.c_str(), hdf5datavar.c_str());
@@ -538,7 +557,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			m1->release();
 		}
 
-		ClearsScanHeader_with_data(&scanhead);
+		{
+			HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+			ClearsScanHeader_with_data(&scanhead);
+		}
 	}
 
 
