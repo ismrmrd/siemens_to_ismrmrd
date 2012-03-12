@@ -25,6 +25,8 @@
 
 #include <H5Cpp.h>
 
+#include <iomanip>
+
 #ifndef H5_NO_NAMESPACE
 using namespace H5;
 #endif
