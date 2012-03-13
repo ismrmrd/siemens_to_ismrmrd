@@ -24,11 +24,7 @@
 <p><s>MEAS.sKSpace.lBaseResolution</s>						<d>gadgetron.encoding.kspace.matrix_size.value</d></p>
 <p><s>YAPS.iNoOfFourierLines</s>							<d>gadgetron.encoding.kspace.matrix_size.value</d></p>
 <p><s>YAPS.iNoOfFourierPartitions</s>						<d>gadgetron.encoding.kspace.matrix_size.value</d></p>
-<!--
-<p><s>YAPS.iROFTLength</s><d></d></p>
-<p><s>YAPS.iPEFTLength</s><d></d></p>
-<p><s>YAPS.i3DFTLength</s><d></d></p>
--->
+
 </parameters>
 
 </gadgetron>
