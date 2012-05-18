@@ -283,7 +283,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 	if (write_to_file) {
 		if (FileInfo(std::string(filename)).exists()) {
-			boost::shared_ptr<H5File> f = OpenHF5File(hdf5_file);
+			boost::shared_ptr<H5File> f = OpenHDF5File(hdf5_file);
 			if (HDF5LinkExists(f.get(), hdf5_group)) {
 				ACE_DEBUG((LM_INFO, ACE_TEXT("HDF5 group \"%s\" already exists.\n"), hdf5_group));
 				print_usage();
