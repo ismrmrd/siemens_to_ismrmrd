@@ -505,8 +505,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		acq_head->meas_uid                 = scanhead.scanHeader.lMeasUID;
 		acq_head->scan_counter             = scanhead.scanHeader.ulScanCounter;
 		acq_head->time_stamp               = scanhead.scanHeader.ulTimeStamp;
+        acq_head->pmu_time_stamp           = scanhead.scanHeader.ulPMUTimeStamp;
 		acq_head->samples                  = scanhead.scanHeader.ushSamplesInScan;
 		acq_head->channels                 = scanhead.scanHeader.ushUsedChannels;
+	    acq_head->centre_column            = scanhead.scanHeader.ushKSpaceCentreColumn;
 		acq_head->position[0]              = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
 		acq_head->position[1]              = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
 		acq_head->position[2]              = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
