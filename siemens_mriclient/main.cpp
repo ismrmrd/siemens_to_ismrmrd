@@ -502,6 +502,22 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 				(scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28)) ?
 						GADGET_FLAG_FIRST_ACQ_IN_SLICE : 0;
 
+        acq_head->flags |=
+				(scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22)) ?
+						GADGET_FLAG_IS_PATREF_SCAN : 0;
+
+        acq_head->flags |=
+				(scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23)) ?
+						GADGET_FLAG_IS_PATREFANDIMA_SCAN : 0;
+
+        acq_head->flags |=
+				(scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 8)) ?
+						GADGET_FLAG_LAST_ACQ_IN_CONCAT : 0;
+
+        acq_head->flags |=
+				(scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)) ?
+						GADGET_FLAG_LAST_ACQ_IN_MEAS : 0;
+
 		acq_head->meas_uid                 = scanhead.scanHeader.lMeasUID;
 		acq_head->scan_counter             = scanhead.scanHeader.ulScanCounter;
 		acq_head->time_stamp               = scanhead.scanHeader.ulTimeStamp;
