@@ -1,0 +1,50 @@
+<?xml version="1.0" ?>
+<gadgetron>
+
+<parameters>
+<p><s>MEAS.sKSpace.lBaseResolution</s>						<d>gadgetron.encoding.kspace.base_resolution.value</d></p>
+<p><s>YAPS.iNoOfFourierColumns</s>					        <d>gadgetron.encoding.kspace.readout_length.value</d></p>
+<p><s>MEAS.sKSpace.lPhaseEncodingLines</s>					<d>gadgetron.encoding.kspace.phase_encoding_lines.value</d></p>
+<p><s>MEAS.sKSpace.lPartitions</s>						<d>gadgetron.encoding.kspace.partitions.value</d></p>
+<p><s>MEAS.sKSpace.dPhaseResolution</s>						<d>gadgetron.encoding.kspace.phase_resolution.value</d></p>
+<p><s>MEAS.sKSpace.dSliceResolution</s>						<d>gadgetron.encoding.kspace.slice_resolution.value</d></p>
+<p><s>MEAS.sKSpace.ucTrajectory</s>	 					<d>gadgetron.encoding.trajectory.value</d></p>
+
+<p><s>MEAS.sSliceArray.lSize</s>						<d>gadgetron.encoding.slices.value</d></p>
+<p><s>MEAS.sRXSPEC.alDwellTime</s>						<d>gadgetron.encoding.acquisition_dwell_time_ns.value</d></p>
+
+<!--
+<p><s>MEAS.alTR</s>								<d>gadgetron.timing.TR.value</d></p>
+<p><s>MEAS.alTE</s>								<d>gadgetron.timing.TE.value</d></p>
+-->
+
+<p><s>YAPS.iMaxNoOfRxChannels</s>						<d>gadgetron.encoding.channels.value</d></p>
+<p><s>MEAS.sKSpace.lBaseResolution</s>						<d>gadgetron.encoding.kspace.matrix_size.value</d></p>
+<p><s>MEAS.sKSpace.lBaseResolution</s>						<d>gadgetron.encoding.kspace.matrix_size.value</d></p>
+
+<!--
+<p><s>MEAS.sWiPMemBlock.alFree</s>                                              <d>gadgetron.wip.long.value</d></p>
+<p><s>MEAS.sWiPMemBlock.adFree</s>                                              <d>gadgetron.wip.double.value</d></p>
+<p><s>YAPS.iROFTLength</s><d></d></p>
+<p><s>YAPS.iPEFTLength</s><d></d></p>
+<p><s>YAPS.i3DFTLength</s><d></d></p>
+-->
+
+<p><s>MEAS.sWipMemBlock.adFree.7</s>						<d>gadgetron.spirals.MaxSlewRate_Gcmsi.value</d></p>
+<p><s>MEAS.sWipMemBlock.adFree.6</s>						<d>gadgetron.spirals.MaxGradient_Gcms.value</d></p>
+<p><s>MEAS.sWipMemBlock.alFree.56</s>						<d>gadgetron.spirals.SamplingTime_ns.value</d></p>
+<p><s>MEAS.sKSpace.lRadialViews</s>						<d>gadgetron.spirals.Interleaves.value</d></p>
+<p><s>MEAS.sWipMemBlock.adFree.9</s>						<d>gadgetron.spirals.FOVCoeff_1.value</d></p>
+<p><s>MEAS.sWipMemBlock.adFree.8</s>						<d>gadgetron.spirals.krmax_cm.value</d></p>
+
+<!-- WIP Parameters -->
+<!--
+<p><s></s>							<d>gadgetron.spirals.SamplesToSkipStart.value</d></p>
+<p><s></s>							<d>gadgetron.spirals.SamplesToSkipEnd.value</d></p>
+<p><s>MEAS.sWIPMemBlock.adFree</s>							<d>gadgetron.spirals.SamplesPerADC.value</d></p>
+<p><s>MEAS.sWIPMemBlock.alFree</s>							<d>gadgetron.spirals.ADCsPerInterleave.value</d></p>
+-->
+
+</parameters>
+
+</gadgetron>
