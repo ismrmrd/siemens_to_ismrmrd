@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<gadgetron>
+
+<parameters>
+<p><s>MEAS.sKSpace.lBaseResolution</s>						<d>siemens.MEAS.sKSpace.lBaseResolution</d></p>
+<p><s>MEAS.sKSpace.lPhaseEncodingLines</s>					<d>siemens.MEAS.sKSpace.lPhaseEncodingLines</d></p>
+<p><s>MEAS.sKSpace.lPartitions</s>							<d>siemens.MEAS.sKSpace.lPartitions</d></p>
+<p><s>MEAS.sKSpace.dPhaseResolution</s>						<d>siemens.MEAS.sKSpace.dPhaseResolution</d></p>
+<p><s>MEAS.sKSpace.dSliceResolution</s>						<d>siemens.MEAS.sKSpace.dSliceResolution</d></p>
+<p><s>MEAS.sKSpace.ucTrajectory</s>	 						<d>siemens.MEAS.sKSpace.ucTrajectory</d></p>
+<p><s>MEAS.sSliceArray.lSize</s>							<d>siemens.MEAS.sSliceArray.lSize</d></p>
+<p><s>MEAS.sDiffusion.alBValue</s>							<d>siemens.MEAS.sDiffusion.alBValue</d></p>
+<p><s>MEAS.sRXSPEC.alDwellTime</s>							<d>siemens.MEAS.sRXSPEC.alDwellTime</d></p>
+<p><s>MEAS.alTR</s>											<d>siemens.MEAS.alTR</d></p>
+<p><s>MEAS.alTE</s>											<d>siemens.MEAS.alTE</d></p>
+<p><s>YAPS.iMaxNoOfRxChannels</s>							<d>siemens.YAPS.iMaxNoOfRxChannels</d></p>
+<p><s>YAPS.iNoOfFourierColumns</s>							<d>siemens.YAPS.iNoOfFourierColumns</d></p>
+<p><s>YAPS.iNoOfFourierLines</s>							<d>siemens.YAPS.iNoOfFourierLines</d></p>
+<p><s>YAPS.iNoOfFourierPartitions</s>						<d>siemens.YAPS.iNoOfFourierPartitions</d></p>
+</parameters>
+
+</gadgetron>

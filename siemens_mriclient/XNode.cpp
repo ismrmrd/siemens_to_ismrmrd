@@ -91,6 +91,49 @@ const XNode*  getChildNodeByIndex::operator()(const XNodeParamValue& node)
 }
 
 
+std::string getXMLString::operator()(const XNodeParamMap& node) const
+{
+	std::stringstream str;
+	str << "<" << node.name_ << ">" << std::endl;
+	BOOST_FOREACH(XNode const& cnode, node.children_) {
+		str << boost::apply_visitor(getXMLString(), cnode);
+	}
+	str << "</" << node.name_ << ">" << std::endl;
+	return str.str();
+}
+
+std::string getXMLString::operator()(const XNodeParamArray& node) const
+{
+	if (node.children_.size() == 0) { //Children have not yet been expanded
+		if (!const_cast<XNodeParamArray&>(node).expand_children()) {
+			std::cout << "Failed to expand children" << std::endl;
+			return 0;
+		}
+	}
+	std::stringstream str;
+	str << "<" << node.name_ << ">" << std::endl;
+	BOOST_FOREACH(XNode const& cnode, node.children_) {
+		str << boost::apply_visitor(getXMLString(), cnode);
+	}
+	/*
+	for (unsigned int i = 0; i < node.values_.size(); i++) {
+		str << "<" << node.name_ << ">" << node.values_[i] << "</" << node.name_ << ">" << std::endl;
+	}
+	*/
+	str << "</" << node.name_ << ">" << std::endl;
+	return str.str();
+}
+
+std::string getXMLString::operator()(const XNodeParamValue& node) const
+{
+	std::stringstream str;
+	for (unsigned int i = 0; i < node.values_.size(); i++) {
+		str << "<" << node.name_ << ">" << node.values_[i] << "</" << node.name_ << ">" << std::endl;
+	}
+	return str.str();
+}
+
+
 bool setNodeValues :: operator()(XNodeParamMap& node) {
 	//std::cout << "Calling param map set values....";
 	if (node.children_.size() != val_.children_.size()) {

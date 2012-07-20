@@ -169,6 +169,14 @@ public:
 	std::vector<std::string> operator()(const XNodeParamValue& node) const;
 };
 
+class getXMLString : public boost::static_visitor<std::string> {
+public:
+	std::string operator()(const XNodeParamMap& node) const;
+	std::string operator()(const XNodeParamArray& node) const;
+	std::string operator()(const XNodeParamValue& node) const;
+};
+
+
 }
 
 BOOST_FUSION_ADAPT_STRUCT(
