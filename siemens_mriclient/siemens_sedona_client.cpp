@@ -346,7 +346,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 				return -1;
 			}
 
-			xml_config = boost::apply_visitor(XProtocol::getXMLString(), n);//ProcessGadgetronParameterMap(n,parammap_file);
+			xml_config = ProcessGadgetronParameterMap(n,parammap_file);
 			break;
 		}
 	}

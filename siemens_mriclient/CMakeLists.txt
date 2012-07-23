@@ -17,6 +17,8 @@ target_link_libraries(siemens_sedona_client
 		      tinyxml
 		      hdf5mri
 		      hdf5utils
+		      ${XERCESC_LIBRARIES}
+		      ${XALANC_LIBRARIES}
 		      ${HDF5_LIBRARIES} 
 		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY})
 
