@@ -6,6 +6,20 @@
 #include "ace/OS_NS_string.h"
 #include "ace/Reactor.h"
 
+#include <libxml/parser.h>
+#include <libxml/xmlschemas.h>
+#include <libxml/xmlmemory.h>
+#include <libxml/debugXML.h>
+#include <libxml/HTMLtree.h>
+#include <libxml/xmlIO.h>
+#include <libxml/DOCBparser.h>
+#include <libxml/xinclude.h>
+#include <libxml/catalog.h>
+#include <libxslt/xslt.h>
+#include <libxslt/xsltInternals.h>
+#include <libxslt/transform.h>
+#include <libxslt/xsltutils.h>
+
 #include "GadgetMessageInterface.h"
 #include "GadgetMRIHeaders.h"
 #include "siemensraw.h"
@@ -30,6 +44,45 @@
 #ifndef H5_NO_NAMESPACE
 using namespace H5;
 #endif
+
+
+int xml_file_is_valid(const xmlDocPtr doc, const char *schema_filename)
+{
+    xmlDocPtr schema_doc = xmlReadFile(schema_filename, NULL, XML_PARSE_NONET);
+    if (schema_doc == NULL) {
+        /* the schema cannot be loaded or is not well-formed */
+        return -1;
+    }
+    xmlSchemaParserCtxtPtr parser_ctxt = xmlSchemaNewDocParserCtxt(schema_doc);
+    if (parser_ctxt == NULL) {
+        /* unable to create a parser context for the schema */
+        xmlFreeDoc(schema_doc);
+        return -2;
+    }
+    xmlSchemaPtr schema = xmlSchemaParse(parser_ctxt);
+    if (schema == NULL) {
+        /* the schema itself is not valid */
+        xmlSchemaFreeParserCtxt(parser_ctxt);
+        xmlFreeDoc(schema_doc);
+        return -3;
+    }
+    xmlSchemaValidCtxtPtr valid_ctxt = xmlSchemaNewValidCtxt(schema);
+    if (valid_ctxt == NULL) {
+        /* unable to create a validation context for the schema */
+        xmlSchemaFree(schema);
+        xmlSchemaFreeParserCtxt(parser_ctxt);
+        xmlFreeDoc(schema_doc);
+        return -4;
+    }
+    int is_valid = (xmlSchemaValidateDoc(valid_ctxt, doc) == 0);
+    xmlSchemaFreeValidCtxt(valid_ctxt);
+    xmlSchemaFree(schema);
+    xmlSchemaFreeParserCtxt(parser_ctxt);
+    xmlFreeDoc(schema_doc);
+    /* force the return value to be non-negative on success */
+    return is_valid ? 1 : 0;
+}
+
 
 std::string get_date_time_string()
 {
@@ -166,6 +219,7 @@ void print_usage()
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <HDF5 DATA FILE>            (default ./data.h5)\n") ));
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -d <HDF5 DATASET NUMBER>       (default 0)\n") ));
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -m <PARAMETER MAP FILE>        (default ./parammap.xml)\n") ));
+	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -x <PARAMETER MAP STYLESHEET>  (default ./parammap.xsl)\n") ));
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <HDF5 dump file>            (default dump.h5)\n") ));
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -g <HDF5 dump group>           (/dataset)\n") ));
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -r <HDF5 result file>          (default result.h5)\n") ));
@@ -176,7 +230,7 @@ void print_usage()
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 {
-	static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:g:r:G:w");
+	static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:w");
 
 	ACE_Get_Opt cmd_opts(argc, argv, options);
 
@@ -194,6 +248,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 	ACE_TCHAR parammap_file[1024];
 	ACE_OS_String::strncpy(parammap_file, "parammap.xml", 1024);
+
+	ACE_TCHAR parammap_xsl[1024];
+	ACE_OS_String::strncpy(parammap_xsl, "parammap.xsl", 1024);
 
 	ACE_TCHAR hdf5_file[1024];
 	ACE_OS_String::strncpy(hdf5_file, "dump.h5", 1024);
@@ -232,6 +289,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			break;
 		case 'm':
 			ACE_OS_String::strncpy(parammap_file, cmd_opts.opt_arg(), 1024);
+			break;
+		case 'x':
+			ACE_OS_String::strncpy(parammap_xsl, cmd_opts.opt_arg(), 1024);
 			break;
 		case 'c':
 			ACE_OS_String::strncpy(config_file, cmd_opts.opt_arg(), 1024);
@@ -272,6 +332,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 	if (!FileInfo(std::string(parammap_file)).exists()) {
 		ACE_DEBUG((LM_INFO, ACE_TEXT("Parameter map file %s does not exist.\n"), parammap_file));
+		print_usage();
+		return -1;
+	}
+
+	if (!FileInfo(std::string(parammap_xsl)).exists()) {
+		ACE_DEBUG((LM_INFO, ACE_TEXT("Parameter map XSLT stylesheet %s does not exist.\n"), parammap_xsl));
 		print_usage();
 		return -1;
 	}
@@ -358,13 +424,72 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	}
 
 
-	std::ofstream of("temp.xml",std::ios::out);
-	of << xml_config;
-	of.close();
-	std::cout << xml_config << std::endl;
+	xsltStylesheetPtr cur = NULL;
+	xmlDocPtr doc, res;
+
+	const char *params[16 + 1];
+	int nbparams = 0;
+	params[nbparams] = NULL;
+	xmlSubstituteEntitiesDefault(1);
+	xmlLoadExtDtdDefaultValue = 1;
+
+	cur = xsltParseStylesheetFile((const xmlChar*)parammap_xsl);
+	doc = xmlParseMemory(xml_config.c_str(),xml_config.size());
+	res = xsltApplyStylesheet(cur, doc, params);
+
+	xmlChar* out_ptr = NULL;
+	int xslt_length = 0;
+	int xslt_result = xsltSaveResultToString(&out_ptr,
+						 &xslt_length,
+						 res,
+						 cur);
+
+	if (xslt_result < 0) {
+		std::cout << "Failed to save converted doc to string" << std::endl;
+		return -1;
+	}
+
+	xml_config = std::string((char*)out_ptr,xslt_length);
+	std::cout << "Done with XML conversion, result: " << std::endl << xml_config << std::endl;
+
+	//xsltSaveResultToFile(stdout, res, cur);
+
+	xsltFreeStylesheet(cur);
+	xmlFreeDoc(res);
+	xmlFreeDoc(doc);
+
+    xsltCleanupGlobals();
+    xmlCleanupParser();
+
+	/*
+	std::stringstream xml_out;
+
+	XMLPlatformUtils::Initialize();
+	XalanTransformer::initialize();
 
 
-	return 0;
+	XalanTransformer theXalanTransformer;
+
+	try {
+
+		XSLTInputSource xmlIn(xml_in);
+		XSLTInputSource xslIn(xsl_in);
+		XSLTResultTarget xmlOut(xml_out);
+
+		int theResult =	theXalanTransformer.transform(xmlIn,xslIn,xmlOut);
+
+	}
+	catch(XSLException& eException)
+	{
+		std::cout << "Exception in transform: " << eException.getMessage() << std::endl;
+	}
+
+	XalanTransformer::terminate();
+	XMLPlatformUtils::Terminate();
+
+	xsl_in.close();
+	std::cout << "Done with XML conversion, result: " << std::endl << xml_out.str() << std::endl;
+	 */
 
 	GadgetMessageAcquisition acq_head_base;
 	memset(&acq_head_base, 0, sizeof(GadgetMessageAcquisition) );
