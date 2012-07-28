@@ -8,15 +8,31 @@
 <p><s>MEAS.sKSpace.dPhaseResolution</s>						<d>siemens.MEAS.sKSpace.dPhaseResolution</d></p>
 <p><s>MEAS.sKSpace.dSliceResolution</s>						<d>siemens.MEAS.sKSpace.dSliceResolution</d></p>
 <p><s>MEAS.sKSpace.ucTrajectory</s>	 						<d>siemens.MEAS.sKSpace.ucTrajectory</d></p>
+<p><s>MEAS.sKSpace.lImagesPerSlab</s>                       <d>siemens.MEAS.sKSpace.lImagesPerSlab</d></p>
+<p><s>MEAS.sKSpace.dSliceOversamplingForDialog</s>          <d>siemens.MEAS.sKSpace.dSliceOversamplingForDialog</d></p>
+<p><s>MEAS.sKSpace.ucPhasePartialFourier</s>                <d>siemens.MEAS.sKSpace.ucPhasePartialFourier</d></p>
+<p><s>MEAS.sKSpace.ucSlicePartialFourier</s>                <d>siemens.MEAS.sKSpace.ucSlicePartialFourier</d></p>
 <p><s>MEAS.sSliceArray.lSize</s>							<d>siemens.MEAS.sSliceArray.lSize</d></p>
 <p><s>MEAS.sDiffusion.alBValue</s>							<d>siemens.MEAS.sDiffusion.alBValue</d></p>
 <p><s>MEAS.sRXSPEC.alDwellTime</s>							<d>siemens.MEAS.sRXSPEC.alDwellTime</d></p>
 <p><s>MEAS.alTR</s>											<d>siemens.MEAS.alTR</d></p>
 <p><s>MEAS.alTE</s>											<d>siemens.MEAS.alTE</d></p>
+<p><s>MEAS.sSliceArray.asSlice.0.dReadoutFOV</s>            <d>siemens.MEAS.sSliceArray.asSlice.s0.dReadoutFOV</d></p>
+<p><s>MEAS.sSliceArray.asSlice.0.dPhaseFOV</s>              <d>siemens.MEAS.sSliceArray.asSlice.s0.dPhaseFOV</d></p>
+<p><s>MEAS.sSliceArray.asSlice.0.dThickness</s>             <d>siemens.MEAS.sSliceArray.asSlice.s0.dThickness</d></p>
+<p><s>IRIS.DERIVED.phaseOversampling</s>                    <d>siemens.IRIS.DERIVED.phaseOversampling</d></p>
+<p><s>IRIS.DERIVED.ImageColumns</s>                         <d>siemens.IRIS.DERIVED.imageColumns</d></p>
+<p><s>IRIS.DERIVED.ImageLines</s>                           <d>siemens.IRIS.DERIVED.imageLines</d></p>
 <p><s>YAPS.iMaxNoOfRxChannels</s>							<d>siemens.YAPS.iMaxNoOfRxChannels</d></p>
 <p><s>YAPS.iNoOfFourierColumns</s>							<d>siemens.YAPS.iNoOfFourierColumns</d></p>
 <p><s>YAPS.iNoOfFourierLines</s>							<d>siemens.YAPS.iNoOfFourierLines</d></p>
 <p><s>YAPS.iNoOfFourierPartitions</s>						<d>siemens.YAPS.iNoOfFourierPartitions</d></p>
+<p><s>YAPS.iRoFTLength</s>									<d>siemens.YAPS.iRoFTLength</d></p>
+<p><s>YAPS.iPEFTLength</s>									<d>siemens.YAPS.iPEFTLength</d></p>
+<p><s>YAPS.i3DFTLength</s>									<d>siemens.YAPS.i3DFTLength</d></p>
+<p><s>YAPS.flReadoutOSFactor</s>							<d>siemens.YAPS.flReadoutOSFactor</d></p>
+      
+<p><s>DICOM.lFrequency</s>						            <d>siemens.DICOM.lFrequency</p>
 </parameters>
 
 </gadgetron>

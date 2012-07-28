@@ -52,10 +52,12 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				;
 
 		burn_param_card_layout =
-				lit("<ParamCardLayout.\"Inline Evaluation\">")
+//				lit("<ParamCardLayout.\"Inline Evaluation\">")
+				lit("<ParamCardLayout.") >> quoted_string >> '>'
 				>> '{'
 				>> lit("<Repr>") >> quoted_string
 				>> *(lit("<Control>  {") >> lexeme[+(char_ - '}')] >> '}')
+				>> *(lit("<Line>  {") >> lexeme[+(char_ - '}')] >> '}')
 				>> '}'
 				;
 

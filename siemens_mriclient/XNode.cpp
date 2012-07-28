@@ -136,11 +136,12 @@ std::string getXMLString::operator()(const XNodeParamValue& node) const
 
 bool setNodeValues :: operator()(XNodeParamMap& node) {
 	//std::cout << "Calling param map set values....";
-	if (node.children_.size() != val_.children_.size()) {
-		std::cout << "Mismatch between number of values and children" << std::endl;
+	if (node.children_.size() < val_.children_.size()) {
+		std::cout << "Mismatch between number of values (" << val_.children_.size() << ") and children (" << node.children_.size() << ")" << std::endl;
+		std::cout << "node name: " << node.name_ << std::endl;
 		return false;
 	}
-	for (unsigned int i = 0; i < node.children_.size(); i++) {
+	for (unsigned int i = 0; i < val_.children_.size(); i++) {
 		setNodeValues tmp(val_.children_[i]);
 		if (!boost::apply_visitor(tmp, node.children_[i])) {
 			return false;

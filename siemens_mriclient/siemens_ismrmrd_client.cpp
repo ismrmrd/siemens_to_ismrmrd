@@ -12,7 +12,6 @@
 #include <libxml/debugXML.h>
 #include <libxml/HTMLtree.h>
 #include <libxml/xmlIO.h>
-#include <libxml/DOCBparser.h>
 #include <libxml/xinclude.h>
 #include <libxml/catalog.h>
 #include <libxslt/xslt.h>
@@ -46,8 +45,12 @@ using namespace H5;
 #endif
 
 
-int xml_file_is_valid(const xmlDocPtr doc, const char *schema_filename)
+int xml_file_is_valid(std::string& xml, const char *schema_filename)
 {
+
+	xmlDocPtr doc;
+	doc = xmlParseMemory(xml.c_str(),xml.size());
+
     xmlDocPtr schema_doc = xmlReadFile(schema_filename, NULL, XML_PARSE_NONET);
     if (schema_doc == NULL) {
         /* the schema cannot be loaded or is not well-formed */
@@ -72,6 +75,7 @@ int xml_file_is_valid(const xmlDocPtr doc, const char *schema_filename)
         xmlSchemaFree(schema);
         xmlSchemaFreeParserCtxt(parser_ctxt);
         xmlFreeDoc(schema_doc);
+        xmlFreeDoc(doc);
         return -4;
     }
     int is_valid = (xmlSchemaValidateDoc(valid_ctxt, doc) == 0);
@@ -79,6 +83,8 @@ int xml_file_is_valid(const xmlDocPtr doc, const char *schema_filename)
     xmlSchemaFree(schema);
     xmlSchemaFreeParserCtxt(parser_ctxt);
     xmlFreeDoc(schema_doc);
+    xmlFreeDoc(doc);
+
     /* force the return value to be non-negative on success */
     return is_valid ? 1 : 0;
 }
@@ -162,10 +168,12 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 
 				std::string search_path = split_path[0];
 				for (unsigned int i = 1; i < split_path.size()-1; i++) {
+					/*
 					if (is_number(split_path[i]) && (i != split_path.size())) {
 						std::cout << "Numeric index not supported inside path for source = " << source << std::endl;
 						continue;
-					}
+					}*/
+
 					search_path += std::string(".") + split_path[i];
 				}
 
@@ -226,11 +234,12 @@ void print_usage()
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -G <HDF5 result group>         (default date and time)\n") ));
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>          (default default.xml)\n") ));
 	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                             (write only flag, do not connect to Gadgetron)\n") ));
+	ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                             (Debug XML flag)\n") ));
 }
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 {
-	static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:w");
+	static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wX");
 
 	ACE_Get_Opt cmd_opts(argc, argv, options);
 
@@ -268,6 +277,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	ACE_OS_String::strncpy(hdf5_out_group, date_time.c_str(), 1024);
 
 	unsigned int hdf5_dataset_no = 0;
+	bool debug_xml = false;
+
 
 	bool write_to_file = false;
 	bool write_to_file_only = false;
@@ -306,6 +317,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			break;
 		case 'w':
 			write_to_file_only = true;
+			break;
+		case 'X':
+			debug_xml = true;
 			break;
 		case 'r':
 			ACE_OS_String::strncpy(hdf5_out_file, cmd_opts.opt_arg(), 1024);
@@ -407,6 +421,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 			XProtocol::XNode n;
 
+			if (debug_xml) {
+				std::ofstream o("config_buffer.xprot");
+				o.write(config_buffer.c_str(), config_buffer.size());
+				o.close();
+			}
+
 			if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0) {
 				ACE_DEBUG((LM_ERROR, ACE_TEXT("Failed to parse XProtocol")));
 				return -1;
@@ -415,6 +435,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			xml_config = ProcessGadgetronParameterMap(n,parammap_file);
 			break;
 		}
+	}
+
+	if (debug_xml) {
+		std::ofstream o("xml_raw.xml");
+		o.write(xml_config.c_str(), xml_config.size());
+		o.close();
 	}
 
 	//Get rid of dynamically allocated memory in header
@@ -450,7 +476,36 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	}
 
 	xml_config = std::string((char*)out_ptr,xslt_length);
+
+
+	char * gadgetron_home = ACE_OS::getenv("GADGETRON_HOME");
+
+	if (std::string(gadgetron_home).size() == 0) {
+		ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("GADGETRON_HOME variable not set.\n")),-1);
+	}
+
+
+	ACE_TCHAR schema_file_name[4096];
+	ACE_OS::sprintf(schema_file_name, "%s/schema/ismrmrd.xsd", gadgetron_home);
+
+	if (!FileInfo(std::string(schema_file_name)).exists()) {
+		ACE_DEBUG((LM_INFO, ACE_TEXT("ISMRMRD schema file %s does not exist.\n"), schema_file_name));
+		return -1;
+	}
+
 	std::cout << "Done with XML conversion, result: " << std::endl << xml_config << std::endl;
+
+	if (debug_xml) {
+		std::ofstream o("processed.xml");
+		o.write(xml_config.c_str(), xml_config.size());
+		o.close();
+	}
+
+
+	if (xml_file_is_valid(xml_config,schema_file_name) <= 0) {
+		ACE_DEBUG((LM_INFO, ACE_TEXT("Generated XML is not valid according to the ISMRMRD schema %s.\n"), schema_file_name));
+		return -1;
+	}
 
 	//xsltSaveResultToFile(stdout, res, cur);
 
