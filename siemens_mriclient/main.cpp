@@ -73,8 +73,11 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 {
 
 	TiXmlDocument out_doc;
+
 	TiXmlDeclaration* decl = new TiXmlDeclaration( "1.0", "", "" );
 	out_doc.LinkEndChild( decl );
+
+
 	GadgetXMLNode out_n(&out_doc);
 
 	//Input Document
@@ -106,10 +109,12 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 
 				std::string search_path = split_path[0];
 				for (unsigned int i = 1; i < split_path.size()-1; i++) {
+					/*
 					if (is_number(split_path[i]) && (i != split_path.size())) {
 						std::cout << "Numeric index not supported inside path for source = " << source << std::endl;
 						continue;
-					}
+					}*/
+
 					search_path += std::string(".") + split_path[i];
 				}
 

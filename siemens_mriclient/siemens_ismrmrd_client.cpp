@@ -383,7 +383,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 	//Get the HDF5 file opened.
 	H5File hdf5file;
-	//ISMRMRD::IsmrmrdDataset ismrmrd_dataset("mytestset.h5", "mygroup");
+	ISMRMRD::IsmrmrdDataset ismrmrd_dataset("mytestset.h5", "/mygroup");
 
 	MeasurementHeader mhead;
 	{
@@ -432,22 +432,26 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 				o.close();
 			}
 
-			std::cout << "Parsing xprotocol..." << std::endl;
 			if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0) {
 				ACE_DEBUG((LM_ERROR, ACE_TEXT("Failed to parse XProtocol")));
 				return -1;
 			}
-			std::cout << "Parsing xprotocol...DONE" << std::endl;
 
 			xml_config = ProcessGadgetronParameterMap(n,parammap_file);
 			break;
 		}
 	}
 
+
 	if (debug_xml) {
 		std::ofstream o("xml_raw.xml");
 		o.write(xml_config.c_str(), xml_config.size());
 		o.close();
+	}
+
+	if (ismrmrd_dataset.writeHeader(xml_config) < 0 ) {
+		std::cerr << "Failed to write XML header to HDF file" << std::endl;
+		return -1;
 	}
 
 	//Get rid of dynamically allocated memory in header
@@ -514,7 +518,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		return -1;
 	}
 
-	//xsltSaveResultToFile(stdout, res, cur);
 
 	xsltFreeStylesheet(cur);
 	xmlFreeDoc(res);
@@ -523,35 +526,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     xsltCleanupGlobals();
     xmlCleanupParser();
 
-	/*
-	std::stringstream xml_out;
-
-	XMLPlatformUtils::Initialize();
-	XalanTransformer::initialize();
-
-
-	XalanTransformer theXalanTransformer;
-
-	try {
-
-		XSLTInputSource xmlIn(xml_in);
-		XSLTInputSource xslIn(xsl_in);
-		XSLTResultTarget xmlOut(xml_out);
-
-		int theResult =	theXalanTransformer.transform(xmlIn,xslIn,xmlOut);
-
-	}
-	catch(XSLException& eException)
-	{
-		std::cout << "Exception in transform: " << eException.getMessage() << std::endl;
-	}
-
-	XalanTransformer::terminate();
-	XMLPlatformUtils::Terminate();
-
-	xsl_in.close();
-	std::cout << "Done with XML conversion, result: " << std::endl << xml_out.str() << std::endl;
-	 */
 
 	GadgetMessageAcquisition acq_head_base;
 	memset(&acq_head_base, 0, sizeof(GadgetMessageAcquisition) );
@@ -645,6 +619,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	for (unsigned int a = 0; a < acquisitions; a++) {
 		sScanHeader_with_data scanhead;
 
+
 		offset[0] = a;
 
 		{
@@ -664,6 +639,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			ClearsScanHeader_with_data(&scanhead);
 			break;
 		}
+
+
 
 		GadgetContainerMessage<GadgetMessageIdentifier>* m1 =
 				new GadgetContainerMessage<GadgetMessageIdentifier>();
@@ -746,12 +723,75 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			return -1;
 		}
 
+		ISMRMRD::Acquisition ismrmrd_acq;
+
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25))) ismrmrd_acq.setFlag(ISMRMRD::FlagBit(ISMRMRD::IS_NOISE_MEASUREMENT));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28))) ismrmrd_acq.setFlag(ISMRMRD::FlagBit(ISMRMRD::FIRST_IN_SLICE));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 29))) ismrmrd_acq.setFlag(ISMRMRD::FlagBit(ISMRMRD::LAST_IN_SLICE));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22))) ismrmrd_acq.setFlag(ISMRMRD::FlagBit(ISMRMRD::IS_PARALLEL_CALIBRATION));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23))) ismrmrd_acq.setFlag(ISMRMRD::FlagBit(ISMRMRD::IS_PARALLEL_CALIBRATION_AND_IMAGING));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq.setFlag(ISMRMRD::FlagBit(ISMRMRD::LAST_IN_REPETITION));
+
+		ismrmrd_acq.head_.measurement_uid 				= scanhead.scanHeader.lMeasUID;
+		ismrmrd_acq.head_.scan_counter					= scanhead.scanHeader.ulScanCounter;
+		ismrmrd_acq.head_.acquisition_time_stamp		= scanhead.scanHeader.ulTimeStamp;
+		ismrmrd_acq.head_.physiology_time_stamp[0]		= scanhead.scanHeader.ulPMUTimeStamp;
+		ismrmrd_acq.head_.number_of_samples = scanhead.scanHeader.ushSamplesInScan;
+		   uint16_t           available_channels;             //Available coils
+		ismrmrd_acq.head_.active_channels 				= scanhead.scanHeader.ushUsedChannels;
+		   uint64_t           channel_mask[16];               //Mask to indicate which channels are active. Support for 1024 channels
+		ismrmrd_acq.head_.discard_pre					= scanhead.scanHeader.sCutOff.ushPre;
+		ismrmrd_acq.head_.discard_post					= scanhead.scanHeader.sCutOff.ushPost;
+		ismrmrd_acq.head_.center_sample					= scanhead.scanHeader.ushKSpaceCentreColumn;
+		ismrmrd_acq.head_.encoding_space_ref            = 0;
+		ismrmrd_acq.head_.trajectory_dimensions         = 0;
+		   float              sample_time_us;                 //Time between samples in micro seconds, sampling BW
+
+		ismrmrd_acq.head_.position[0]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
+		ismrmrd_acq.head_.position[1]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
+		ismrmrd_acq.head_.position[2]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
+
+		memcpy(ismrmrd_acq.head_.quarternion,
+					scanhead.scanHeader.sSliceData.aflQuaternion,
+					sizeof(float)*4);
+
+		ismrmrd_acq.head_.patient_table_position[0]   		= scanhead.scanHeader.lPTABPosX;
+		ismrmrd_acq.head_.patient_table_position[1]   		= scanhead.scanHeader.lPTABPosY;
+		ismrmrd_acq.head_.patient_table_position[2]   		= scanhead.scanHeader.lPTABPosZ;
+
+		ismrmrd_acq.head_.idx.average						= scanhead.scanHeader.sLC.ushAcquisition;
+		ismrmrd_acq.head_.idx.contrast						= scanhead.scanHeader.sLC.ushEcho;
+		ismrmrd_acq.head_.idx.kspace_encode_step_1          = scanhead.scanHeader.sLC.ushLine;
+		ismrmrd_acq.head_.idx.kspace_encode_step_2			= scanhead.scanHeader.sLC.ushPartition;
+		ismrmrd_acq.head_.idx.phase							= scanhead.scanHeader.sLC.ushPhase;
+		ismrmrd_acq.head_.idx.repetition					= scanhead.scanHeader.sLC.ushRepetition;
+		ismrmrd_acq.head_.idx.segment						= scanhead.scanHeader.sLC.ushSeg;
+		ismrmrd_acq.head_.idx.set							= scanhead.scanHeader.sLC.ushSet;
+		ismrmrd_acq.head_.idx.slice							= scanhead.scanHeader.sLC.ushSlice;
+		ismrmrd_acq.head_.idx.user[0]						= scanhead.scanHeader.sLC.ushIda;
+		ismrmrd_acq.head_.idx.user[1]						= scanhead.scanHeader.sLC.ushIdb;
+		ismrmrd_acq.head_.idx.user[2]						= scanhead.scanHeader.sLC.ushIdc;
+		ismrmrd_acq.head_.idx.user[3]						= scanhead.scanHeader.sLC.ushIdd;
+		ismrmrd_acq.head_.idx.user[4]						= scanhead.scanHeader.sLC.ushIde;
+		//   int32_t            user_int[8];                    //Free user parameters
+		//   float              user_float[8];                  //Free user parameters
+
+		ismrmrd_acq.data_ = new float[ismrmrd_acq.head_.number_of_samples*ismrmrd_acq.head_.active_channels*2];
+
 		sChannelHeader_with_data* channel_header = reinterpret_cast<sChannelHeader_with_data*>(scanhead.data.p);
 		for (unsigned int c = 0; c < m2->getObjectPtr()->channels; c++) {
 			std::complex<float>* dptr = reinterpret_cast< std::complex<float>* >(channel_header[c].data.p);
 
 			memcpy(m3->getObjectPtr()->get_data_ptr()+ c*m2->getObjectPtr()->samples,
 					dptr, m2->getObjectPtr()->samples*sizeof(float)*2);
+
+			memcpy(ismrmrd_acq.data_+ c*ismrmrd_acq.head_.number_of_samples*2,
+					dptr, ismrmrd_acq.head_.number_of_samples*sizeof(float)*2);
+		}
+
+		if (ismrmrd_dataset.appendAcquisition(&ismrmrd_acq) < 0) {
+			std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
+			return -1;
 		}
 
 		if (write_to_file) {
