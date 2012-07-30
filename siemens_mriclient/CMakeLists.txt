@@ -17,6 +17,7 @@ target_link_libraries(siemens_ismrmrd_client
 		      tinyxml
 		      hdf5mri
 		      hdf5utils
+		      ismrmrd
  			  ${LIBXSLT_LIBRARIES} 
  			  ${LIBXML2_LIBRARIES}
 		      ${HDF5_LIBRARIES} 

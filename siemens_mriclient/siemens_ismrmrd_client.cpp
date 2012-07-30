@@ -36,6 +36,9 @@
 #include "siemens_hdf5_datatypes.h"
 #include "HDF5ImageWriter.h"
 
+#include "ismrmrd.h"
+#include "ismrmrd_hdf5.h"
+
 #include <H5Cpp.h>
 
 #include <iomanip>
@@ -380,6 +383,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 	//Get the HDF5 file opened.
 	H5File hdf5file;
+	//ISMRMRD::IsmrmrdDataset ismrmrd_dataset("mytestset.h5", "mygroup");
+
 	MeasurementHeader mhead;
 	{
 
@@ -427,10 +432,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 				o.close();
 			}
 
+			std::cout << "Parsing xprotocol..." << std::endl;
 			if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0) {
 				ACE_DEBUG((LM_ERROR, ACE_TEXT("Failed to parse XProtocol")));
 				return -1;
 			}
+			std::cout << "Parsing xprotocol...DONE" << std::endl;
 
 			xml_config = ProcessGadgetronParameterMap(n,parammap_file);
 			break;
