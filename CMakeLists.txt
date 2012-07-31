@@ -14,7 +14,7 @@ endif (WIN32)
 ###############################################################
 find_path(GADGETRON_CMAKE_MODULES FindGadgetron.cmake HINTS
 $ENV{GADGETRON_HOME}/cmake
-/usr/local/gadgetron)
+/usr/local/gadgetron/cmake)
 
 if (NOT GADGETRON_CMAKE_MODULES)
    #TODO: Check if path found otherwise create error
