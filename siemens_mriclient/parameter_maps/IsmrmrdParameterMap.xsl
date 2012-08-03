@@ -47,14 +47,57 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 		<xsl:otherwise>other</xsl:otherwise>
       </xsl:choose>
     </trajectory>
+    
+    <xsl:if test="siemens/MEAS/sKSpace/ucTrajectory">
+	    <trajectoryDescription>
+	    	<identifier>HargreavesVDS2000</identifier>
+	    	<userParameterLong>
+	    		<name>interleaves</name><value><xsl:value-of select="siemens/MEAS/sKSpace/lRadialViews" /></value>
+	    	</userParameterLong>
+	    	<userParameterLong>
+	    		<name>fov_coefficients</name><value>1</value>
+	    	</userParameterLong>
+	    	<userParameterLong>
+	    		<name>SamplingTime_ns</name><value><xsl:value-of select="siemens/MEAS/sWipMemBlock/alFree[57]" /></value>
+	    	</userParameterLong>
+	    	<userParameterDouble>
+	    		<name>MaxGradient_G_per_cm</name><value><xsl:value-of select="siemens/MEAS/sWipMemBlock/adFree[7]" /></value>
+	    	</userParameterDouble>
+	    	<userParameterDouble>
+	    		<name>MaxSlewRate_G_per_cm_per_s</name><value><xsl:value-of select="siemens/MEAS/sWipMemBlock/adFree[8]" /></value>
+	    	</userParameterDouble>
+	    	<userParameterDouble>
+	    		<name>FOVCoeff_1_cm</name><value><xsl:value-of select="siemens/MEAS/sWipMemBlock/adFree[10]" /></value>
+	    	</userParameterDouble>
+	    	<userParameterDouble>
+	    		<name>krmax_per_cm</name><value><xsl:value-of select="siemens/MEAS/sWipMemBlock/adFree[9]" /></value>
+	    	</userParameterDouble>
+	    	<comment>Using spiral design by Brian Hargreaves (http://mrsrl.stanford.edu/~brian/vdspiral/)</comment>
+	    </trajectoryDescription>    
+    </xsl:if>
     <encodedSpace>
 		<matrixSize>
-			<x><xsl:value-of select="siemens/YAPS/iRoFTLength"/></x>		
+			<xsl:choose>
+				<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">	
+					<x><xsl:value-of select="siemens/YAPS/iRoFTLength"/></x>		
+				</xsl:when>	
+				<xsl:otherwise>
+					<x><xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/></x>
+				</xsl:otherwise>
+			</xsl:choose>		
+		
 			<y><xsl:value-of select="siemens/YAPS/iPEFTLength"/></y>		
 			<z><xsl:value-of select="siemens/YAPS/i3DFTLength"/></z>
 		</matrixSize>
 		<fieldOfView_m>
-			<x><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV * siemens/YAPS/flReadoutOSFactor"/></x>		
+		  	<xsl:choose>
+				<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">	
+					<x><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV * siemens/YAPS/flReadoutOSFactor"/></x>
+				</xsl:when>	
+				<xsl:otherwise>
+					<x><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/></x>
+				</xsl:otherwise>
+			</xsl:choose>		
 			<y><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV * (1+$phaseOversampling)"/></y>		
 			<z><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness * (1+$sliceOversampling)"/></z>		
 		</fieldOfView_m>
@@ -62,8 +105,15 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <reconSpace>
 		<matrixSize>
 			<x><xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/></x>		
-			<y><xsl:value-of select="siemens/IRIS/DERIVED/imageLines"/></y>		
-			<z><xsl:value-of select="siemens/MEAS/sKSpace/lImagesPerSlab"/></z>
+			<y><xsl:value-of select="siemens/IRIS/DERIVED/imageLines"/></y>
+			<xsl:choose>
+				<xsl:when test="siemens/YAPS/i3DFTLength = 1">
+					<z>1</z>
+				</xsl:when>	
+				<xsl:otherwise>
+					<z><xsl:value-of select="siemens/MEAS/sKSpace/lImagesPerSlab"/></z>		
+				</xsl:otherwise>
+			</xsl:choose>	
 		</matrixSize>
 		<fieldOfView_m>
 			<x><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/></x>		
@@ -75,7 +125,14 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 		<kspace_encoding_step_1>
 			<minimum>0</minimum>
 			<maximum><xsl:value-of select="siemens/YAPS/iNoOfFourierLines - 1"/></maximum>
-			<center><xsl:value-of select="floor((siemens/MEAS/sKSpace/lPhaseEncodingLines div 2)-(siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines))"/></center>
+			<xsl:choose>
+				<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">	
+					<center><xsl:value-of select="floor((siemens/MEAS/sKSpace/lPhaseEncodingLines div 2)-(siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines))"/></center>
+				</xsl:when>
+				<xsl:otherwise>
+					<center>0</center>
+				</xsl:otherwise>
+			</xsl:choose>
 		</kspace_encoding_step_1>    
 		<kspace_encoding_step_2>
 			<minimum>0</minimum>

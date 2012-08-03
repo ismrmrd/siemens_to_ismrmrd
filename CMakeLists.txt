@@ -31,7 +31,6 @@ find_package(ACE REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
 #find_package(TinyXML REQUIRED)
 
-find_package(Ismrmrd REQUIRED)
 find_package(LibXml2 REQUIRED)
 find_package(LibXslt REQUIRED)
 

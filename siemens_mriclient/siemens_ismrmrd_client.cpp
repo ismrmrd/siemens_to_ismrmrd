@@ -48,6 +48,13 @@
 using namespace H5;
 #endif
 
+void calc_vds(double slewmax,double gradmax,double Tgsample,double Tdsample,int Ninterleaves,
+		double* fov, int numfov,double krmax,
+		int ngmax, double** xgrad,double** ygrad,int* numgrad);
+
+void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp, double krmax,
+		double** x_trajectory, double** y_trajectory,
+		double** weights);
 
 int xml_file_is_valid(std::string& xml, const char *schema_filename)
 {
@@ -426,6 +433,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	MeasurementHeaderBuffer* buffers = reinterpret_cast<MeasurementHeaderBuffer*>(mhead.buffers.p);
 
 	std::string xml_config;
+	std::vector<std::string> wip_long;
+	std::vector<std::string> wip_double;
+	long trajectory = 0;
+	long dwell_time_0 = 0;
+	long max_channels = 0;
+	long radial_views = 0;
 	for (unsigned int b = 0; b < mhead.nr_buffers; b++) {
 		if (std::string((char*)buffers[b].bufName_.p).compare("Meas") == 0) {
 			std::string config_buffer((char*)buffers[b].buf_.p,buffers[b].buf_.len-2);//-2 because the last two character are ^@
@@ -441,6 +454,103 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0) {
 				ACE_DEBUG((LM_ERROR, ACE_TEXT("Failed to parse XProtocol")));
 				return -1;
+			}
+
+			//Get some parameters - wip long
+			{
+				const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sWipMemBlock.alFree"), n);
+				if (n2) {
+					wip_long = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+				} else {
+					std::cout << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
+				}
+				if (wip_long.size() == 0) {
+					std::cout << "Failed to find WIP long parameters" << std::endl;
+					return -1;
+				}
+			}
+
+			//Get some parameters - wip long
+			{
+				const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sWipMemBlock.adFree"), n);
+				if (n2) {
+					wip_double = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+				} else {
+					std::cout << "Search path: MEAS.sWipMemBlock.adFree not found." << std::endl;
+				}
+				if (wip_double.size() == 0) {
+					std::cout << "Failed to find WIP double parameters" << std::endl;
+					return -1;
+				}
+			}
+
+			//Get some parameters - dwell times
+			{
+				const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sRXSPEC.alDwellTime"), n);
+				std::vector<std::string> temp;
+				if (n2) {
+					temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+				} else {
+					std::cout << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
+				}
+				if (temp.size() == 0) {
+					std::cout << "Failed to find dwell times" << std::endl;
+					return -1;
+				} else {
+					dwell_time_0 = std::atoi(temp[0].c_str());
+				}
+			}
+
+
+			//Get some parameters - trajectory
+			{
+				const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.ucTrajectory"), n);
+				std::vector<std::string> temp;
+				if (n2) {
+					temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+				} else {
+					std::cout << "Search path: MEAS.sKSpace.ucTrajectory not found." << std::endl;
+				}
+				if (temp.size() != 1) {
+					std::cout << "Failed to find appropriate trajectory array" << std::endl;
+					return -1;
+				} else {
+					trajectory = std::atoi(temp[0].c_str());
+				}
+			}
+
+			//Get some parameters - max channels
+			{
+				const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("YAPS.iMaxNoOfRxChannels"), n);
+				std::vector<std::string> temp;
+				if (n2) {
+					temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+				} else {
+					std::cout << "YAPS.iMaxNoOfRxChannels" << std::endl;
+				}
+				if (temp.size() != 1) {
+					std::cout << "Failed to find YAPS.iMaxNoOfRxChannels array" << std::endl;
+					return -1;
+				} else {
+					max_channels = std::atoi(temp[0].c_str());
+				}
+			}
+
+			//Get some parameters - max channels
+			{
+				const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lRadialViews"), n);
+				std::vector<std::string> temp;
+				if (n2) {
+					temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+				} else {
+					std::cout << "MEAS.sKSpace.lRadialViews not found" << std::endl;
+				}
+				if (temp.size() != 1) {
+					std::cout << "Failed to find YAPS.MEAS.sKSpace.lRadialViews array" << std::endl;
+					return -1;
+				} else {
+					radial_views = std::atoi(temp[0].c_str());
+				}
 			}
 
 			xml_config = ProcessGadgetronParameterMap(n,parammap_file);
@@ -535,9 +645,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			std::cerr << "Failed to write XML header to HDF file" << std::endl;
 			return -1;
 		}
-
-		boost::shared_ptr<std::string> tmp = ismrmrd_dataset->readHeader();
-		std::cout << "HEADER" << std::endl << *tmp << std::endl;
 	}
 
 
@@ -613,6 +720,68 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		return -1;
 	}
 
+
+	//If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
+	boost::shared_ptr< hoNDArray<floatd2> > traj;
+	if (trajectory == 4) {
+		int     nfov   = 1;         /*  number of fov coefficients.             */
+		int     ngmax  = 1e5;       /*  maximum number of gradient samples      */
+		double  *xgrad;             /*  x-component of gradient.                */
+		double  *ygrad;             /*  y-component of gradient.                */
+		double  *x_trajectory;
+		double  *y_trajectory;
+		double  *weighting;
+		int     ngrad;
+
+		double sample_time = (1.0*dwell_time_0) * 1e-9;
+		double smax = std::atof(wip_double[7].c_str());
+		double gmax = std::atof(wip_double[6].c_str());
+		double fov = std::atof(wip_double[9].c_str());
+		double krmax = std::atof(wip_double[8].c_str());
+		long interleaves = radial_views;
+
+		/*	call c-function here to calculate gradients */
+		calc_vds(smax,gmax,sample_time,sample_time,interleaves,&fov,nfov,krmax,ngmax,&xgrad,&ygrad,&ngrad);
+
+		/*
+		std::cout << "Calculated trajectory for spiral: " << std::endl
+				<< "sample_time: " << sample_time << std::endl
+				<< "smax: " << smax << std::endl
+				<< "gmax: " << gmax << std::endl
+				<< "fov: " << fov << std::endl
+				<< "krmax: " << krmax << std::endl
+				<< "interleaves: " << interleaves << std::endl
+				<< "ngrad: " << ngrad << std::endl;
+		*/
+
+		/* Calcualte the trajectory and weights*/
+		calc_traj(xgrad, ygrad, ngrad, interleaves, sample_time, krmax, &x_trajectory, &y_trajectory, &weighting);
+
+		traj = boost::shared_ptr< hoNDArray<floatd2> >(new hoNDArray<floatd2>);
+
+		std::vector<unsigned int> trajectory_dimensions;
+		trajectory_dimensions.push_back(ngrad);
+		trajectory_dimensions.push_back(interleaves);
+
+		if (!traj->create(&trajectory_dimensions)) {
+			std::cout << "Unable to allocate memory for trajectory\n" << std::endl;
+			return -1;;
+		}
+
+		float* co_ptr = reinterpret_cast<float*>(traj->get_data_ptr());
+
+		for (int i = 0; i < (ngrad*interleaves); i++) {
+			co_ptr[i*2]   = -x_trajectory[i]/2;
+			co_ptr[i*2+1] = -y_trajectory[i]/2;
+		}
+
+		delete [] xgrad;
+		delete [] ygrad;
+		delete [] x_trajectory;
+		delete [] y_trajectory;
+		delete [] weighting;
+	}
+
 	for (unsigned int a = 0; a < acquisitions; a++) {
 		sScanHeader_with_data scanhead;
 
@@ -660,8 +829,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		ismrmrd_acq->head_.scan_counter					= scanhead.scanHeader.ulScanCounter;
 		ismrmrd_acq->head_.acquisition_time_stamp		= scanhead.scanHeader.ulTimeStamp;
 		ismrmrd_acq->head_.physiology_time_stamp[0]		= scanhead.scanHeader.ulPMUTimeStamp;
-		ismrmrd_acq->head_.number_of_samples = scanhead.scanHeader.ushSamplesInScan;
-		   uint16_t           available_channels;             //Available coils
+		ismrmrd_acq->head_.number_of_samples 			= scanhead.scanHeader.ushSamplesInScan;
+		ismrmrd_acq->head_.available_channels			= max_channels;
 		ismrmrd_acq->head_.active_channels 				= scanhead.scanHeader.ushUsedChannels;
 		   uint64_t           channel_mask[16];               //Mask to indicate which channels are active. Support for 1024 channels
 		ismrmrd_acq->head_.discard_pre					= scanhead.scanHeader.sCutOff.ushPre;
@@ -669,8 +838,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		ismrmrd_acq->head_.center_sample					= scanhead.scanHeader.ushKSpaceCentreColumn;
 		ismrmrd_acq->head_.encoding_space_ref            = 0;
 		ismrmrd_acq->head_.trajectory_dimensions         = 0;
-		   float              sample_time_us;                 //Time between samples in micro seconds, sampling BW
-
+		ismrmrd_acq->head_.sample_time_us                = dwell_time_0 / 1000.0;
 		ismrmrd_acq->head_.position[0]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
 		ismrmrd_acq->head_.position[1]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
 		ismrmrd_acq->head_.position[2]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
@@ -703,6 +871,22 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 		//This memory will be deleted by the ISMRMRD::Acquisition object
 		ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
+
+		if (trajectory == 4) { //Spiral, we will add the trajectory to the data
+
+			if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
+				unsigned long traj_samples_to_copy = ismrmrd_acq->head_.number_of_samples;
+				if (traj->get_size(0) < traj_samples_to_copy) {
+					traj_samples_to_copy = traj->get_size(0);
+					ismrmrd_acq->head_.discard_post = ismrmrd_acq->head_.number_of_samples-traj_samples_to_copy;
+				}
+				ismrmrd_acq->head_.trajectory_dimensions = 2;
+				ismrmrd_acq->traj_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions];
+				float* t_ptr = reinterpret_cast<float*>(traj->get_data_ptr() + (ismrmrd_acq->head_.idx.kspace_encode_step_1 * traj->get_size(0)));
+				memset(ismrmrd_acq->traj_,0,sizeof(float)*ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions);
+				memcpy(ismrmrd_acq->traj_,t_ptr, sizeof(float)*traj_samples_to_copy*ismrmrd_acq->head_.trajectory_dimensions);
+			}
+		}
 
 		sChannelHeader_with_data* channel_header = reinterpret_cast<sChannelHeader_with_data*>(scanhead.data.p);
 		for (unsigned int c = 0; c < m2->getObjectPtr()->head_.active_channels; c++) {
