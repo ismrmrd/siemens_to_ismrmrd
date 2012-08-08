@@ -75,8 +75,8 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 		param_generic =
 				'<'
 				>> lexeme[+(char_ - '.')[at_c<1>(_val) += _1]] >> '.'
-				>> quoted_string[std::cout << "GENERIC: " << at_c<1>(_val) << ", " << (at_c<0>(_val) = _1) << std::endl]
-				//>> quoted_string[at_c<0>(_val) = _1]
+		  //>> quoted_string[std::cout << "GENERIC: " << at_c<1>(_val) << ", " << (at_c<0>(_val) = _1) << std::endl]
+				>> quoted_string[at_c<0>(_val) = _1]
 				                 >> '>' >> '{'
 				                 >> *burn_properties
 				                 >> *((quoted_string[push_back(at_c<2>(_val),_1)]) | (strict_double[push_back(at_c<2>(_val),_1)]) | (long_[push_back(at_c<2>(_val),_1)]))
