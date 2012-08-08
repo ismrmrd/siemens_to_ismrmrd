@@ -75,8 +75,8 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 		param_generic =
 				'<'
 				>> lexeme[+(char_ - '.')[at_c<1>(_val) += _1]] >> '.'
-				//>> quoted_string[std::cout << "GENERIC: " << at_c<1>(_val) << ", " << _1 << std::endl]
-				>> quoted_string[at_c<0>(_val) = _1]
+				>> quoted_string[std::cout << "GENERIC: " << at_c<1>(_val) << ", " << (at_c<0>(_val) = _1) << std::endl]
+				//>> quoted_string[at_c<0>(_val) = _1]
 				                 >> '>' >> '{'
 				                 >> *burn_properties
 				                 >> *((quoted_string[push_back(at_c<2>(_val),_1)]) | (strict_double[push_back(at_c<2>(_val),_1)]) | (long_[push_back(at_c<2>(_val),_1)]))
@@ -97,7 +97,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				                    >>  quoted_string[at_c<0>(_val) = _1]
 //				                    >> quoted_string[std::cout << "ARRAY: " << at_c<1>(_val) << ", " << _1 << std::endl]
 				                                      >> '>' >> '{'
-				                                      >> *((lit("<Visible>") >> quoted_string) | (lit("<MinSize>") >> long_) | (lit("<MaxSize>") >> long_) | (lit("<Comment>") >> quoted_string)) //Burn this
+				                                      >> *((lit("<Visible>") >> quoted_string) | (lit("<MinSize>") >> long_) | (lit("<Label>") >> quoted_string) | (lit("<MaxSize>") >> long_) | (lit("<Comment>") >> quoted_string)) //Burn this
 				                                      >> lit("<Default>")
 				                                      >> node[at_c<2>(_val)  = _1]
 				                                              >> *array_value[push_back(at_c<3>(_val),_1)]
