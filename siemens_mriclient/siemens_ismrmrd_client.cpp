@@ -250,6 +250,12 @@ void print_usage()
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 {
+	char * gadgetron_home = ACE_OS::getenv("GADGETRON_HOME");
+
+	if (std::string(gadgetron_home).size() == 0) {
+		ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("GADGETRON_HOME variable not set.\n")),-1);
+	}
+
 	static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wX");
 
 	ACE_Get_Opt cmd_opts(argc, argv, options);
@@ -266,11 +272,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	ACE_TCHAR config_file[1024];
 	ACE_OS_String::strncpy(config_file, "default.xml", 1024);
 
-	ACE_TCHAR parammap_file[1024];
-	ACE_OS_String::strncpy(parammap_file, "parammap.xml", 1024);
+	ACE_TCHAR parammap_file[4096];
+	ACE_OS::sprintf(parammap_file, "%s/schema/IsmrmrdParameterMap.xml", gadgetron_home);
 
-	ACE_TCHAR parammap_xsl[1024];
-	ACE_OS_String::strncpy(parammap_xsl, "parammap.xsl", 1024);
+	ACE_TCHAR parammap_xsl[4096];
+	ACE_OS::sprintf(parammap_xsl, "%s/schema/IsmrmrdParameterMap.xsl", gadgetron_home);
 
 	ACE_TCHAR hdf5_file[1024];
 	ACE_OS_String::strncpy(hdf5_file, "dump.h5", 1024);
@@ -310,10 +316,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			hdf5_dataset_no = atoi(cmd_opts.opt_arg());;
 			break;
 		case 'm':
-			ACE_OS_String::strncpy(parammap_file, cmd_opts.opt_arg(), 1024);
+			ACE_OS_String::strncpy(parammap_file, cmd_opts.opt_arg(), 4096);
 			break;
 		case 'x':
-			ACE_OS_String::strncpy(parammap_xsl, cmd_opts.opt_arg(), 1024);
+			ACE_OS_String::strncpy(parammap_xsl, cmd_opts.opt_arg(), 4096);
 			break;
 		case 'c':
 			ACE_OS_String::strncpy(config_file, cmd_opts.opt_arg(), 1024);
@@ -347,7 +353,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		}
 	}
 
-	ACE_DEBUG(( LM_INFO, ACE_TEXT("Siemens MRI Client\n") ));
+	ACE_DEBUG(( LM_INFO, ACE_TEXT("Siemens MRI Client (for ISMRMRD format)\n") ));
+
 
 	if (!FileInfo(std::string(filename)).exists()) {
 		ACE_DEBUG((LM_INFO, ACE_TEXT("Data file %s does not exist.\n"), filename));
@@ -601,13 +608,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	xml_config = std::string((char*)out_ptr,xslt_length);
 
 
-	char * gadgetron_home = ACE_OS::getenv("GADGETRON_HOME");
-
-	if (std::string(gadgetron_home).size() == 0) {
-		ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("GADGETRON_HOME variable not set.\n")),-1);
-	}
-
-
 	ACE_TCHAR schema_file_name[4096];
 	ACE_OS::sprintf(schema_file_name, "%s/schema/ismrmrd.xsd", gadgetron_home);
 
@@ -636,8 +636,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     xmlCleanupParser();
 
 
-	GadgetMessageAcquisition acq_head_base;
-	memset(&acq_head_base, 0, sizeof(GadgetMessageAcquisition) );
+	ISMRMRD::AcquisitionHeader acq_head_base;
+	memset(&acq_head_base, 0, sizeof(ISMRMRD::AcquisitionHeader) );
 
 	if (write_to_file) {
 		HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
@@ -838,12 +838,17 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		ismrmrd_acq->head_.center_sample					= scanhead.scanHeader.ushKSpaceCentreColumn;
 		ismrmrd_acq->head_.encoding_space_ref            = 0;
 		ismrmrd_acq->head_.trajectory_dimensions         = 0;
-		ismrmrd_acq->head_.sample_time_us                = dwell_time_0 / 1000.0;
+		if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25)) { //This is noise
+			ismrmrd_acq->head_.sample_time_us                =  7680.0f/ismrmrd_acq->head_.number_of_samples;
+		} else {
+			ismrmrd_acq->head_.sample_time_us                = dwell_time_0 / 1000.0;
+
+		}
 		ismrmrd_acq->head_.position[0]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
 		ismrmrd_acq->head_.position[1]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
 		ismrmrd_acq->head_.position[2]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
 
-		memcpy(ismrmrd_acq->head_.quarternion,
+		memcpy(ismrmrd_acq->head_.quaternion,
 					scanhead.scanHeader.sSliceData.aflQuaternion,
 					sizeof(float)*4);
 

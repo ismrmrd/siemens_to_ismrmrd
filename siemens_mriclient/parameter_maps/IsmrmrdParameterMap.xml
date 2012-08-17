@@ -18,6 +18,8 @@
 <p><s>MEAS.sRXSPEC.alDwellTime</s>							<d>siemens.MEAS.sRXSPEC.alDwellTime</d></p>
 <p><s>MEAS.alTR</s>											<d>siemens.MEAS.alTR</d></p>
 <p><s>MEAS.alTE</s>											<d>siemens.MEAS.alTE</d></p>
+<p><s>MEAS.lContrasts</s>									<d>siemens.MEAS.lContrasts</d></p>
+<p><s>MEAS.alTI</s>											<d>siemens.MEAS.alTI</d></p>
 <p><s>MEAS.sSliceArray.asSlice.0.dReadoutFOV</s>            <d>siemens.MEAS.sSliceArray.asSlice.s0.dReadoutFOV</d></p>
 <p><s>MEAS.sSliceArray.asSlice.0.dPhaseFOV</s>              <d>siemens.MEAS.sSliceArray.asSlice.s0.dPhaseFOV</d></p>
 <p><s>MEAS.sSliceArray.asSlice.0.dThickness</s>             <d>siemens.MEAS.sSliceArray.asSlice.s0.dThickness</d></p>
@@ -31,10 +33,16 @@
 <p><s>YAPS.iRoFTLength</s>									<d>siemens.YAPS.iRoFTLength</d></p>
 <p><s>YAPS.iPEFTLength</s>									<d>siemens.YAPS.iPEFTLength</d></p>
 <p><s>YAPS.i3DFTLength</s>									<d>siemens.YAPS.i3DFTLength</d></p>
+<p><s>YAPS.tMRAcquisitionType</s>							<d>siemens.YAPS.tMRAcquisitionType</d></p>
 <p><s>YAPS.flReadoutOSFactor</s>							<d>siemens.YAPS.flReadoutOSFactor</d></p>      
+<p><s>YAPS.flUsedPatientWeight</s>							<d>siemens.YAPS.flUsedPatientWeight</d></p>
+<p><s>YAPS.flMagneticFieldStrength</s>						<d>siemens.YAPS.flMagneticFieldStrength</d></p>      
 <p><s>DICOM.lFrequency</s>						            <d>siemens.DICOM.lFrequency</d></p>
+<p><s>DICOM.Manufacturer</s>						        <d>siemens.DICOM.Manufacturer</d></p>
+<p><s>DICOM.ManufacturersModelName</s>						<d>siemens.DICOM.ManufacturersModelName</d></p>
 <p><s>MEAS.sWipMemBlock.alFree</s>						    <d>siemens.MEAS.sWipMemBlock.alFree</d></p>
 <p><s>MEAS.sWipMemBlock.adFree</s>						    <d>siemens.MEAS.sWipMemBlock.adFree</d></p>
+<p><s>HEADER.tPatientName</s>						        <d>siemens.HEADER.tPatientName</d></p>
 </parameters>
 
 </gadgetron>

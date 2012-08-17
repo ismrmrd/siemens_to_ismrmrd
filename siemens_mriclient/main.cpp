@@ -534,7 +534,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		acq_head->position[1]              = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
 		acq_head->position[2]              = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
 
-		memcpy(acq_head->quarternion,
+		memcpy(acq_head->quaternion,
 				scanhead.scanHeader.sSliceData.aflQuaternion,
 				sizeof(float)*4);
 

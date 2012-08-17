@@ -28,11 +28,29 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   </xsl:choose>
 </xsl:variable>
 
+<xsl:variable name="numberOfContrasts">
+	<xsl:value-of select="siemens/MEAS/lContrasts"/>
+</xsl:variable>
+
+
 <xsl:template match="/">
 <ismrmrdHeader xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd"
         xmlns="http://www.ismrm.org/ISMRMRD"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:xs="http://www.w3.org/2001/XMLSchema">
+        
+  <subjectInformation>
+  	<patientName><xsl:value-of select="siemens/HEADER/tPatientName"/></patientName>
+  	<xsl:if test="siemens/YAPS/flUsedPatientWeight > 0"><patientWeight_kg><xsl:value-of select="siemens/YAPS/flUsedPatientWeight"/></patientWeight_kg></xsl:if>
+  </subjectInformation>
+  
+  <acquisitionSystemInformation>
+  	<systemVendor><xsl:value-of select="siemens/DICOM/Manufacturer"/></systemVendor>
+  	<systemModel><xsl:value-of select="siemens/DICOM/ManufacturersModelName"/></systemModel>  	
+  	<systemFieldStrength_T><xsl:value-of select="siemens/YAPS/flMagneticFieldStrength"/></systemFieldStrength_T>
+  	<receiverChannels><xsl:value-of select="siemens/YAPS/iMaxNoOfRxChannels" /></receiverChannels> 
+  	<relativeReceiverNoiseBandwidth>0.79</relativeReceiverNoiseBandwidth> 	
+  </acquisitionSystemInformation> 
         
   <experimentalConditions>
   	<H1resonanceFrequency_Hz><xsl:value-of select="siemens/DICOM/lFrequency"/></H1resonanceFrequency_Hz>
@@ -48,7 +66,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
       </xsl:choose>
     </trajectory>
     
-    <xsl:if test="siemens/MEAS/sKSpace/ucTrajectory">
+    <xsl:if test="siemens/MEAS/sKSpace/ucTrajectory = 4">
 	    <trajectoryDescription>
 	    	<identifier>HargreavesVDS2000</identifier>
 	    	<userParameterLong>
@@ -89,7 +107,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 			<y><xsl:value-of select="siemens/YAPS/iPEFTLength"/></y>		
 			<z><xsl:value-of select="siemens/YAPS/i3DFTLength"/></z>
 		</matrixSize>
-		<fieldOfView_m>
+		<fieldOfView_mm>
 		  	<xsl:choose>
 				<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">	
 					<x><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV * siemens/YAPS/flReadoutOSFactor"/></x>
@@ -100,7 +118,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 			</xsl:choose>		
 			<y><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV * (1+$phaseOversampling)"/></y>		
 			<z><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness * (1+$sliceOversampling)"/></z>		
-		</fieldOfView_m>
+		</fieldOfView_mm>
     </encodedSpace>
     <reconSpace>
 		<matrixSize>
@@ -115,11 +133,11 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 				</xsl:otherwise>
 			</xsl:choose>	
 		</matrixSize>
-		<fieldOfView_m>
+		<fieldOfView_mm>
 			<x><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/></x>		
 			<y><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV"/></y>		
 			<z><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness"/></z>		
-		</fieldOfView_m>
+		</fieldOfView_mm>
     </reconSpace>
     <encodingLimits>
 		<kspace_encoding_step_1>
@@ -137,7 +155,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 		<kspace_encoding_step_2>
 			<minimum>0</minimum>
 			<xsl:choose>
-				<xsl:when test="not(siemens/YAPS/iNoOfFourierPartitions)">
+				<xsl:when test="not(siemens/YAPS/iNoOfFourierPartitions) or (siemens/YAPS/i3DFTLength = 1)">
 					<maximum>0</maximum>
 					<center>0</center>				
 				</xsl:when>
@@ -154,6 +172,21 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 		</slice>    		    
     </encodingLimits>
   </encoding>
+  <sequenceTiming>
+   <xsl:for-each select="siemens/MEAS/alTR">
+	<xsl:if test=". &gt; 0"><TR><xsl:value-of select=". div 1000.0" /></TR></xsl:if>
+   </xsl:for-each>
+   <xsl:for-each select="siemens/MEAS/alTE">
+	<xsl:if test=". &gt; 0">
+		<xsl:if test="position() &lt; ($numberOfContrasts + 1)">
+		<TE><xsl:value-of select=". div 1000.0" /></TE>
+		</xsl:if>
+	</xsl:if>
+   </xsl:for-each>
+   <xsl:for-each select="siemens/MEAS/alTI">
+	<xsl:if test=". &gt; 0"><TI><xsl:value-of select=". div 1000.0" /></TI></xsl:if>
+   </xsl:for-each>
+  </sequenceTiming>
 </ismrmrdHeader>
 </xsl:template>
 

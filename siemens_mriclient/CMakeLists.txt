@@ -37,3 +37,6 @@ target_link_libraries(siemens_to_HDF5
 
 install(TARGETS siemens_mriclient siemens_ismrmrd_client siemens_to_HDF5 DESTINATION bin)
 install(FILES ${ISMRMRD_LIBRARIES} DESTINATION lib)
+install(FILES ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd DESTINATION schema)
+install(FILES parameter_maps/IsmrmrdParameterMap.xml DESTINATION schema)
+install(FILES parameter_maps/IsmrmrdParameterMap.xsl DESTINATION schema)
