@@ -170,6 +170,18 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 			<maximum><xsl:value-of select="siemens/MEAS/sSliceArray/lSize - 1"/></maximum>
 			<center>0</center>
 		</slice>    		    
+		<set>
+			<minimum>0</minimum>
+			<maximum>
+			<xsl:choose>
+				<xsl:when test="siemens/MEAS/sAngio/sFlowArray/lSize">
+					<xsl:value-of select="siemens/MEAS/sAngio/sFlowArray/lSize"/>
+				</xsl:when>
+				<xsl:otherwise>0</xsl:otherwise>
+			</xsl:choose>
+			</maximum>
+			<center>0</center>
+		</set>    		    
     </encodingLimits>
   </encoding>
   <sequenceTiming>
