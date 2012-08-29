@@ -30,9 +30,6 @@
 #include "FileInfo.h"
 #include "GadgetIsmrmrdReadWrite.h"
 
-#include "hdf5_core.h"
-#include "mri_hdf5_io.h"
-#include "hoNDArray_hdf5_io.h"
 #include "siemens_hdf5_datatypes.h"
 #include "HDF5ImageWriter.h"
 
@@ -386,17 +383,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	boost::shared_ptr<ISMRMRD::IsmrmrdDataset>  ismrmrd_dataset;
 
 	if (write_to_file) {
-		ACE_DEBUG((LM_INFO, ACE_TEXT("  -- output file   :            %s\n"), hdf5_file));
-		ACE_DEBUG((LM_INFO, ACE_TEXT("  -- output group  :            %s\n"), hdf5_group));
-		if (FileInfo(std::string(filename)).exists()) {
-			boost::shared_ptr<H5File> f = OpenHDF5File(hdf5_file);
-			if (HDF5LinkExists(f.get(), hdf5_group)) {
-				ACE_DEBUG((LM_INFO, ACE_TEXT("HDF5 group \"%s\" already exists.\n"), hdf5_group));
-				print_usage();
-				return -1;
-			}
-		}
-
 		ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file, hdf5_group));
 	}
 
@@ -407,7 +393,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	MeasurementHeader mhead;
 	{
 
-		HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 
 		try {
 			hdf5file = H5File(filename, H5F_ACC_RDONLY);
@@ -574,7 +560,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 	//Get rid of dynamically allocated memory in header
 	{
-		HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 		ClearMeasurementHeader(&mhead);
 	}
 
@@ -639,7 +625,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	memset(&acq_head_base, 0, sizeof(ISMRMRD::AcquisitionHeader) );
 
 	if (write_to_file) {
-		HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 		if (ismrmrd_dataset->writeHeader(xml_config) < 0 ) {
 			std::cerr << "Failed to write XML header to HDF file" << std::endl;
 			return -1;
@@ -652,9 +638,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 		//con.register_writer(GADGET_MESSAGE_ACQUISITION, new GadgetAcquisitionMessageWriter());
 		con.register_writer(GADGET_MESSAGE_ISMRMRD_ACQUISITION, new GadgetIsmrmrdAcquisitionMessageWriter());
-		con.register_reader(GADGET_MESSAGE_IMAGE_REAL_USHORT, new HDF5ImageWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-		con.register_reader(GADGET_MESSAGE_IMAGE_REAL_FLOAT, new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-		con.register_reader(GADGET_MESSAGE_IMAGE_CPLX_FLOAT, new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+		con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_USHORT, new HDF5ImageWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+		con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_FLOAT, new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+		con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_CPLX_FLOAT, new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
 
 		//Open a connection with the gadgetron
 		if (con.open(std::string(hostname),std::string(port_no)) != 0) {
@@ -687,7 +673,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		std::stringstream str;
 		str << "/files/" << hdf5_dataset_no << "/data";
 
-		HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 
 		rawdataset = hdf5file.openDataSet(str.str());
 
@@ -788,7 +774,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		offset[0] = a;
 
 		{
-			HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+			ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 
 			DataSpace space = rawdataset.getSpace();
 			space.selectHyperslab(H5S_SELECT_SET, &single_scan_dims[0], &offset[0]);
@@ -800,7 +786,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 		if (scanhead.scanHeader.aulEvalInfoMask[0] & 1) {
 			std::cout << "Last scan reached..." << std::endl;
-			HDF5Exclusive lock;
+			ISMRMRD::HDF5Exclusive lock;
 			ClearsScanHeader_with_data(&scanhead);
 			break;
 		}
@@ -817,12 +803,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 		ISMRMRD::Acquisition* ismrmrd_acq = m2->getObjectPtr();
 
-		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::IS_NOISE_MEASUREMENT));
-		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::FIRST_IN_SLICE));
-		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 29))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::LAST_IN_SLICE));
-		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::IS_PARALLEL_CALIBRATION));
-		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::IS_PARALLEL_CALIBRATION_AND_IMAGING));
-		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::LAST_IN_REPETITION));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 29))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
+		if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
 
 		ismrmrd_acq->head_.measurement_uid 				= scanhead.scanHeader.lMeasUID;
 		ismrmrd_acq->head_.scan_counter					= scanhead.scanHeader.ulScanCounter;
@@ -878,7 +864,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 		if (trajectory == 4) { //Spiral, we will add the trajectory to the data
 
-			if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
+			if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
 				unsigned long traj_samples_to_copy = ismrmrd_acq->head_.number_of_samples;
 				if (traj->get_size(0) < traj_samples_to_copy) {
 					traj_samples_to_copy = traj->get_size(0);
@@ -902,7 +888,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 
 		if (write_to_file) {
-			HDF5Exclusive lock;
+			ISMRMRD::HDF5Exclusive lock;
 			if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0) {
 				std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
 				return -1;
@@ -921,7 +907,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		}
 
 		{
-			HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+			ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 			ClearsScanHeader_with_data(&scanhead);
 		}
 	}

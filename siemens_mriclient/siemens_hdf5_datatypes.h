@@ -13,7 +13,7 @@
 #include <H5Cpp.h>
 #include <boost/shared_ptr.hpp>
 
-#include "hdf5_core.h"
+#include "ismrmrd_hdf5.h"
 
 #include <vector>
 

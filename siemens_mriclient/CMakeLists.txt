@@ -1,4 +1,5 @@
 find_package(Ismrmrd REQUIRED)
+find_package(HDF5 1.8 COMPONENTS C CXX REQUIRED)
 
 INCLUDE_DIRECTORIES(${ISMRMRD_INCLUDE_DIR})
 
@@ -8,8 +9,6 @@ add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp)
 target_link_libraries(siemens_mriclient
 		      optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
 		      tinyxml
-		      hdf5mri
-		      hdf5utils
 		      ${ISMRMRD_LIBRARIES}
  			  ${LIBXSLT_LIBRARIES} 
  			  ${LIBXML2_LIBRARIES}
@@ -19,8 +18,6 @@ target_link_libraries(siemens_mriclient
 target_link_libraries(siemens_to_HDF5 
 		      optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
 		      tinyxml
-		      hdf5mri
-		      hdf5utils
 		      ${HDF5_LIBRARIES} 
 		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY})
 
