@@ -13,13 +13,13 @@ target_link_libraries(siemens_mriclient
  			  ${LIBXSLT_LIBRARIES} 
  			  ${LIBXML2_LIBRARIES}
 		      ${HDF5_LIBRARIES} 
-		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY})
+		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} ${Boost_LIBRARIES})
 
 target_link_libraries(siemens_to_HDF5 
 		      optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
 		      tinyxml
 		      ${HDF5_LIBRARIES} 
-		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY})
+		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} ${Boost_LIBRARIES})
 
 install(TARGETS siemens_mriclient siemens_to_HDF5 DESTINATION bin)
 install(FILES ${ISMRMRD_LIBRARIES} DESTINATION lib)
