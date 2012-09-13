@@ -32,14 +32,18 @@ find_package(ACE REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
 #find_package(TinyXML REQUIRED)
 
-find_package(LibXml2 REQUIRED)
-find_package(LibXslt REQUIRED)
-
+#On windows we will call xsltproc via a system call and the libraries are not needed for compile.
+IF (NOT WIN32)
+	find_package(LibXml2 REQUIRED)
+	find_package(LibXslt REQUIRED)
+	INCLUDE_DIRECTORIES(${GADGETRON_INCLUDE_DIR} ${ACE_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
+ELSE(NOT WIN32)
+	INCLUDE_DIRECTORIES(${GADGETRON_INCLUDE_DIR} ${ACE_INCLUDE_DIR} ${Boost_INCLUDE_DIR})	
+ENDIF(NOT WIN32)
 
 set(CMAKE_INSTALL_PREFIX ${GADGETRON_HOME})
 
  
-INCLUDE_DIRECTORIES(${GADGETRON_INCLUDE_DIR} ${ACE_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
 LINK_DIRECTORIES(${GADGETRON_LIB_DIR})
 
 add_subdirectory(siemens_mriclient)

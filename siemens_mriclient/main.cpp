@@ -6,6 +6,7 @@
 #include "ace/OS_NS_string.h"
 #include "ace/Reactor.h"
 
+#ifndef WIN32
 #include <libxml/parser.h>
 #include <libxml/xmlschemas.h>
 #include <libxml/xmlmemory.h>
@@ -18,6 +19,7 @@
 #include <libxslt/xsltInternals.h>
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
+#endif WIN32
 
 #include "GadgetMessageInterface.h"
 #include "GadgetMRIHeaders.h"
@@ -28,7 +30,6 @@
 #include "GadgetXml.h"
 #include "XNode.h"
 #include "FileInfo.h"
-#include "GadgetIsmrmrdReadWrite.h"
 
 #include "siemens_hdf5_datatypes.h"
 #include "HDF5ImageWriter.h"
@@ -39,6 +40,9 @@
 #include <H5Cpp.h>
 
 #include <iomanip>
+
+#define EXCLUDE_ISMRMRD_XSD
+#include "GadgetIsmrmrdReadWrite.h"
 
 #ifndef H5_NO_NAMESPACE
 using namespace H5;
@@ -52,6 +56,7 @@ void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp
 		double** x_trajectory, double** y_trajectory,
 		double** weights);
 
+#ifndef WIN32
 int xml_file_is_valid(std::string& xml, const char *schema_filename)
 {
 
@@ -95,7 +100,7 @@ int xml_file_is_valid(std::string& xml, const char *schema_filename)
     /* force the return value to be non-negative on success */
     return is_valid ? 1 : 0;
 }
-
+#endif //WIN32
 
 std::string get_date_time_string()
 {
@@ -565,6 +570,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	}
 
 
+	ACE_TCHAR schema_file_name[4096];
+	ACE_OS::sprintf(schema_file_name, "%s/schema/ismrmrd.xsd", gadgetron_home);
+
+#ifndef WIN32
 	xsltStylesheetPtr cur = NULL;
 	xmlDocPtr doc, res;
 
@@ -593,9 +602,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 	xml_config = std::string((char*)out_ptr,xslt_length);
 
 
-	ACE_TCHAR schema_file_name[4096];
-	ACE_OS::sprintf(schema_file_name, "%s/schema/ismrmrd.xsd", gadgetron_home);
-
 	if (!FileInfo(std::string(schema_file_name)).exists()) {
 		ACE_DEBUG((LM_INFO, ACE_TEXT("ISMRMRD schema file %s does not exist.\n"), schema_file_name));
 		return -1;
@@ -619,7 +625,18 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     xsltCleanupGlobals();
     xmlCleanupParser();
+#else
+	std::ofstream o("xml_pre.xml");
+	o.write(xml_config.c_str(), xml_config.size());
+	o.close();
 
+	std::string syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+	system(syscmd.c_str());
+
+	std::ifstream t("xml_post.xml");
+	xml_config = std::string((std::istreambuf_iterator<char>(t)),
+                 std::istreambuf_iterator<char>());
+#endif //WIN32
 
 	ISMRMRD::AcquisitionHeader acq_head_base;
 	memset(&acq_head_base, 0, sizeof(ISMRMRD::AcquisitionHeader) );
