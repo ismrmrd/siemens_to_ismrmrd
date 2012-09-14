@@ -19,7 +19,7 @@
 #include <libxslt/xsltInternals.h>
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
-#endif WIN32
+#endif //WIN32
 
 #include "GadgetMessageInterface.h"
 #include "GadgetMRIHeaders.h"
