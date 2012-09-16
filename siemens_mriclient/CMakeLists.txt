@@ -36,6 +36,8 @@ IF (WIN32)
 	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/zlib_D.lib)
 	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/szip_D.lib)
 
+	set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
+
 ELSE(WIN32)	
 	target_link_libraries(siemens_mriclient ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})	
 	target_link_libraries(siemens_to_HDF5 ${HDF5_LIBRARIES})
@@ -43,14 +45,15 @@ ENDIF(WIN32)
 
 target_link_libraries(siemens_mriclient
 		      optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
-		      tinyxml
+              optimized gadgetroncore debug gadgetroncore${CMAKE_DEBUG_SUFFIX}
+		      optimized tinyxml debug tinyxml${CMAKE_DEBUG_SUFFIX} 
 		      ${ISMRMRD_LIBRARIES}
-		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} ${Boost_LIBRARIES})
+		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${ISMRMRD_XSD_LIBRARIES})
 
 target_link_libraries(siemens_to_HDF5 
 		      optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
-		      tinyxml
-		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} ${Boost_LIBRARIES})
+		      optimized tinyxml debug tinyxml${CMAKE_DEBUG_SUFFIX} 
+		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${ISMRMRD_XSD_LIBRARIES})
 
 install(TARGETS siemens_mriclient siemens_to_HDF5 DESTINATION bin)
 install(FILES ${ISMRMRD_LIBRARIES} DESTINATION lib)
