@@ -671,10 +671,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 			return -1;
 		}
 
-        std::cout<< "---------------------------------------------------------------" << std::endl;
-        std::cout<< xml_config << std::endl;
-        std::cout<< "---------------------------------------------------------------" << std::endl;
-
 		if (con.send_gadgetron_parameters(xml_config) != 0) {
 			ACE_DEBUG((LM_ERROR, ACE_TEXT("Unable to send XML parameters to the Gadgetron host")));
 			return -1;

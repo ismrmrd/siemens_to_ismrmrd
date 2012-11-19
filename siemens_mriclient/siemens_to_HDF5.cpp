@@ -256,7 +256,6 @@ int main(int argc, char** argv)
 				(((ParcFileEntries[i].off_+ ParcFileEntries[i].len_)-f.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
 		{
 			size_t position_in_meas = f.tellg();
-
 			sScanHeader_with_data scanhead;
 			f.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
 
@@ -305,8 +304,12 @@ int main(int argc, char** argv)
 				sScanHeader_with_syncdata synch_data;
 				synch_data.scanHeader = scanhead.scanHeader;
 				synch_data.last_scan_counter = acquisitions-1;
-				synch_data.syncdata.len = dma_length-sizeof(sScanHeader);
 
+				if (VBFILE) {
+				    synch_data.syncdata.len = dma_length-sizeof(sMDH);
+                                } else {
+				    synch_data.syncdata.len = dma_length-sizeof(sScanHeader);
+                                 }
 				std::vector<uint8_t> synchdatabytes(synch_data.syncdata.len);
 				synch_data.syncdata.p = &synchdatabytes[0];
 				f.read(reinterpret_cast<char*>(&synchdatabytes[0]), synch_data.syncdata.len);
