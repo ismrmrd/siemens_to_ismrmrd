@@ -14,27 +14,27 @@ IF (WIN32)
 	target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/hdf5_cppdll.lib)
 	target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/hdf5_hldll.lib)
 
-	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5ddll.lib)
-	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5_cppddll.lib)
-	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5_hlddll.lib)
+	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5dll.lib)
+	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5_cppdll.lib)
+	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5_hldll.lib)
 
 	target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/zlib.lib)
 	target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/szip.lib)
-	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/zlib_D.lib)
-	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/szip_D.lib)
+	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/zlib.lib)
+	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/szip.lib)
 
 	target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5dll.lib)
 	target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5_cppdll.lib)
 	target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5_hldll.lib)
 
-	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5ddll.lib)
-	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5_cppddll.lib)
-	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5_hlddll.lib)
+	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5dll.lib)
+	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5_cppdll.lib)
+	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5_hldll.lib)
 
 	target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/zlib.lib)
 	target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/szip.lib)
-	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/zlib_D.lib)
-	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/szip_D.lib)
+	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/zlib.lib)
+	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/szip.lib)
 
 	set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 
