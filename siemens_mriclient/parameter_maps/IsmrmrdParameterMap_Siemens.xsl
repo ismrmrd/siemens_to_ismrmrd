@@ -272,7 +272,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   	</xsl:if>
   </parallelImaging>
   </xsl:if>
-  <sequenceTiming>
+  <sequenceParameters>
    <xsl:for-each select="siemens/MEAS/alTR">
 	<xsl:if test=". &gt; 0"><TR><xsl:value-of select=". div 1000.0" /></TR></xsl:if>
    </xsl:for-each>
@@ -286,7 +286,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
    <xsl:for-each select="siemens/MEAS/alTI">
 	<xsl:if test=". &gt; 0"><TI><xsl:value-of select=". div 1000.0" /></TI></xsl:if>
    </xsl:for-each>
-  </sequenceTiming>
+  </sequenceParameters>
 </ismrmrdHeader>
 </xsl:template>
 
