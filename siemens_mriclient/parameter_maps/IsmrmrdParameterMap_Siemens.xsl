@@ -247,8 +247,18 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   <xsl:if test="not(siemens/MEAS/sPat/ucPATMode = 1)">  
   <parallelImaging>
   	<accelerationFactor>
-  		<kspace_encoding_step_1><xsl:value-of select="siemens/MEAS/sPat/lAccelFactPE"/></kspace_encoding_step_1>
-  		<kspace_encoding_step_2><xsl:value-of select="siemens/MEAS/sPat/lAccelFact3D"/></kspace_encoding_step_2>  		
+		<kspace_encoding_step_1>
+                  <xsl:choose>
+                    <xsl:when test="not(siemens/MEAS/sPat/lAccelFactPE)">1</xsl:when>
+                    <xsl:otherwise><xsl:value-of select="(siemens/MEAS/sPat/lAccelFactPE)"/></xsl:otherwise>
+                  </xsl:choose>
+        </kspace_encoding_step_1>
+        <kspace_encoding_step_2>
+                 <xsl:choose>
+                    <xsl:when test="not(siemens/MEAS/sPat/lAccelFact3D)">1</xsl:when>
+                    <xsl:otherwise><xsl:value-of select="(siemens/MEAS/sPat/lAccelFact3D)"/></xsl:otherwise>
+                 </xsl:choose>
+        </kspace_encoding_step_2>
   	</accelerationFactor>
   	<calibrationMode>
 	<xsl:choose>
