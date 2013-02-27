@@ -883,6 +883,22 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_acq->head_.user_int[0]                      = scanhead.scanHeader.ushKSpaceCentreLineNo;
         ismrmrd_acq->head_.user_int[1]                      = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
 
+        int MDH_FREEHDRPARAOFFSET = 4; // following ICE definition
+
+        ismrmrd_acq->head_.user_int[4]   = scanhead.scanHeader.aushIceProgramPara[0];
+        ismrmrd_acq->head_.user_int[5]   = scanhead.scanHeader.aushIceProgramPara[1];
+        ismrmrd_acq->head_.user_int[6]   = scanhead.scanHeader.aushIceProgramPara[2];
+        ismrmrd_acq->head_.user_int[7]   = scanhead.scanHeader.aushIceProgramPara[3];
+
+        ismrmrd_acq->head_.user_float[0] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET];
+        ismrmrd_acq->head_.user_float[1] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+1];
+        ismrmrd_acq->head_.user_float[2] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+2];
+        ismrmrd_acq->head_.user_float[3] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+3];
+        ismrmrd_acq->head_.user_float[4] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+4];
+        ismrmrd_acq->head_.user_float[5] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+5];
+        ismrmrd_acq->head_.user_float[6] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+6];
+        ismrmrd_acq->head_.user_float[7] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+7];
+
         //This memory will be deleted by the ISMRMRD::Acquisition object
         ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
 
