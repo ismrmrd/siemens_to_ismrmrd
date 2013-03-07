@@ -234,7 +234,7 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 void print_usage() 
 {
     ACE_DEBUG((LM_INFO, ACE_TEXT("Usage: \n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                      (default 9002)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                      (default 9016)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                      (default localhost)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <HDF5 DATA FILE>            (default ./data.h5)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -d <HDF5 DATASET NUMBER>       (default 0)\n") ));
@@ -262,7 +262,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     ACE_Get_Opt cmd_opts(argc, argv, options);
 
     ACE_TCHAR port_no[1024];
-    ACE_OS_String::strncpy(port_no, "9002", 1024);
+    ACE_OS_String::strncpy(port_no, "9016", 1024);
 
     ACE_TCHAR hostname[1024];
     ACE_OS_String::strncpy(hostname, "localhost", 1024);
@@ -880,24 +880,23 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         /* uint16_t ushKSpaceCentreLineNo                                       */
         /* uint16_t ushKSpaceCentrePartitionNo                                  */
         /************************************************************************/
-        ismrmrd_acq->head_.user_int[0]                      = scanhead.scanHeader.ushKSpaceCentreLineNo;
-        ismrmrd_acq->head_.user_int[1]                      = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
+        ismrmrd_acq->head_.user_int[0]   = scanhead.scanHeader.aushIceProgramPara[0];
+        ismrmrd_acq->head_.user_int[1]   = scanhead.scanHeader.aushIceProgramPara[1];
+        ismrmrd_acq->head_.user_int[2]   = scanhead.scanHeader.aushIceProgramPara[2];
+        ismrmrd_acq->head_.user_int[3]   = scanhead.scanHeader.aushIceProgramPara[3];
+        ismrmrd_acq->head_.user_int[4]   = scanhead.scanHeader.aushIceProgramPara[4];
+        ismrmrd_acq->head_.user_int[5]   = scanhead.scanHeader.aushIceProgramPara[5];
+        ismrmrd_acq->head_.user_int[6]   = scanhead.scanHeader.aushIceProgramPara[6];
+        ismrmrd_acq->head_.user_int[7]   = scanhead.scanHeader.aushIceProgramPara[7];
 
-        int MDH_FREEHDRPARAOFFSET = 4; // following ICE definition
-
-        ismrmrd_acq->head_.user_int[4]   = scanhead.scanHeader.aushIceProgramPara[0];
-        ismrmrd_acq->head_.user_int[5]   = scanhead.scanHeader.aushIceProgramPara[1];
-        ismrmrd_acq->head_.user_int[6]   = scanhead.scanHeader.aushIceProgramPara[2];
-        ismrmrd_acq->head_.user_int[7]   = scanhead.scanHeader.aushIceProgramPara[3];
-
-        ismrmrd_acq->head_.user_float[0] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET];
-        ismrmrd_acq->head_.user_float[1] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+1];
-        ismrmrd_acq->head_.user_float[2] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+2];
-        ismrmrd_acq->head_.user_float[3] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+3];
-        ismrmrd_acq->head_.user_float[4] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+4];
-        ismrmrd_acq->head_.user_float[5] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+5];
-        ismrmrd_acq->head_.user_float[6] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+6];
-        ismrmrd_acq->head_.user_float[7] = scanhead.scanHeader.aushIceProgramPara[MDH_FREEHDRPARAOFFSET+7];
+        ismrmrd_acq->head_.user_float[0] = scanhead.scanHeader.aushIceProgramPara[8];
+        ismrmrd_acq->head_.user_float[1] = scanhead.scanHeader.aushIceProgramPara[9];
+        ismrmrd_acq->head_.user_float[2] = scanhead.scanHeader.aushIceProgramPara[10];
+        ismrmrd_acq->head_.user_float[3] = scanhead.scanHeader.aushIceProgramPara[11];
+        ismrmrd_acq->head_.user_float[4] = scanhead.scanHeader.aushIceProgramPara[12];
+        ismrmrd_acq->head_.user_float[5] = scanhead.scanHeader.aushIceProgramPara[13];
+        ismrmrd_acq->head_.user_float[6] = scanhead.scanHeader.aushIceProgramPara[14];
+        ismrmrd_acq->head_.user_float[7] = scanhead.scanHeader.aushIceProgramPara[15];
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
         ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
