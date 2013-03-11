@@ -846,7 +846,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 		// Convert Siemens quaternions to direction cosines.  In the Siemens convention
 		// the quaternion corressponds to a rotation matrix with columns P R S
-		quaternion_to_directions( scanhead.scanHeader.sSliceData.aflQuaternion, 
+		ISMRMRD::quaternion_to_directions( scanhead.scanHeader.sSliceData.aflQuaternion, 
 					  ismrmrd_acq_head.phase_dir,
 					  ismrmrd_acq_head.read_dir,
 					  ismrmrd_acq_head.slice_dir);
