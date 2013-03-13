@@ -844,9 +844,15 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		ismrmrd_acq_head.position[1]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
 		ismrmrd_acq_head.position[2]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
 
-		// Convert Siemens quaternions to direction cosines.  In the Siemens convention
-		// the quaternion corressponds to a rotation matrix with columns P R S
-		ISMRMRD::quaternion_to_directions( scanhead.scanHeader.sSliceData.aflQuaternion, 
+		// Convert Siemens quaternions to direction cosines.
+		// In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
+                // Siemens stores the quaternion as (W,X,Y,Z)
+                float quat[4];
+                quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
+                quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
+                quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
+                quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
+		ISMRMRD::quaternion_to_directions( quat,
 					  ismrmrd_acq_head.phase_dir,
 					  ismrmrd_acq_head.read_dir,
 					  ismrmrd_acq_head.slice_dir);
