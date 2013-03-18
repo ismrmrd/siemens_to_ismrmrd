@@ -878,28 +878,35 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         //   int32_t            user_int[8];                    //Free user parameters
         //   float              user_float[8];                  //Free user parameters
 
-        /************************************************************************/
-        /* the user_int[0] and user_int[1] are used to store                    */
-        /* uint16_t ushKSpaceCentreLineNo                                       */
-        /* uint16_t ushKSpaceCentrePartitionNo                                  */
-        /************************************************************************/
-        ismrmrd_acq->head_.user_int[0]   = scanhead.scanHeader.aushIceProgramPara[0];
-        ismrmrd_acq->head_.user_int[1]   = scanhead.scanHeader.aushIceProgramPara[1];
-        ismrmrd_acq->head_.user_int[2]   = scanhead.scanHeader.aushIceProgramPara[2];
-        ismrmrd_acq->head_.user_int[3]   = scanhead.scanHeader.aushIceProgramPara[3];
-        ismrmrd_acq->head_.user_int[4]   = scanhead.scanHeader.aushIceProgramPara[4];
-        ismrmrd_acq->head_.user_int[5]   = scanhead.scanHeader.aushIceProgramPara[5];
-        ismrmrd_acq->head_.user_int[6]   = scanhead.scanHeader.aushIceProgramPara[6];
-        ismrmrd_acq->head_.user_int[7]   = scanhead.scanHeader.aushIceProgramPara[7];
+        /*****************************************************************************/
+        /* the user_int[0] and user_int[1] are used to store user defined parameters */
+        /*****************************************************************************/
+        ismrmrd_acq_head.user_int[0]   = scanhead.scanHeader.aushIceProgramPara[0];
+        ismrmrd_acq_head.user_int[1]   = scanhead.scanHeader.aushIceProgramPara[1];
+        ismrmrd_acq_head.user_int[2]   = scanhead.scanHeader.aushIceProgramPara[2];
+        ismrmrd_acq_head.user_int[3]   = scanhead.scanHeader.aushIceProgramPara[3];
+        ismrmrd_acq_head.user_int[4]   = scanhead.scanHeader.aushIceProgramPara[4];
+        ismrmrd_acq_head.user_int[5]   = scanhead.scanHeader.aushIceProgramPara[5];
+        ismrmrd_acq_head.user_int[6]   = scanhead.scanHeader.aushIceProgramPara[6];
+        ismrmrd_acq_head.user_int[7]   = scanhead.scanHeader.aushIceProgramPara[7];
 
-        ismrmrd_acq->head_.user_float[0] = scanhead.scanHeader.aushIceProgramPara[8];
-        ismrmrd_acq->head_.user_float[1] = scanhead.scanHeader.aushIceProgramPara[9];
-        ismrmrd_acq->head_.user_float[2] = scanhead.scanHeader.aushIceProgramPara[10];
-        ismrmrd_acq->head_.user_float[3] = scanhead.scanHeader.aushIceProgramPara[11];
-        ismrmrd_acq->head_.user_float[4] = scanhead.scanHeader.aushIceProgramPara[12];
-        ismrmrd_acq->head_.user_float[5] = scanhead.scanHeader.aushIceProgramPara[13];
-        ismrmrd_acq->head_.user_float[6] = scanhead.scanHeader.aushIceProgramPara[14];
-        ismrmrd_acq->head_.user_float[7] = scanhead.scanHeader.aushIceProgramPara[15];
+        ismrmrd_acq_head.user_float[0] = scanhead.scanHeader.aushIceProgramPara[8];
+        ismrmrd_acq_head.user_float[1] = scanhead.scanHeader.aushIceProgramPara[9];
+        ismrmrd_acq_head.user_float[2] = scanhead.scanHeader.aushIceProgramPara[10];
+        ismrmrd_acq_head.user_float[3] = scanhead.scanHeader.aushIceProgramPara[11];
+        ismrmrd_acq_head.user_float[4] = scanhead.scanHeader.aushIceProgramPara[12];
+        ismrmrd_acq_head.user_float[5] = scanhead.scanHeader.aushIceProgramPara[13];
+        ismrmrd_acq_head.user_float[6] = scanhead.scanHeader.aushIceProgramPara[14];
+        ismrmrd_acq_head.user_float[7] = scanhead.scanHeader.aushIceProgramPara[15];
+
+        ismrmrd_acq->setHead(ismrmrd_acq_head);
+
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 29))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
 		//ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
