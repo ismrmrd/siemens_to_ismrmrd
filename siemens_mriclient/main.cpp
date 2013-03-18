@@ -234,7 +234,7 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 void print_usage() 
 {
     ACE_DEBUG((LM_INFO, ACE_TEXT("Usage: \n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                      (default 9016)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                      (default 9002)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                      (default localhost)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <HDF5 DATA FILE>            (default ./data.h5)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -d <HDF5 DATASET NUMBER>       (default 0)\n") ));
@@ -262,7 +262,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     ACE_Get_Opt cmd_opts(argc, argv, options);
 
     ACE_TCHAR port_no[1024];
-    ACE_OS_String::strncpy(port_no, "9016", 1024);
+    ACE_OS_String::strncpy(port_no, "9002", 1024);
 
     ACE_TCHAR hostname[1024];
     ACE_OS_String::strncpy(hostname, "localhost", 1024);
