@@ -821,9 +821,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ISMRMRD::Acquisition* ismrmrd_acq = m2->getObjectPtr();
 		ISMRMRD::AcquisitionHeader ismrmrd_acq_head;		
 
+		memset(&ismrmrd_acq_head,0,sizeof(ismrmrd_acq_head));
+
 		ismrmrd_acq_head.measurement_uid 				= scanhead.scanHeader.lMeasUID;
 		ismrmrd_acq_head.scan_counter					= scanhead.scanHeader.ulScanCounter;
-		ismrmrd_acq_head.acquisition_time_stamp		= scanhead.scanHeader.ulTimeStamp;
+		ismrmrd_acq_head.acquisition_time_stamp		    = scanhead.scanHeader.ulTimeStamp;
 		ismrmrd_acq_head.physiology_time_stamp[0]		= scanhead.scanHeader.ulPMUTimeStamp;
 		ismrmrd_acq_head.number_of_samples 			= scanhead.scanHeader.ushSamplesInScan;
 		ismrmrd_acq_head.available_channels			= max_channels;
