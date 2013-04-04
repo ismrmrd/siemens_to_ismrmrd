@@ -48,6 +48,8 @@
 using namespace H5;
 #endif
 
+using namespace Gadgetron;
+
 void calc_vds(double slewmax,double gradmax,double Tgsample,double Tdsample,int Ninterleaves,
         double* fov, int numfov,double krmax,
         int ngmax, double** xgrad,double** ygrad,int* numgrad);
@@ -765,10 +767,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         trajectory_dimensions.push_back(ngrad);
         trajectory_dimensions.push_back(interleaves);
 
-        if (!traj->create(&trajectory_dimensions)) {
-            std::cout << "Unable to allocate memory for trajectory\n" << std::endl;
-            return -1;;
-        }
+        traj->create(&trajectory_dimensions);
 
         float* co_ptr = reinterpret_cast<float*>(traj->get_data_ptr());
 
