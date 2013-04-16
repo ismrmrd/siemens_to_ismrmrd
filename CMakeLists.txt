@@ -3,18 +3,18 @@ cmake_minimum_required(VERSION 2.6)
 project(GT_SIEMENS_APPS)
 
 if (WIN32)
-ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
-ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
-SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
+  ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
+  ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
+  SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
+  SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
 endif (WIN32)
 
 ###############################################################
 #Bootstrap search for libraries (We need to find cmake modules in Gadgetron)
 ###############################################################
 find_path(GADGETRON_CMAKE_MODULES FindGadgetron.cmake HINTS
-$ENV{GADGETRON_HOME}/cmake
-/usr/local/gadgetron/cmake)
+  $ENV{GADGETRON_HOME}/cmake
+  /usr/local/gadgetron/cmake)
 
 if (NOT GADGETRON_CMAKE_MODULES)
    #TODO: Check if path found otherwise create error
@@ -30,7 +30,6 @@ set(Boost_NO_BOOST_CMAKE ON)
 find_package(Boost COMPONENTS thread system REQUIRED)
 find_package(ACE REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
-#find_package(TinyXML REQUIRED)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
 IF (NOT WIN32)
@@ -42,7 +41,6 @@ ELSE(NOT WIN32)
 ENDIF(NOT WIN32)
 
 set(CMAKE_INSTALL_PREFIX ${GADGETRON_HOME})
-
  
 LINK_DIRECTORIES(${GADGETRON_LIB_DIR})
 
