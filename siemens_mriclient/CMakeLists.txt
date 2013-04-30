@@ -40,12 +40,12 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 target_link_libraries(siemens_mriclient
-		      optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
-              optimized gadgetroncore debug gadgetroncore${CMAKE_DEBUG_SUFFIX}		      
-		      ${ISMRMRD_LIBRARIES}
-		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
-			  ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} 
-			  )
+              optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
+              optimized gadgetroncore debug gadgetroncore${CMAKE_DEBUG_SUFFIX}
+              optimized tinyxml debug tinyxml${CMAKE_DEBUG_SUFFIX}
+              ${ISMRMRD_LIBRARIES}
+              optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
+              ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} )
 
 target_link_libraries(siemens_to_HDF5 
 		      optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
