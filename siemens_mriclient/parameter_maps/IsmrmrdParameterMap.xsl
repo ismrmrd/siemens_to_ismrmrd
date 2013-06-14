@@ -203,6 +203,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   	<calibrationMode>
 	<xsl:choose>
 		<xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 2">embedded</xsl:when>
+		<xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 4">separate</xsl:when>
 		<xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 8">separate</xsl:when>
 		<xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">interleaved</xsl:when>
 		<xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">interleaved</xsl:when>
