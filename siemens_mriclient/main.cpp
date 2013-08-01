@@ -902,12 +902,15 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
         ismrmrd_acq->setHead(ismrmrd_acq_head);
 
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 29))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 29)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 21)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PHASECORR_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 24)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_REVERSE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
 		//ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
