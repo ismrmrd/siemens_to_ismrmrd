@@ -438,6 +438,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     long dwell_time_0 = 0;
     long max_channels = 0;
     long radial_views = 0;
+    std::string protocol_name = "";
+
     for (unsigned int b = 0; b < mhead.nr_buffers; b++) {
         if (std::string((char*)buffers[b].bufName_.p).compare("Meas") == 0) {
             std::string config_buffer((char*)buffers[b].buf_.p,buffers[b].buf_.len-2);//-2 because the last two character are ^@
@@ -535,7 +537,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 }
             }
 
-            //Get some parameters - max channels
+            //Get some parameters - radial views
             {
                 const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lRadialViews"), n);
                 std::vector<std::string> temp;
@@ -552,11 +554,30 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 }
             }
 
+            //Get some parameters - protocol name
+            {
+                const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("HEADER.tProtocolName"), n);
+                std::vector<std::string> temp;
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                } else {
+                    std::cout << "HEADER.tProtocolName not found" << std::endl;
+                }
+                if (temp.size() != 1) {
+                    std::cout << "Failed to find HEADER.tProtocolName" << std::endl;
+                    return -1;
+                } else {
+		    protocol_name = temp[0];
+                }
+            }
+
+
             xml_config = ProcessGadgetronParameterMap(n,parammap_file);
             break;
         }
     }
 
+    std::cout << "Protocol Name: " << protocol_name << std::endl;
 
     if (debug_xml) {
         std::ofstream o("xml_raw.xml");
@@ -835,7 +856,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		ismrmrd_acq_head.center_sample					= scanhead.scanHeader.ushKSpaceCentreColumn;
 		ismrmrd_acq_head.encoding_space_ref            = 0;
 		ismrmrd_acq_head.trajectory_dimensions         = 0;
-        if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25)) { //This is noise
+		if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
 			ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
         } else {
 			ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
