@@ -897,6 +897,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		ismrmrd_acq_head.idx.user[2]						= scanhead.scanHeader.sLC.ushIdc;
 		ismrmrd_acq_head.idx.user[3]						= scanhead.scanHeader.sLC.ushIdd;
 		ismrmrd_acq_head.idx.user[4]						= scanhead.scanHeader.sLC.ushIde;
+        ismrmrd_acq_head.idx.user[5]						= scanhead.scanHeader.ushKSpaceCentreLineNo;
+        ismrmrd_acq_head.idx.user[6]						= scanhead.scanHeader.ushKSpaceCentrePartitionNo;
         //   int32_t            user_int[8];                    //Free user parameters
         //   float              user_float[8];                  //Free user parameters
 
@@ -926,12 +928,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 29)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 21)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PHASECORR_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 24)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_REVERSE));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 21)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PHASECORR_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NAVIGATION_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 2)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
