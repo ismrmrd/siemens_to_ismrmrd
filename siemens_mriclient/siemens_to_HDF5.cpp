@@ -78,7 +78,10 @@ int main(int argc, char** argv)
     //Now lets head the Parc file entries for each of the included measurements.
     std::vector<MrParcRaidFileEntry> ParcFileEntries(64);
 
-    if (VBFILE) {
+    unsigned int totalNumScan = 0;
+
+    if (VBFILE)
+    {
         //We are just going to fill these with zeros in this case. It doesn't exist.
         for (unsigned int i = 0; i < ParcFileEntries.size(); i++) {
             memset(&ParcFileEntries[i],0,sizeof(MrParcRaidFileEntry));
@@ -87,6 +90,57 @@ int main(int argc, char** argv)
         f.seekg(0,std::ios::end); //Rewind a bit, we have no raid file header.
         ParcFileEntries[0].len_ = f.tellg();
         f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
+
+        std::cout << " ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
+
+        // use a slow method to find file end
+        uint32_t L_P;
+
+        unsigned long long totalLen = 0;
+
+        f.read(reinterpret_cast<char*>(&L_P),sizeof(uint32_t));
+        f.seekg(L_P,std::ios::beg);
+        f.seekg(7*4,std::ios::cur);
+
+        short Samples;
+        f.read(reinterpret_cast<char*>(&Samples),sizeof(uint16_t));
+        f.seekg(128-30,std::ios::cur);
+        f.seekg(8*Samples + 4,std::ios::cur);
+
+        totalLen += L_P;
+        totalLen += 128;
+        totalLen += 8*Samples;
+
+        unsigned long long totalScanNum = 0;
+        unsigned int maxCha = Samples;
+        try{
+            while (!f.eof())
+            {
+                totalScanNum = totalScanNum + 1;
+                f.seekg(7*4 - 4 ,std::ios::cur);
+                f.read(reinterpret_cast<char*>(&Samples),sizeof(uint16_t));
+                f.seekg(128-30,std::ios::cur);
+                f.seekg(8*Samples + 4,std::ios::cur);
+                totalLen += 128;
+                totalLen += 8*Samples;
+            }
+
+            std::cout << "file end reached; total " << totalScanNum << " scans ... " << std::endl;
+        }
+        catch(...)
+        {
+            std::cout << "exception, file end reached; total " << totalScanNum << " scans ... " << std::endl;
+        }
+
+        f.close();
+        f.open(infile.c_str(), std::ios::in | std::ios::binary);
+
+        std::cout << "file end reached; total " << totalLen << " bytes ... " << std::endl;
+
+        ParcFileEntries[0].len_ = totalLen;
+
+        f.seekg(0,std::ios::beg);
+
     } else {
         for (unsigned int i = 0; i < ParcFileEntries.size(); i++) {
             f.read(reinterpret_cast<char*>(&ParcFileEntries[i]),sizeof(MrParcRaidFileEntry));
@@ -157,7 +211,7 @@ int main(int argc, char** argv)
         MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[mhead.nr_buffers];
         mhead.buffers.p = reinterpret_cast<void*>(buffers);
 
-        //std::cout << "Number of parameter buffers: " << mhead.nr_buffers << std::endl;
+        std::cout << "Number of parameter buffers: " << mhead.nr_buffers << std::endl;
 
 
         char bufname_tmp[32];
@@ -258,6 +312,11 @@ int main(int argc, char** argv)
             size_t position_in_meas = f.tellg();
             sScanHeader_with_data scanhead;
             f.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
+
+            if ( mdh.ulScanCounter%1000 == 0 )
+            {
+                std::cout << " mdh.ulScanCounter = " <<  mdh.ulScanCounter << std::endl;
+            }
 
             if (VBFILE) {
                 f.read(reinterpret_cast<char*>(&mdh)+sizeof(uint32_t), sizeof(sMDH)-sizeof(uint32_t));
@@ -407,6 +466,8 @@ int main(int argc, char** argv)
             acquisitions++;
             last_mask = scanhead.scanHeader.aulEvalInfoMask[0];
         }
+
+        std::cout << " final mdh.ulScanCounter = " <<  mdh.ulScanCounter << " - last_mask : " << last_mask << std::endl;
 
         //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
         //We will store them in the HDF file in case we need them for creating a binary

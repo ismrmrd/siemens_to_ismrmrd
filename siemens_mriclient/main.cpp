@@ -974,6 +974,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             }
         }
 
+        if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 )
+        {
+            std::cout << "sending scan : " << scanhead.scanHeader.ulScanCounter << std::endl;
+        }
+
         //Chain the message block together.
         m1->cont(m2);
         if (!write_to_file_only) {
