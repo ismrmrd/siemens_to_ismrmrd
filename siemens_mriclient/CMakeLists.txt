@@ -15,31 +15,32 @@ add_executable(siemens_mriclient main.cpp siemensraw.cpp XNode.cpp XNodeParser.c
 add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp ${ISMRMRD_XSD_SOURCE})
 
 IF (WIN32)
-	SET(HDF5_LIB_DIR ${HDF5_INCLUDE_DIR}/../lib)
-	target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/hdf5dll.lib)
-	target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/hdf5_cppdll.lib)
-	target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/hdf5_hldll.lib)
+    SET(HDF5_LIB_DIR ${HDF5_INCLUDE_DIR}/../lib)
+    target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/hdf5dll.lib)
+    target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/hdf5_cppdll.lib)
+    target_link_libraries(siemens_mriclient optimized ${HDF5_LIB_DIR}/hdf5_hldll.lib)
 
-	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5ddll.lib)
-	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5_cppddll.lib)
-	target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5_hlddll.lib)
+    target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5ddll.lib)
+    target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5_cppddll.lib)
+    target_link_libraries(siemens_mriclient debug ${HDF5_LIB_DIR}/hdf5_hlddll.lib)
 
-	target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5dll.lib)
-	target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5_cppdll.lib)
-	target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5_hldll.lib)
+    target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5dll.lib)
+    target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5_cppdll.lib)
+    target_link_libraries(siemens_to_HDF5 optimized ${HDF5_LIB_DIR}/hdf5_hldll.lib)
 
-	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5ddll.lib)
-	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5_cppddll.lib)
-	target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5_hlddll.lib)
+    target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5ddll.lib)
+    target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5_cppddll.lib)
+    target_link_libraries(siemens_to_HDF5 debug ${HDF5_LIB_DIR}/hdf5_hlddll.lib)
 
-	set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
+    set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 
-ELSE(WIN32)	
-	target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})	
-	target_link_libraries(siemens_to_HDF5 tinyxml ${HDF5_LIBRARIES})
+ELSE(WIN32)    
+    target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})    
+    target_link_libraries(siemens_to_HDF5 tinyxml ${HDF5_LIBRARIES})
 ENDIF(WIN32)
 
 target_link_libraries(siemens_mriclient
+              optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
               optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
               optimized gadgetron_mricore debug gadgetron_mricore${CMAKE_DEBUG_SUFFIX}
               optimized tinyxml debug tinyxml${CMAKE_DEBUG_SUFFIX}
@@ -48,10 +49,11 @@ target_link_libraries(siemens_mriclient
               ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} )
 
 target_link_libraries(siemens_to_HDF5 
-		      optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
-		      optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
-			  ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} 
-			  )
+              optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
+              optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
+              optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
+              ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} 
+              )
 
 install(TARGETS siemens_mriclient siemens_to_HDF5 DESTINATION bin)
 install(FILES ${ISMRMRD_LIBRARIES} DESTINATION lib)

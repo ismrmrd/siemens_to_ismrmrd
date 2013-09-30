@@ -784,7 +784,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
         traj = boost::shared_ptr< hoNDArray<floatd2> >(new hoNDArray<floatd2>);
 
-        std::vector<unsigned int> trajectory_dimensions;
+        std::vector<unsigned long long> trajectory_dimensions;
         trajectory_dimensions.push_back(ngrad);
         trajectory_dimensions.push_back(interleaves);
 
