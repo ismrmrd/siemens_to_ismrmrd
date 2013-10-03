@@ -3,6 +3,16 @@ find_package(HDF5 1.8 COMPONENTS C CXX REQUIRED)
 find_package(XSD REQUIRED)
 find_package(XercesC REQUIRED)
 
+# whether to compile toolboxes as static library
+OPTION(BUILD_TOOLBOX_STATIC "Build static library for toolboxes" Off)
+
+if ( BUILD_TOOLBOX_STATIC )
+    message("Use static toolbox libray ... ")
+    ADD_DEFINITIONS(-DBUILD_TOOLBOX_STATIC)
+else ( BUILD_TOOLBOX_STATIC )
+    message("Use dynamic toolbox libray ... ")
+endif ( BUILD_TOOLBOX_STATIC )
+
 if(WIN32)
   link_directories(${Boost_LIBRARY_DIRS})
 endif(WIN32)
