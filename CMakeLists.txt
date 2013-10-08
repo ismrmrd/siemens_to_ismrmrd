@@ -2,21 +2,9 @@ cmake_minimum_required(VERSION 2.6)
 
 project(GT_SIEMENS_APPS)
 
-# build options for 64 bits system
-if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
-  message(" 64bit system is found  ... ")
-  set( HAS_64_BIT On CACHE BOOL "64bit build")
-else( CMAKE_SIZEOF_VOID_P EQUAL 8 )
-  message(" 32bit system is found  ... ")
-  set( HAS_64_BIT Off CACHE BOOL "64bit build")
-endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
-
 if (WIN32)
   ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
   ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
-  if ( HAS_64_BIT )
-	# ADD_DEFINITIONS(-DWIN64 -D_WIN64)
-  endif ( HAS_64_BIT )
   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")
   SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
 endif (WIN32)

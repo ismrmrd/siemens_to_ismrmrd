@@ -313,7 +313,7 @@ int main(int argc, char** argv)
             sScanHeader_with_data scanhead;
             f.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
 
-            if ( mdh.ulScanCounter%1000 == 0 && mdh.ulScanCounter>0 )
+            if ( mdh.ulScanCounter%1000 == 0 )
             {
                 std::cout << " mdh.ulScanCounter = " <<  mdh.ulScanCounter << std::endl;
             }
