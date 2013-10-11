@@ -19,7 +19,7 @@ endif(WIN32)
 
 INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}/dependencies/tinyxml
-  ${ISMRMRD_INCLUDE_DIR} ${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS}/cpp ${XSD_INCLUDE_DIR})
+  ${ISMRMRD_INCLUDE_DIR} ${ISMRMRD_SCHEMA_DIR} ${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS}/cpp ${XSD_INCLUDE_DIR})
 
 add_executable(siemens_mriclient main.cpp siemensraw.cpp XNode.cpp XNodeParser.cpp vds.cpp ${ISMRMRD_XSD_SOURCE})
 add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp ${ISMRMRD_XSD_SOURCE})
