@@ -1007,6 +1007,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     if (!write_to_file_only)
     {
+        GADGET_START_TIMING(gtTimer, "Waiting for recon to finish ... ");
+
         GadgetContainerMessage<GadgetMessageIdentifier>* m1 =
                 new GadgetContainerMessage<GadgetMessageIdentifier>();
 
@@ -1017,7 +1019,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             return -1;
         }
 
-        GADGET_START_TIMING(gtTimer, "Waiting for recon to finish ... ");
         con.wait(); //Wait for recon to finish
         GADGET_STOP_TIMING(gtTimer);
     }
