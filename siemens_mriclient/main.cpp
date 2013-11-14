@@ -21,6 +21,7 @@
 #include <libxslt/xsltutils.h>
 #endif //WIN32
 
+#include "GadgetronCommon.h"
 #include "GadgetMessageInterface.h"
 #include "GadgetMRIHeaders.h"
 #include "siemensraw.h"
@@ -30,6 +31,7 @@
 #include "GadgetXml.h"
 #include "XNode.h"
 #include "FileInfo.h"
+#include "GadgetronTimer.h"
 
 #include "siemens_hdf5_datatypes.h"
 #include "HDF5ImageWriter.h"
@@ -296,9 +298,11 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     ACE_OS_String::strncpy(hdf5_out_group, date_time.c_str(), 1024);
 
+    Gadgetron::GadgetronTimer gtTimer;
+    gtTimer.set_timing_in_destruction(false);
+
     unsigned int hdf5_dataset_no = 0;
     bool debug_xml = false;
-
 
     bool write_to_file = false;
     bool write_to_file_only = false;
@@ -804,7 +808,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         delete [] weighting;
     }
 
-    for (unsigned int a = 0; a < acquisitions; a++) {
+    GADGET_START_TIMING(gtTimer, "Sending the data to server ... ");
+
+    for (unsigned int a = 0; a < acquisitions; a++)
+    {
         sScanHeader_with_data scanhead;
 
 
@@ -996,8 +1003,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         }
     }
 
+    GADGET_STOP_TIMING(gtTimer);
 
-    if (!write_to_file_only) {
+    if (!write_to_file_only)
+    {
         GadgetContainerMessage<GadgetMessageIdentifier>* m1 =
                 new GadgetContainerMessage<GadgetMessageIdentifier>();
 
@@ -1008,7 +1017,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             return -1;
         }
 
+        GADGET_START_TIMING(gtTimer, "Waiting for recon to finish ... ");
         con.wait(); //Wait for recon to finish
+        GADGET_STOP_TIMING(gtTimer);
     }
 
     return 0;
