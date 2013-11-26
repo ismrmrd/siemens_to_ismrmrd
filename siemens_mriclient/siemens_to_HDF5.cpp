@@ -93,53 +93,53 @@ int main(int argc, char** argv)
 
         std::cout << " ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
 
-        // use a slow method to find file end
-        uint32_t L_P;
+        //// use a slow method to find file end
+        //uint32_t L_P;
 
-        unsigned long long totalLen = 0;
+        //unsigned long long totalLen = 0;
 
-        f.read(reinterpret_cast<char*>(&L_P),sizeof(uint32_t));
-        f.seekg(L_P,std::ios::beg);
-        f.seekg(7*4,std::ios::cur);
+        //f.read(reinterpret_cast<char*>(&L_P),sizeof(uint32_t));
+        //f.seekg(L_P,std::ios::beg);
+        //f.seekg(7*4,std::ios::cur);
 
-        short Samples;
-        f.read(reinterpret_cast<char*>(&Samples),sizeof(uint16_t));
-        f.seekg(128-30,std::ios::cur);
-        f.seekg(8*Samples + 4,std::ios::cur);
+        //short Samples;
+        //f.read(reinterpret_cast<char*>(&Samples),sizeof(uint16_t));
+        //f.seekg(128-30,std::ios::cur);
+        //f.seekg(8*Samples + 4,std::ios::cur);
 
-        totalLen += L_P;
-        totalLen += 128;
-        totalLen += 8*Samples;
+        //totalLen += L_P;
+        //totalLen += 128;
+        //totalLen += 8*Samples;
 
-        unsigned long long totalScanNum = 0;
-        unsigned int maxCha = Samples;
-        try{
-            while (!f.eof())
-            {
-                totalScanNum = totalScanNum + 1;
-                f.seekg(7*4 - 4 ,std::ios::cur);
-                f.read(reinterpret_cast<char*>(&Samples),sizeof(uint16_t));
-                f.seekg(128-30,std::ios::cur);
-                f.seekg(8*Samples + 4,std::ios::cur);
-                totalLen += 128;
-                totalLen += 8*Samples;
-            }
+        //unsigned long long totalScanNum = 0;
+        //unsigned int maxCha = Samples;
+        //try{
+        //    while (!f.eof())
+        //    {
+        //        totalScanNum = totalScanNum + 1;
+        //        f.seekg(7*4 - 4 ,std::ios::cur);
+        //        f.read(reinterpret_cast<char*>(&Samples),sizeof(uint16_t));
+        //        f.seekg(128-30,std::ios::cur);
+        //        f.seekg(8*Samples + 4,std::ios::cur);
+        //        totalLen += 128;
+        //        totalLen += 8*Samples;
+        //    }
 
-            std::cout << "file end reached; total " << totalScanNum << " scans ... " << std::endl;
-        }
-        catch(...)
-        {
-            std::cout << "exception, file end reached; total " << totalScanNum << " scans ... " << std::endl;
-        }
+        //    std::cout << "file end reached; total " << totalScanNum << " scans ... " << std::endl;
+        //}
+        //catch(...)
+        //{
+        //    std::cout << "exception, file end reached; total " << totalScanNum << " scans ... " << std::endl;
+        //}
 
-        f.close();
-        f.open(infile.c_str(), std::ios::in | std::ios::binary);
+        //f.close();
+        //f.open(infile.c_str(), std::ios::in | std::ios::binary);
 
-        std::cout << "file end reached; total " << totalLen << " bytes ... " << std::endl;
+        //std::cout << "file end reached; total " << totalLen << " bytes ... " << std::endl;
 
-        ParcFileEntries[0].len_ = totalLen;
+        //ParcFileEntries[0].len_ = totalLen;
 
-        f.seekg(0,std::ios::beg);
+        //f.seekg(0,std::ios::beg);
 
     } else {
         for (unsigned int i = 0; i < ParcFileEntries.size(); i++) {
