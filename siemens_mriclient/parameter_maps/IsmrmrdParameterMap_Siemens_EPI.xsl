@@ -153,7 +153,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                             <xsl:value-of select="siemens/YAPS/iNoOfFourierLines"/>
                         </y>
                         <z>
-                            <xsl:value-of select="siemens/YAPS/iNoOfFourierPartitions"/>
+                            <xsl:value-of select="siemens/YAPS/i3DFTLength"/>
                         </z>
                     </matrixSize>
                     <fieldOfView_mm>
@@ -212,12 +212,12 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     <kspace_encoding_step_1>
                         <minimum>0</minimum>
                         <maximum>
-                            <xsl:value-of select="siemens/MEAS/sKSpace/lPhaseEncodingLines - 1"/>
+                            <xsl:value-of select="siemens/YAPS/iNoOfFourierLines - 1"/>
                         </maximum>
                         <xsl:choose>
                             <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
                                 <center>
-                                    <xsl:value-of select="floor((siemens/MEAS/sKSpace/lPhaseEncodingLines div 2))"/>
+                                    <xsl:value-of select="floor((siemens/MEAS/sKSpace/lPhaseEncodingLines div 2)-(siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines))"/>
                                 </center>
                             </xsl:when>
                             <xsl:otherwise>
@@ -234,10 +234,10 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                             </xsl:when>
                             <xsl:otherwise>
                                 <maximum>
-                                    <xsl:value-of select="siemens/MEAS/sKSpace/lPartitions - 1"/>
+                                    <xsl:value-of select="siemens/YAPS/iNoOfFourierPartitions - 1"/>
                                 </maximum>
                                 <center>
-                                    <xsl:value-of select="floor((siemens/MEAS/sKSpace/lPartitions div 2))"/>
+                                    <xsl:value-of select="floor((siemens/MEAS/sKSpace/lPartitions div 2)-(siemens/MEAS/sKSpace/lPartitions - siemens/YAPS/iNoOfFourierPartitions))"/>
                                 </center>
                             </xsl:otherwise>
                         </xsl:choose>
@@ -392,6 +392,30 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     </xsl:if>
                 </xsl:for-each>
             </sequenceParameters>
+
+            <epi>
+                <readOutTime>
+                    <rampupTime>
+                        <xsl:value-of select="siemens/YAPS/alRegridRampupTime"/>
+                    </rampupTime>
+                    <rampdownTime>
+                        <xsl:value-of select="siemens/YAPS/alRegridRampdownTime"/>
+                    </rampdownTime>
+                    <flattopTime>
+                        <xsl:value-of select="siemens/YAPS/alRegridFlattopTime"/>
+                    </flattopTime>
+                    <delaySamplesTime>
+                        <xsl:value-of select="siemens/YAPS/alRegridDelaySamplesTime"/>
+                    </delaySamplesTime>
+                </readOutTime>
+                <ADCDuration>
+                    <xsl:value-of select="siemens/YAPS/aflRegridADCDuration"/>
+                </ADCDuration>
+                <RegridDestSamples>
+                    <xsl:value-of select="siemens/YAPS/alRegridDestSamples"/>
+                </RegridDestSamples>
+            </epi>
+
         </ismrmrdHeader>
     </xsl:template>
 

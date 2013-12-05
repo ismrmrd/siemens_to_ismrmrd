@@ -945,6 +945,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 2)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 51)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
+        // if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
 		//ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];

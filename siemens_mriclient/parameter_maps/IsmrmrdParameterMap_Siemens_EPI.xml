@@ -54,6 +54,12 @@
 <p><s>MEAS.lRepetitions</s>                                 <d>siemens.MEAS.lRepetitions</d></p>
 <p><s>MEAS.lAverages</s>                                    <d>siemens.MEAS.lAverages</d></p>
 <p><s>YAPS.iNSet</s>                                        <d>siemens.YAPS.iNSet</d></p>
+<p><s>YAPS.alRegridRampupTime</s>                           <d>siemens.YAPS.alRegridRampupTime</d></p>
+<p><s>YAPS.alRegridRampdownTime</s>                         <d>siemens.YAPS.alRegridRampdownTime</d></p>
+<p><s>YAPS.alRegridFlattopTime</s>                          <d>siemens.YAPS.alRegridFlattopTime</d></p>
+<p><s>YAPS.alRegridDelaySamplesTime</s>                     <d>siemens.YAPS.alRegridDelaySamplesTime</d></p>
+<p><s>YAPS.aflRegridADCDuration</s>                         <d>siemens.YAPS.aflRegridADCDuration</d></p>
+<p><s>YAPS.alRegridDestSamples</s>                          <d>siemens.YAPS.alRegridDestSamples</d></p>
 </parameters>
 
 
