@@ -674,6 +674,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             std::cerr << "Failed to write XML header to HDF file" << std::endl;
             return -1;
         }
+
+        // a test
+        if (ismrmrd_dataset->writeHeader(xml_config) < 0 ) {
+            std::cerr << "Failed to write XML header to HDF file" << std::endl;
+            return -1;
+        }
     }
 
 
@@ -681,10 +687,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     if (!write_to_file_only) {
 
         //con.register_writer(GADGET_MESSAGE_ACQUISITION, new GadgetAcquisitionMessageWriter());
-        con.register_writer(GADGET_MESSAGE_ISMRMRD_ACQUISITION, new GadgetIsmrmrdAcquisitionMessageWriter());
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_USHORT, new HDF5ImageWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_FLOAT, new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_CPLX_FLOAT, new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_writer(GADGET_MESSAGE_ISMRMRD_ACQUISITION,                     new GadgetIsmrmrdAcquisitionMessageWriter());
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_USHORT,               new HDF5ImageWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_FLOAT,                new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_CPLX_FLOAT,                new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new HDF5ImageAttribWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new HDF5ImageAttribWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new HDF5ImageAttribWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
 
         //Open a connection with the gadgetron
         if (con.open(std::string(hostname),std::string(port_no)) != 0) {

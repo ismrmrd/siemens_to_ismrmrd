@@ -14,14 +14,16 @@ else ( BUILD_TOOLBOX_STATIC )
 endif ( BUILD_TOOLBOX_STATIC )
 
 if(WIN32)
-  link_directories(${Boost_LIBRARY_DIRS})
+    link_directories(${Boost_LIBRARY_DIRS})
 endif(WIN32)
 
-INCLUDE_DIRECTORIES(
-  ${CMAKE_SOURCE_DIR}/dependencies/tinyxml
-  ${ISMRMRD_INCLUDE_DIR} ${ISMRMRD_SCHEMA_DIR} ${HDF5_CXX_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${XSD_INCLUDE_DIR})
+INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
+                     ${ISMRMRD_SCHEMA_DIR} 
+                     ${HDF5_CXX_INCLUDE_DIR} 
+                     ${HDF5_C_INCLUDE_DIR} 
+                     ${XSD_INCLUDE_DIR} )
 
-add_executable(siemens_mriclient main.cpp siemensraw.cpp XNode.cpp XNodeParser.cpp vds.cpp ${ISMRMRD_XSD_SOURCE})
+add_executable(siemens_mriclient main.cpp siemensraw.cpp XNode.cpp XNodeParser.cpp vds.cpp ${ISMRMRD_XSD_SOURCE} siemens_hdf5_datatypes.h siemensraw.h)
 add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp ${ISMRMRD_XSD_SOURCE})
 
 IF (WIN32)
@@ -33,8 +35,8 @@ IF (WIN32)
 
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 
-ELSE(WIN32)    
-    target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})    
+ELSE(WIN32)
+    target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
     target_link_libraries(siemens_to_HDF5 tinyxml ${HDF5_LIBRARIES})
 ENDIF(WIN32)
 
@@ -42,8 +44,7 @@ target_link_libraries(siemens_mriclient
               optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
               optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
               optimized gadgetron_mricore debug gadgetron_mricore${CMAKE_DEBUG_SUFFIX}
-              #optimized tinyxml debug tinyxml${CMAKE_DEBUG_SUFFIX}
-              tinyxml
+              optimized tinyxml debug tinyxml${CMAKE_DEBUG_SUFFIX}
               ${ISMRMRD_LIBRARIES}
               optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
               ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} )
