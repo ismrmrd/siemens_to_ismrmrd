@@ -19,13 +19,14 @@ endif(WIN32)
 
 INCLUDE_DIRECTORIES(
   ${CMAKE_SOURCE_DIR}/dependencies/tinyxml
-  ${ISMRMRD_INCLUDE_DIR} ${ISMRMRD_SCHEMA_DIR} ${HDF5_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS}/cpp ${XSD_INCLUDE_DIR})
+  ${ISMRMRD_INCLUDE_DIR} ${ISMRMRD_SCHEMA_DIR} ${HDF5_CXX_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} ${XSD_INCLUDE_DIR})
 
 IF (WIN32)
-    link_libraries(optimized ${HDF5_hdf5_LIBRARY_RELEASE} optimized ${HDF5_hdf5_cpp_LIBRARY_RELEASE} optimized ${HDF5_hdf5_hl_LIBRARY_RELEASE} 
-	                 debug ${HDF5_hdf5_LIBRARY_DEBUG} debug ${HDF5_hdf5_cpp_LIBRARY_DEBUG} debug ${HDF5_hdf5_hl_LIBRARY_DEBUG})
+    link_libraries(
+      optimized ${HDF5_hdf5_LIBRARY_RELEASE} optimized ${HDF5_hdf5_cpp_LIBRARY_RELEASE} optimized ${HDF5_hdf5_hl_LIBRARY_RELEASE} 
+      debug ${HDF5_hdf5_LIBRARY_DEBUG} debug ${HDF5_hdf5_cpp_LIBRARY_DEBUG} debug ${HDF5_hdf5_hl_LIBRARY_DEBUG})
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
-	add_executable(siemens_mriclient main.cpp siemensraw.cpp XNode.cpp XNodeParser.cpp vds.cpp ${ISMRMRD_XSD_SOURCE})
+    add_executable(siemens_mriclient main.cpp siemensraw.cpp XNode.cpp XNodeParser.cpp vds.cpp ${ISMRMRD_XSD_SOURCE})
     add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp ${ISMRMRD_XSD_SOURCE})
 ELSE(WIN32)    
     add_executable(siemens_mriclient main.cpp siemensraw.cpp XNode.cpp XNodeParser.cpp vds.cpp ${ISMRMRD_XSD_SOURCE})
