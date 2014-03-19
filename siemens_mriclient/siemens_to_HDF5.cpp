@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 
 
     //Get the HDF5 file opened. We will overwrite if the file exists
-    H5File hdf5file(outfile, H5F_ACC_TRUNC);
+	H5File hdf5file(outfile.c_str(), H5F_ACC_TRUNC);
 
     /* OK, let's open the file and start by checking
      * (as best as we can) that it is indeed a VD line file

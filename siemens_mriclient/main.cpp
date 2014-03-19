@@ -412,7 +412,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             std::stringstream str;
             str << "/files/" << hdf5_dataset_no << "/MeasurementHeader";
 
-            DataSet headds = hdf5file.openDataSet(str.str());
+			DataSet headds = hdf5file.openDataSet(str.str().c_str());
             DataType dtype = headds.getDataType();
             DataSpace headspace = headds.getSpace();
 
@@ -427,7 +427,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
             std::cout << "mhead.nr_buffers = " << mhead.nr_buffers << std::endl;
         } catch (...) {
-            std::cout << "Error opening HDF5 file and reading dataset header." << std::endl;
+            std::cout << "Error opening HDF5 file and reading dataset header. Maybe the dataset number is out of range?" << std::endl;
             return -1;
     }
 

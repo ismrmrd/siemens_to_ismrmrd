@@ -26,10 +26,17 @@ set(CMAKE_MODULE_PATH ${GADGETRON_CMAKE_MODULES})
 ###############################################################
 
 find_package(Gadgetron REQUIRED)
+
 set(Boost_NO_BOOST_CMAKE ON)
+if(WIN32)
+  add_definitions( -DBOOST_ALL_NO_LIB )
+  add_definitions( -DBOOST_ALL_DYN_LINK )
+endif(WIN32)
+
 find_package(Boost COMPONENTS thread system REQUIRED)
+
 find_package(ACE REQUIRED)
-find_package(HDF5 1.8 REQUIRED C CXX)
+find_package(HDF5 1.8 REQUIRED C CXX HL)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
 IF (NOT WIN32)
