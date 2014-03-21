@@ -35,6 +35,7 @@
 
 #include "siemens_hdf5_datatypes.h"
 #include "HDF5ImageWriter.h"
+#include "BlobFileWriter.h"
 
 #include "ismrmrd.h"
 #include "ismrmrd_hdf5.h"
@@ -694,6 +695,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new HDF5ImageAttribWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new HDF5ImageAttribWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new HDF5ImageAttribWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_DICOM,                                   new BlobFileWriter(std::string(hdf5_out_file), std::string("dcm")));
 
         //Open a connection with the gadgetron
         if (con.open(std::string(hostname),std::string(port_no)) != 0) {

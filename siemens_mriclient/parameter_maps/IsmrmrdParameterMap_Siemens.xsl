@@ -43,18 +43,41 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                 xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
-            <!--
             <subjectInformation>
                 <patientName>
-                    <xsl:value-of select="siemens/HEADER/tPatientName"/>
+                    <xsl:value-of select="siemens/DICOM/tPatientName"/>
                 </patientName>
                 <xsl:if test="siemens/YAPS/flUsedPatientWeight > 0">
                     <patientWeight_kg>
                         <xsl:value-of select="siemens/YAPS/flUsedPatientWeight"/>
                     </patientWeight_kg>
                 </xsl:if>
+                <patientID>
+                    <xsl:value-of select="siemens/IRIS/RECOMPOSE/PatientID"/>
+                </patientID>
+                <patientGender>
+                    <xsl:choose>
+                        <xsl:when test="siemens/DICOM/lPatientSex = 1">F</xsl:when>
+                        <xsl:when test="siemens/DICOM/lPatientSex = 2">M</xsl:when>
+                        <xsl:otherwise>O</xsl:otherwise>
+                    </xsl:choose>
+                </patientGender>
             </subjectInformation>
-            -->
+
+            <studyInformation>
+                <studyID>
+                    <xsl:value-of select="siemens/IRIS/RECOMPOSE/StudyLOID"/>
+                </studyID>
+            </studyInformation>
+
+            <measurementInformation>
+                <patientPosition>
+                    <xsl:value-of select="siemens/YAPS/tPatientPosition"/>
+                </patientPosition>
+                <protocolName>
+                    <xsl:value-of select="siemens/MEAS/tProtocolName"/>
+                </protocolName>
+            </measurementInformation>
 
             <acquisitionSystemInformation>
                 <systemVendor>
@@ -70,6 +93,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     <xsl:value-of select="siemens/YAPS/iMaxNoOfRxChannels" />
                 </receiverChannels>
                 <relativeReceiverNoiseBandwidth>0.79</relativeReceiverNoiseBandwidth>
+                <institutionName>
+                    <xsl:value-of select="siemens/DICOM/InstitutionName" />
+                </institutionName>
             </acquisitionSystemInformation>
 
             <experimentalConditions>
@@ -392,6 +418,30 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     </xsl:if>
                 </xsl:for-each>
             </sequenceParameters>
+
+            <dicomParameters>
+                <studyInstanceUID>
+                    <xsl:value-of select="siemens/IRIS/RECOMPOSE/StudyLOID" />
+                </studyInstanceUID>
+                <frameOfReferenceUID>
+                    <xsl:value-of select="siemens/YAPS/tFrameOfReference" />
+                </frameOfReferenceUID>
+                <MRImageModule>
+                    <imageType>
+                        <xsl:value-of select="siemens/DICOM/Modality" />
+                    </imageType>
+                    <scanningSequence>
+                        <xsl:value-of select="siemens/DICOM/tScanningSequence" />
+                    </scanningSequence>
+                    <mrAcquisitionType>
+                        <xsl:value-of select="siemens/DICOM/tMRAcquisitionType" />
+                    </mrAcquisitionType>
+                    <flipAngle_deg>
+                        <xsl:value-of select="siemens/DICOM/adFlipAngleDegree" />
+                    </flipAngle_deg>
+                </MRImageModule>
+            </dicomParameters>
+
         </ismrmrdHeader>
     </xsl:template>
 
