@@ -573,7 +573,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                     std::cout << "Failed to find HEADER.tProtocolName" << std::endl;
                     return -1;
                 } else {
-		    protocol_name = temp[0];
+            protocol_name = temp[0];
                 }
             }
 
@@ -693,9 +693,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_USHORT,               new HDF5ImageWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_FLOAT,                new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_CPLX_FLOAT,                new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new HDF5ImageAttribWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        /*con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new HDF5ImageAttribWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new HDF5ImageAttribWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new HDF5ImageAttribWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new HDF5ImageAttribWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));*/
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new AnalyzeImageAttribWriter<ACE_UINT16>());
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new AnalyzeImageAttribWriter<float>());
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new AnalyzeComplexImageAttribWriter< std::complex<float> >());
         con.register_reader(GADGET_MESSAGE_DICOM,                                   new BlobFileWriter(std::string(hdf5_out_file), std::string("dcm")));
         con.register_reader(GADGET_MESSAGE_DICOM_WITHNAME,                          new BlobFileWithAttribWriter(std::string(), std::string("dcm")));
 
@@ -859,66 +862,66 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 new GadgetContainerMessage<ISMRMRD::Acquisition>();
 
         ISMRMRD::Acquisition* ismrmrd_acq = m2->getObjectPtr();
-		ISMRMRD::AcquisitionHeader ismrmrd_acq_head;		
+        ISMRMRD::AcquisitionHeader ismrmrd_acq_head;        
 
-		memset(&ismrmrd_acq_head,0,sizeof(ismrmrd_acq_head));
+        memset(&ismrmrd_acq_head,0,sizeof(ismrmrd_acq_head));
 
-		ismrmrd_acq_head.measurement_uid 				= scanhead.scanHeader.lMeasUID;
-		ismrmrd_acq_head.scan_counter					= scanhead.scanHeader.ulScanCounter;
-		ismrmrd_acq_head.acquisition_time_stamp		    = scanhead.scanHeader.ulTimeStamp;
-		ismrmrd_acq_head.physiology_time_stamp[0]		= scanhead.scanHeader.ulPMUTimeStamp;
-		ismrmrd_acq_head.number_of_samples 			= scanhead.scanHeader.ushSamplesInScan;
-		ismrmrd_acq_head.available_channels			= max_channels;
-		ismrmrd_acq_head.active_channels 				= scanhead.scanHeader.ushUsedChannels;
-           uint64_t           channel_mask[16];               //Mask to indicate which channels are active. Support for 1024 channels
-		ismrmrd_acq_head.discard_pre					= scanhead.scanHeader.sCutOff.ushPre;
-		ismrmrd_acq_head.discard_post					= scanhead.scanHeader.sCutOff.ushPost;
-		ismrmrd_acq_head.center_sample					= scanhead.scanHeader.ushKSpaceCentreColumn;
-		ismrmrd_acq_head.encoding_space_ref            = 0;
-		ismrmrd_acq_head.trajectory_dimensions         = 0;
-		if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
-			ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
+        ismrmrd_acq_head.measurement_uid                 = scanhead.scanHeader.lMeasUID;
+        ismrmrd_acq_head.scan_counter                    = scanhead.scanHeader.ulScanCounter;
+        ismrmrd_acq_head.acquisition_time_stamp            = scanhead.scanHeader.ulTimeStamp;
+        ismrmrd_acq_head.physiology_time_stamp[0]        = scanhead.scanHeader.ulPMUTimeStamp;
+        ismrmrd_acq_head.number_of_samples             = scanhead.scanHeader.ushSamplesInScan;
+        ismrmrd_acq_head.available_channels            = max_channels;
+        ismrmrd_acq_head.active_channels                 = scanhead.scanHeader.ushUsedChannels;
+        uint64_t channel_mask[16];                      //Mask to indicate which channels are active. Support for 1024 channels
+        ismrmrd_acq_head.discard_pre                    = scanhead.scanHeader.sCutOff.ushPre;
+        ismrmrd_acq_head.discard_post                    = scanhead.scanHeader.sCutOff.ushPost;
+        ismrmrd_acq_head.center_sample                    = scanhead.scanHeader.ushKSpaceCentreColumn;
+        ismrmrd_acq_head.encoding_space_ref            = 0;
+        ismrmrd_acq_head.trajectory_dimensions         = 0;
+        if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
+            ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
         } else {
-			ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
+            ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
 
         }
-		ismrmrd_acq_head.position[0]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
-		ismrmrd_acq_head.position[1]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
-		ismrmrd_acq_head.position[2]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
+        ismrmrd_acq_head.position[0]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
+        ismrmrd_acq_head.position[1]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
+        ismrmrd_acq_head.position[2]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
 
-		// Convert Siemens quaternions to direction cosines.
-		// In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
+        // Convert Siemens quaternions to direction cosines.
+        // In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
                 // Siemens stores the quaternion as (W,X,Y,Z)
                 float quat[4];
                 quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
                 quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
                 quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
                 quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
-		ISMRMRD::quaternion_to_directions( quat,
-					  ismrmrd_acq_head.phase_dir,
-					  ismrmrd_acq_head.read_dir,
-					  ismrmrd_acq_head.slice_dir);
+        ISMRMRD::quaternion_to_directions( quat,
+                      ismrmrd_acq_head.phase_dir,
+                      ismrmrd_acq_head.read_dir,
+                      ismrmrd_acq_head.slice_dir);
 
-		ismrmrd_acq_head.patient_table_position[0]   		= scanhead.scanHeader.lPTABPosX;
-		ismrmrd_acq_head.patient_table_position[1]   		= scanhead.scanHeader.lPTABPosY;
-		ismrmrd_acq_head.patient_table_position[2]   		= scanhead.scanHeader.lPTABPosZ;
+        ismrmrd_acq_head.patient_table_position[0]           = scanhead.scanHeader.lPTABPosX;
+        ismrmrd_acq_head.patient_table_position[1]           = scanhead.scanHeader.lPTABPosY;
+        ismrmrd_acq_head.patient_table_position[2]           = scanhead.scanHeader.lPTABPosZ;
 
-		ismrmrd_acq_head.idx.average						= scanhead.scanHeader.sLC.ushAcquisition;
-		ismrmrd_acq_head.idx.contrast						= scanhead.scanHeader.sLC.ushEcho;
-		ismrmrd_acq_head.idx.kspace_encode_step_1          = scanhead.scanHeader.sLC.ushLine;
-		ismrmrd_acq_head.idx.kspace_encode_step_2			= scanhead.scanHeader.sLC.ushPartition;
-		ismrmrd_acq_head.idx.phase							= scanhead.scanHeader.sLC.ushPhase;
-		ismrmrd_acq_head.idx.repetition					= scanhead.scanHeader.sLC.ushRepetition;
-		ismrmrd_acq_head.idx.segment						= scanhead.scanHeader.sLC.ushSeg;
-		ismrmrd_acq_head.idx.set							= scanhead.scanHeader.sLC.ushSet;
-		ismrmrd_acq_head.idx.slice							= scanhead.scanHeader.sLC.ushSlice;
-		ismrmrd_acq_head.idx.user[0]						= scanhead.scanHeader.sLC.ushIda;
-		ismrmrd_acq_head.idx.user[1]						= scanhead.scanHeader.sLC.ushIdb;
-		ismrmrd_acq_head.idx.user[2]						= scanhead.scanHeader.sLC.ushIdc;
-		ismrmrd_acq_head.idx.user[3]						= scanhead.scanHeader.sLC.ushIdd;
-		ismrmrd_acq_head.idx.user[4]						= scanhead.scanHeader.sLC.ushIde;
-        ismrmrd_acq_head.idx.user[5]						= scanhead.scanHeader.ushKSpaceCentreLineNo;
-        ismrmrd_acq_head.idx.user[6]						= scanhead.scanHeader.ushKSpaceCentrePartitionNo;
+        ismrmrd_acq_head.idx.average                        = scanhead.scanHeader.sLC.ushAcquisition;
+        ismrmrd_acq_head.idx.contrast                        = scanhead.scanHeader.sLC.ushEcho;
+        ismrmrd_acq_head.idx.kspace_encode_step_1          = scanhead.scanHeader.sLC.ushLine;
+        ismrmrd_acq_head.idx.kspace_encode_step_2            = scanhead.scanHeader.sLC.ushPartition;
+        ismrmrd_acq_head.idx.phase                            = scanhead.scanHeader.sLC.ushPhase;
+        ismrmrd_acq_head.idx.repetition                    = scanhead.scanHeader.sLC.ushRepetition;
+        ismrmrd_acq_head.idx.segment                        = scanhead.scanHeader.sLC.ushSeg;
+        ismrmrd_acq_head.idx.set                            = scanhead.scanHeader.sLC.ushSet;
+        ismrmrd_acq_head.idx.slice                            = scanhead.scanHeader.sLC.ushSlice;
+        ismrmrd_acq_head.idx.user[0]                        = scanhead.scanHeader.sLC.ushIda;
+        ismrmrd_acq_head.idx.user[1]                        = scanhead.scanHeader.sLC.ushIdb;
+        ismrmrd_acq_head.idx.user[2]                        = scanhead.scanHeader.sLC.ushIdc;
+        ismrmrd_acq_head.idx.user[3]                        = scanhead.scanHeader.sLC.ushIdd;
+        ismrmrd_acq_head.idx.user[4]                        = scanhead.scanHeader.sLC.ushIde;
+        ismrmrd_acq_head.idx.user[5]                        = scanhead.scanHeader.ushKSpaceCentreLineNo;
+        ismrmrd_acq_head.idx.user[6]                        = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
         //   int32_t            user_int[8];                    //Free user parameters
         //   float              user_float[8];                  //Free user parameters
 
@@ -958,32 +961,33 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 2)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 51)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 10)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA));
         // if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
-		//ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
+        //ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
 
         if (trajectory == 4) { //Spiral, we will add the trajectory to the data
 
             if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
-			  unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();//head_.number_of_samples;
+              unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();//head_.number_of_samples;
                 if (traj->get_size(0) < traj_samples_to_copy) {
                     traj_samples_to_copy = traj->get_size(0);
-					ismrmrd_acq->setDiscardPost(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy);
+                    ismrmrd_acq->setDiscardPost(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy);
                 }
-				ismrmrd_acq->setTrajectoryDimensions(2);
-				//ismrmrd_acq->traj_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions];
-				float* t_ptr = reinterpret_cast<float*>(traj->get_data_ptr() + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj->get_size(0)));
-				//memset(ismrmrd_acq->traj_,0,sizeof(float)*ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions);
-				memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]),t_ptr, sizeof(float)*traj_samples_to_copy*ismrmrd_acq->getTrajectoryDimensions());
+                ismrmrd_acq->setTrajectoryDimensions(2);
+                //ismrmrd_acq->traj_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions];
+                float* t_ptr = reinterpret_cast<float*>(traj->get_data_ptr() + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj->get_size(0)));
+                //memset(ismrmrd_acq->traj_,0,sizeof(float)*ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions);
+                memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]),t_ptr, sizeof(float)*traj_samples_to_copy*ismrmrd_acq->getTrajectoryDimensions());
             }
         }
 
         sChannelHeader_with_data* channel_header = reinterpret_cast<sChannelHeader_with_data*>(scanhead.data.p);
-		for (unsigned int c = 0; c < m2->getObjectPtr()->getActiveChannels(); c++) {
+        for (unsigned int c = 0; c < m2->getObjectPtr()->getActiveChannels(); c++) {
             std::complex<float>* dptr = reinterpret_cast< std::complex<float>* >(channel_header[c].data.p);
-			memcpy(const_cast<float*>(&ismrmrd_acq->getData()[c*ismrmrd_acq->getNumberOfSamples()*2]),
-			       dptr, ismrmrd_acq->getNumberOfSamples()*sizeof(float)*2);
+            memcpy(const_cast<float*>(&ismrmrd_acq->getData()[c*ismrmrd_acq->getNumberOfSamples()*2]),
+                   dptr, ismrmrd_acq->getNumberOfSamples()*sizeof(float)*2);
         }
 
 

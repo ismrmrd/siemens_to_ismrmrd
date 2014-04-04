@@ -71,12 +71,20 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             </studyInformation>
 
             <measurementInformation>
+                <measurementID>
+                    <xsl:value-of select="string(siemens/HEADER/MeasUID)"/>
+                </measurementID>
                 <patientPosition>
                     <xsl:value-of select="siemens/YAPS/tPatientPosition"/>
                 </patientPosition>
                 <protocolName>
                     <xsl:value-of select="siemens/MEAS/tProtocolName"/>
                 </protocolName>
+                <measurementDependencyIDs>
+                    <noiseMeasurement>
+                        <xsl:value-of select="string(siemens/YAPS/ReconMeasDependencies/noise)"/>
+                    </noiseMeasurement>
+                </measurementDependencyIDs>
             </measurementInformation>
 
             <acquisitionSystemInformation>

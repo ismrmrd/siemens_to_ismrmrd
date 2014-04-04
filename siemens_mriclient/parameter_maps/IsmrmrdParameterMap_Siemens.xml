@@ -59,8 +59,12 @@
         <!-- studyInformationType --> 
         <p><s>IRIS.RECOMPOSE.StudyLOID</s>                          <d>siemens.IRIS.RECOMPOSE.StudyLOID</d></p>
         <!-- measurementInformationType --> 
+        <p><s>HEADER.MeasUID</s>                                    <d>siemens.HEADER.MeasUID</d></p>
         <p><s>YAPS.tPatientPosition</s>                             <d>siemens.YAPS.tPatientPosition</d></p>
         <p><s>MEAS.tProtocolName</s>                                <d>siemens.MEAS.tProtocolName</d></p>
+        <p><s>YAPS.ReconMeasDependencies.0</s>                      <d>siemens.YAPS.ReconMeasDependencies.unused</d></p>
+        <p><s>YAPS.ReconMeasDependencies.1</s>                      <d>siemens.YAPS.ReconMeasDependencies.surfaceCoil</d></p>
+        <p><s>YAPS.ReconMeasDependencies.2</s>                      <d>siemens.YAPS.ReconMeasDependencies.noise</d></p>
         <!-- acquisitionSystemInformationType --> 
         <p><s>DICOM.Manufacturer</s>                                <d>siemens.DICOM.Manufacturer</d></p>
         <p><s>DICOM.ManufacturersModelName</s>                      <d>siemens.DICOM.ManufacturersModelName</d></p>
