@@ -100,7 +100,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 <receiverChannels>
                     <xsl:value-of select="siemens/YAPS/iMaxNoOfRxChannels" />
                 </receiverChannels>
-                <relativeReceiverNoiseBandwidth>0.79</relativeReceiverNoiseBandwidth>
+                <relativeReceiverNoiseBandwidth>0.793</relativeReceiverNoiseBandwidth>
                 <institutionName>
                     <xsl:value-of select="siemens/DICOM/InstitutionName" />
                 </institutionName>
