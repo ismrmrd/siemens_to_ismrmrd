@@ -78,103 +78,86 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 </H1resonanceFrequency_Hz>
             </experimentalConditions>
             <encoding>
-                <trajectory>
-                    <xsl:choose>
-                        <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">cartesian</xsl:when>
-                        <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 2">radial</xsl:when>
-                        <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 4">spiral</xsl:when>
-                        <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 8">propellor</xsl:when>
-                        <xsl:otherwise>other</xsl:otherwise>
-                    </xsl:choose>
-                </trajectory>
+                <trajectory>epi</trajectory>
+                <trajectoryDescription>
+                  <identifier>ConventionalEPI</identifier>
+                  <userParameterLong>
+                    <name>etl</name>
+                    <value>
+                      <xsl:value-of select="siemens/YAPS/EchoTrainLength"/>
+                    </value>
+                  </userParameterLong>
+                  <userParameterLong>
+                    <name>numberOfNavigators</name>
+                    <value>3</value>
+                  </userParameterLong>
+                  <userParameterLong>
+                    <name>rampUpTime</name>
+                    <value>
+                      <xsl:value-of select="siemens/YAPS/alRegridRampupTime"/>
+                    </value>
+                  </userParameterLong>
+                  <userParameterLong>
+                    <name>rampDownTime</name>
+                    <value>
+                      <xsl:value-of select="siemens/YAPS/alRegridRampdownTime"/>
+                    </value>
+                  </userParameterLong>
+                  <userParameterLong>
+                    <name>flatTopTime</name>
+                    <value>
+                      <xsl:value-of select="siemens/YAPS/alRegridFlattopTime"/>
+                    </value>
+                  </userParameterLong>
+                  <userParameterLong>
+                    <name>echoSpacing</name>
+                    <value>
+                      <xsl:value-of select="siemens/YAPS/lEchoSpacing"/>
+                    </value>
+                  </userParameterLong>
+                  <userParameterLong>
+                    <name>acqDelayTime</name>
+                    <value>
+                      <xsl:value-of select="siemens/YAPS/alRegridDelaySamplesTime"/>
+                    </value>
+                  </userParameterLong>
+                  <userParameterLong>
+                    <name>numSamples</name>
+                    <value>
+                      <xsl:value-of select="siemens/YAPS/alRegridDestSamples"/>
+                    </value>
+                  </userParameterLong>
+                  <userParameterDouble>
+                    <name>dwellTime</name>
+                    <value>
+                      <xsl:value-of select="siemens/MEAS/sRXSPEC/alDwellTime div 1000.0"/>
+                    </value>
+                  </userParameterDouble>
+                  <comment>Conventional 2D EPI sequence</comment>
+                </trajectoryDescription>
 
-                <xsl:if test="siemens/MEAS/sKSpace/ucTrajectory = 4">
-                    <trajectoryDescription>
-                        <identifier>HargreavesVDS2000</identifier>
-                        <userParameterLong>
-                            <name>interleaves</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sKSpace/lRadialViews" />
-                            </value>
-                        </userParameterLong>
-                        <userParameterLong>
-                            <name>fov_coefficients</name>
-                            <value>1</value>
-                        </userParameterLong>
-                        <userParameterLong>
-                            <name>SamplingTime_ns</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sWipMemBlock/alFree[57]" />
-                            </value>
-                        </userParameterLong>
-                        <userParameterDouble>
-                            <name>MaxGradient_G_per_cm</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sWipMemBlock/adFree[7]" />
-                            </value>
-                        </userParameterDouble>
-                        <userParameterDouble>
-                            <name>MaxSlewRate_G_per_cm_per_s</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sWipMemBlock/adFree[8]" />
-                            </value>
-                        </userParameterDouble>
-                        <userParameterDouble>
-                            <name>FOVCoeff_1_cm</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sWipMemBlock/adFree[10]" />
-                            </value>
-                        </userParameterDouble>
-                        <userParameterDouble>
-                            <name>krmax_per_cm</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sWipMemBlock/adFree[9]" />
-                            </value>
-                        </userParameterDouble>
-                        <comment>Using spiral design by Brian Hargreaves (http://mrsrl.stanford.edu/~brian/vdspiral/)</comment>
-                    </trajectoryDescription>
-                </xsl:if>
                 <encodedSpace>
                     <matrixSize>
-                        <xsl:choose>
-                            <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
-                                <x>
-                                    <xsl:value-of select="siemens/YAPS/iNoOfFourierColumns"/>
-                                </x>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <x>
-                                    <xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
-                                </x>
-                            </xsl:otherwise>
-                        </xsl:choose>
-
-                        <y>
-                            <xsl:value-of select="siemens/YAPS/iNoOfFourierLines"/>
-                        </y>
-                        <z>
-                            <xsl:value-of select="siemens/YAPS/i3DFTLength"/>
-                        </z>
+		      <x>
+			<xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
+		      </x>
+                      <y>
+                        <xsl:value-of select="siemens/YAPS/iNoOfFourierLines"/>
+                      </y>
+                      <z>
+                        <xsl:value-of select="siemens/YAPS/i3DFTLength"/>
+                      </z>
                     </matrixSize>
                     <fieldOfView_mm>
-                        <xsl:choose>
-                            <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
-                                <x>
-                                    <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV * siemens/YAPS/flReadoutOSFactor"/>
-                                </x>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <x>
-                                    <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/>
-                                </x>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                        <y>
-                            <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV * (1+$phaseOversampling)"/>
-                        </y>
-                        <z>
-                            <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness * (1+$sliceOversampling)"/>
-                        </z>
+		      <x>
+			<xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/>
+                      </x>
+                      <y>
+                        <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV * (1+$phaseOversampling)"/>
+                      </y>
+                      <z>
+                        <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness * (1+$sliceOversampling)"/>
+                      </z>
                     </fieldOfView_mm>
                 </encodedSpace>
                 <reconSpace>
@@ -392,29 +375,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     </xsl:if>
                 </xsl:for-each>
             </sequenceParameters>
-
-            <epi>
-                <readOutTime>
-                    <rampupTime>
-                        <xsl:value-of select="siemens/YAPS/alRegridRampupTime"/>
-                    </rampupTime>
-                    <rampdownTime>
-                        <xsl:value-of select="siemens/YAPS/alRegridRampdownTime"/>
-                    </rampdownTime>
-                    <flattopTime>
-                        <xsl:value-of select="siemens/YAPS/alRegridFlattopTime"/>
-                    </flattopTime>
-                    <delaySamplesTime>
-                        <xsl:value-of select="siemens/YAPS/alRegridDelaySamplesTime"/>
-                    </delaySamplesTime>
-                </readOutTime>
-                <ADCDuration>
-                    <xsl:value-of select="siemens/YAPS/aflRegridADCDuration"/>
-                </ADCDuration>
-                <RegridDestSamples>
-                    <xsl:value-of select="siemens/YAPS/alRegridDestSamples"/>
-                </RegridDestSamples>
-            </epi>
 
         </ismrmrdHeader>
     </xsl:template>
