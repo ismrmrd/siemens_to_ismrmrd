@@ -240,19 +240,20 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 void print_usage() 
 {
     ACE_DEBUG((LM_INFO, ACE_TEXT("Usage: \n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                      (default 9002)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                      (default localhost)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <HDF5 DATA FILE>            (default ./data.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -d <HDF5 DATASET NUMBER>       (default 0)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -m <PARAMETER MAP FILE>        (default ./parammap.xml)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -x <PARAMETER MAP STYLESHEET>  (default ./parammap.xsl)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <HDF5 dump file>            (default dump.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -g <HDF5 dump group>           (/dataset)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -r <HDF5 result file>          (default result.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -G <HDF5 result group>         (default date and time)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>          (default default.xml)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                             (write only flag, do not connect to Gadgetron)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                             (Debug XML flag)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                                               (default 9002)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                                               (default localhost)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <HDF5 DATA FILE>                                     (default ./data.h5)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -d <HDF5 DATASET NUMBER>                                (default 0)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -m <PARAMETER MAP FILE>                                 (default ./parammap.xml)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -x <PARAMETER MAP STYLESHEET>                           (default ./parammap.xsl)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <HDF5 dump file>                                     (default dump.h5)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -g <HDF5 dump group>                                    (/dataset)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -r <HDF5 result file>                                   (default result.h5)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -G <HDF5 result group>                                  (default date and time)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>                                   (default default.xml)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                                                      (write only flag, do not connect to Gadgetron)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                                                      (Debug XML flag)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F <OUT FILE FORMAT, 'h5' or 'analyze' or 'nifti'>      (default 'h5' format)\n") ));
 }
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
@@ -263,7 +264,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("GADGETRON_HOME variable not set.\n")),-1);
     }
 
-    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wX");
+    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wX:F:");
 
     ACE_Get_Opt cmd_opts(argc, argv, options);
 
@@ -299,6 +300,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     std::string date_time = get_date_time_string();
 
     ACE_OS_String::strncpy(hdf5_out_group, date_time.c_str(), 1024);
+
+    ACE_TCHAR out_format[128];
+    ACE_OS_String::strncpy(out_format, "h5", 128);
 
     Gadgetron::GadgetronTimer gtTimer;
     gtTimer.set_timing_in_destruction(false);
@@ -353,6 +357,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         case 'G':
             ACE_OS_String::strncpy(hdf5_out_group, cmd_opts.opt_arg(), 1024);
             break;
+        case 'F':
+            ACE_OS_String::strncpy(out_format, cmd_opts.opt_arg(), 128);
+            break;
         case ':':
             ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("-%c requires an argument.\n"), cmd_opts.opt_opt()),-1);
             break;
@@ -405,10 +412,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     MeasurementHeader mhead;
     {
-
         ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 
-        try {
+        try
+        {
             hdf5file = H5File(filename, H5F_ACC_RDONLY);
 
             std::stringstream str;
@@ -419,21 +426,23 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             DataSpace headspace = headds.getSpace();
 
             boost::shared_ptr<DataType> headtype = getSiemensHDF5Type<MeasurementHeader>();
-            if (!(dtype == *headtype)) {
+            if (!(dtype == *headtype))
+            {
                 std::cout << "Wrong datatype for MeasurementHeader detected." << std::endl;
                 return -1;
             }
 
-
             headds.read(&mhead, *headtype, headspace, headspace);
 
             std::cout << "mhead.nr_buffers = " << mhead.nr_buffers << std::endl;
-        } catch (...) {
+        }
+        catch (...)
+        {
             std::cout << "Error opening HDF5 file and reading dataset header." << std::endl;
             return -1;
+        }
     }
 
-    }
     //Now we should have the measurement headers, so let's use the Meas header to create the gadgetron XML parameters
     MeasurementHeaderBuffer* buffers = reinterpret_cast<MeasurementHeaderBuffer*>(mhead.buffers.p);
 
@@ -686,21 +695,37 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 
     GadgetronConnector con;
-    if (!write_to_file_only) {
+    if (!write_to_file_only)
+    {
+        std::string out_format_str(out_format);
 
         //con.register_writer(GADGET_MESSAGE_ACQUISITION, new GadgetAcquisitionMessageWriter());
-        con.register_writer(GADGET_MESSAGE_ISMRMRD_ACQUISITION,                     new GadgetIsmrmrdAcquisitionMessageWriter());
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_USHORT,               new HDF5ImageWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_FLOAT,                new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_CPLX_FLOAT,                new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        /*con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new HDF5ImageAttribWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new HDF5ImageAttribWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new HDF5ImageAttribWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));*/
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new AnalyzeImageAttribWriter<ACE_UINT16>());
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new AnalyzeImageAttribWriter<float>());
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new AnalyzeComplexImageAttribWriter< std::complex<float> >());
-        con.register_reader(GADGET_MESSAGE_DICOM,                                   new BlobFileWriter(std::string(hdf5_out_file), std::string("dcm")));
-        con.register_reader(GADGET_MESSAGE_DICOM_WITHNAME,                          new BlobFileWithAttribWriter(std::string(), std::string("dcm")));
+        con.register_writer(GADGET_MESSAGE_ISMRMRD_ACQUISITION,                         new GadgetIsmrmrdAcquisitionMessageWriter());
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_USHORT,                   new HDF5ImageWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_FLOAT,                    new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_CPLX_FLOAT,                    new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+
+        if ( out_format_str == "analyze" )
+        {
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new AnalyzeImageAttribWriter<ACE_UINT16>());
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new AnalyzeImageAttribWriter<float>());
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new AnalyzeComplexImageAttribWriter< std::complex<float> >());
+        }
+        else if ( out_format_str == "nifti" )
+        {
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new NiftiImageAttribWriter<ACE_UINT16>());
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new NiftiImageAttribWriter<float>());
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new NiftiComplexImageAttribWriter< std::complex<float> >());
+        }
+        else
+        {
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new HDF5ImageAttribWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new HDF5ImageAttribWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new HDF5ImageAttribWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
+        }
+
+        con.register_reader(GADGET_MESSAGE_DICOM,                                       new BlobFileWriter(std::string(hdf5_out_file), std::string("dcm")));
+        con.register_reader(GADGET_MESSAGE_DICOM_WITHNAME,                              new BlobFileWithAttribWriter(std::string(), std::string("dcm")));
 
         //Open a connection with the gadgetron
         if (con.open(std::string(hostname),std::string(port_no)) != 0) {
