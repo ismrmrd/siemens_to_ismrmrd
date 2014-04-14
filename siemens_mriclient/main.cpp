@@ -253,18 +253,21 @@ void print_usage()
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>                                   (default default.xml)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                                                      (write only flag, do not connect to Gadgetron)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                                                      (Debug XML flag)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F <OUT FILE FORMAT, 'h5' or 'analyze' or 'nifti'>      (default 'h5' format)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F <OUT FILE FORMAT, 'hdf5 or h5', 'hdr or analyze', 'nii or nifti'>      (default 'h5' format)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -H <Gadgetron home>                                     (if not provided, read from environmental variable 'GADGETRON_HOME'\n") ));
 }
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 {
-    char * gadgetron_home = ACE_OS::getenv("GADGETRON_HOME");
+    std::string gadgetron_home;
 
-    if (std::string(gadgetron_home).size() == 0) {
-        ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("GADGETRON_HOME variable not set.\n")),-1);
+    char * gadgetron_home_env = ACE_OS::getenv("GADGETRON_HOME");
+    if ( gadgetron_home_env!=NULL && (std::string(gadgetron_home_env).size()>0) )
+    {
+        gadgetron_home = std::string(gadgetron_home_env);
     }
 
-    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wX:F:");
+    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wX:F:H:");
 
     ACE_Get_Opt cmd_opts(argc, argv, options);
 
@@ -281,10 +284,24 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     ACE_OS_String::strncpy(config_file, "default.xml", 1024);
 
     ACE_TCHAR parammap_file[4096];
-    ACE_OS::sprintf(parammap_file, "%s/schema/IsmrmrdParameterMap.xml", gadgetron_home);
+    if ( gadgetron_home.empty() )
+    {
+        ACE_OS::sprintf(parammap_file, "./schema/IsmrmrdParameterMap.xml");
+    }
+    else
+    {
+        ACE_OS::sprintf(parammap_file, "%s/schema/IsmrmrdParameterMap.xml", gadgetron_home.c_str());
+    }
 
     ACE_TCHAR parammap_xsl[4096];
-    ACE_OS::sprintf(parammap_xsl, "%s/schema/IsmrmrdParameterMap.xsl", gadgetron_home);
+    if ( gadgetron_home.empty() )
+    {
+        ACE_OS::sprintf(parammap_file, "./schema/IsmrmrdParameterMap.xsl");
+    }
+    else
+    {
+        ACE_OS::sprintf(parammap_file, "%s/schema/IsmrmrdParameterMap.xml", gadgetron_home.c_str());
+    }
 
     ACE_TCHAR hdf5_file[1024];
     ACE_OS_String::strncpy(hdf5_file, "dump.h5", 1024);
@@ -360,6 +377,14 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         case 'F':
             ACE_OS_String::strncpy(out_format, cmd_opts.opt_arg(), 128);
             break;
+        case 'H':
+        {
+            char gadgetron_home_str[1024];
+            ACE_OS_String::strncpy(gadgetron_home_str, cmd_opts.opt_arg(), 1024);
+
+            gadgetron_home = std::string(gadgetron_home_str);
+        }
+            break;
         case ':':
             ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("-%c requires an argument.\n"), cmd_opts.opt_opt()),-1);
             break;
@@ -367,6 +392,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             ACE_ERROR_RETURN( (LM_ERROR, ACE_TEXT("Command line parse error\n")), -1);
             break;
         }
+    }
+
+    if ( gadgetron_home.empty() )
+    {
+        ACE_ERROR((LM_ERROR, ACE_TEXT("gadgetron_home is not set.\n")));
+        print_usage();
+        return -1;
     }
 
     ACE_DEBUG(( LM_INFO, ACE_TEXT("Siemens MRI Client (for ISMRMRD format)\n") ));
@@ -607,7 +639,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
 
     ACE_TCHAR schema_file_name[4096];
-    ACE_OS::sprintf(schema_file_name, "%s/schema/ismrmrd.xsd", gadgetron_home);
+    ACE_OS::sprintf(schema_file_name, "%s/schema/ismrmrd.xsd", gadgetron_home.c_str());
 
 #ifndef WIN32
     xsltStylesheetPtr cur = NULL;
@@ -703,13 +735,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_FLOAT,                    new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
         con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_CPLX_FLOAT,                    new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
 
-        if ( out_format_str == "analyze" )
+        if ( out_format_str=="analyze" || out_format_str=="hdr" )
         {
             con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new AnalyzeImageAttribWriter<ACE_UINT16>());
             con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new AnalyzeImageAttribWriter<float>());
             con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new AnalyzeComplexImageAttribWriter< std::complex<float> >());
         }
-        else if ( out_format_str == "nifti" )
+        else if ( out_format_str=="nifti" || out_format_str=="nii" )
         {
             con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new NiftiImageAttribWriter<ACE_UINT16>());
             con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new NiftiImageAttribWriter<float>());
