@@ -240,21 +240,21 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 void print_usage() 
 {
     ACE_DEBUG((LM_INFO, ACE_TEXT("Usage: \n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                                               (default 9002)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                                               (default localhost)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <HDF5 DATA FILE>                                     (default ./data.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -d <HDF5 DATASET NUMBER>                                (default 0)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -m <PARAMETER MAP FILE>                                 (default ./parammap.xml)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -x <PARAMETER MAP STYLESHEET>                           (default ./parammap.xsl)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <HDF5 dump file>                                     (default dump.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -g <HDF5 dump group>                                    (/dataset)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -r <HDF5 result file>                                   (default result.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -G <HDF5 result group>                                  (default date and time)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>                                   (default default.xml)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                                                      (write only flag, do not connect to Gadgetron)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                                                      (Debug XML flag)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F <OUT FILE FORMAT, 'hdf5 or h5', 'hdr or analyze', 'nii or nifti'>      (default 'h5' format)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -H <Gadgetron home>                                     (if not provided, read from environmental variable 'GADGETRON_HOME'\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                                                                   (default 9002)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                                                                   (default localhost)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <HDF5 DATA FILE>                                                         (default ./data.h5)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -d <HDF5 DATASET NUMBER>                                                    (default 0)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -m <PARAMETER MAP FILE>                                                     (default ./parammap.xml)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -x <PARAMETER MAP STYLESHEET>                                               (default ./parammap.xsl)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <HDF5 dump file>                                                         (default dump.h5)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -g <HDF5 dump group>                                                        (/dataset)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -r <HDF5 result file>                                                       (default result.h5)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -G <HDF5 result group>                                                      (default date and time)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>                                                       (default default.xml)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                                                                          (write only flag, do not connect to Gadgetron)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                                                                          (Debug XML flag)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F <OUT FILE FORMAT, 'h5 or hdf5' or 'hdf or analyze' or 'nii or nifti'>    (default 'h5' format)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -H <Gadgetron home>                                                         (if not provided, read from environmental variable 'GADGETRON_HOME'\n") ));
 }
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
