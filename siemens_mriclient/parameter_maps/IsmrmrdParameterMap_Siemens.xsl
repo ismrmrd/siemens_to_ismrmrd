@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
-<xsl:stylesheet version="1.0"
-xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+<xsl:stylesheet version="1.0" 
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
     <xsl:output method="xml" indent="yes"/>
 
@@ -36,6 +36,15 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
         <xsl:value-of select="siemens/MEAS/lContrasts"/>
     </xsl:variable>
 
+    <xsl:variable name="studyID">
+        <xsl:value-of select="substring(siemens/IRIS/RECOMPOSE/StudyLOID, 6)"/>
+    </xsl:variable>
+
+    <xsl:variable name="patientID">
+        <xsl:value-of select="substring(siemens/IRIS/RECOMPOSE/PatientLOID, 6)"/>
+    </xsl:variable>
+
+    <xsl:variable name="strSeperator">_</xsl:variable>
 
     <xsl:template match="/">
         <ismrmrdHeader xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd"
@@ -43,6 +52,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                 xmlns:xs="http://www.w3.org/2001/XMLSchema">
 
+            <!--
             <subjectInformation>
                 <patientName>
                     <xsl:value-of select="siemens/DICOM/tPatientName"/>
@@ -63,16 +73,11 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     </xsl:choose>
                 </patientGender>
             </subjectInformation>
-
-            <studyInformation>
-                <studyID>
-                    <xsl:value-of select="siemens/IRIS/RECOMPOSE/StudyLOID"/>
-                </studyID>
-            </studyInformation>
+            -->
 
             <measurementInformation>
                 <measurementID>
-                    <xsl:value-of select="string(siemens/HEADER/MeasUID)"/>
+                    <xsl:value-of select="concat($patientID, $strSeperator, $studyID, $strSeperator, string(siemens/HEADER/MeasUID))"/>
                 </measurementID>
                 <patientPosition>
                     <xsl:value-of select="siemens/YAPS/tPatientPosition"/>
@@ -429,7 +434,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
             <dicomParameters>
                 <studyInstanceUID>
-                    <xsl:value-of select="siemens/IRIS/RECOMPOSE/StudyLOID" />
+                    <xsl:value-of select="$studyID" />
                 </studyInstanceUID>
                 <frameOfReferenceUID>
                     <xsl:value-of select="siemens/YAPS/tFrameOfReference" />

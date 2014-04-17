@@ -259,11 +259,13 @@ void print_usage()
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 {
+    bool gadgetron_home_from_env = false;
     std::string gadgetron_home;
 
     char * gadgetron_home_env = ACE_OS::getenv("GADGETRON_HOME");
     if ( gadgetron_home_env!=NULL && (std::string(gadgetron_home_env).size()>0) )
     {
+        gadgetron_home_from_env = true;
         gadgetron_home = std::string(gadgetron_home_env);
     }
 
@@ -383,6 +385,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             ACE_OS_String::strncpy(gadgetron_home_str, cmd_opts.opt_arg(), 1024);
 
             gadgetron_home = std::string(gadgetron_home_str);
+            gadgetron_home_from_env = false;
         }
             break;
         case ':':
@@ -694,16 +697,59 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     xsltCleanupGlobals();
     xmlCleanupParser();
 #else
-    std::ofstream o("xml_pre.xml");
+    std::string syscmd;
+    int xsltproc_res(0);
+
+    std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
+    syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+
+    if ( !gadgetron_home_from_env )
+    {
+        xml_post = gadgetron_home + std::string("/xml_post.xml");
+        xml_pre = gadgetron_home + std::string("/xml_pre.xml");
+
+        syscmd = gadgetron_home + std::string("/xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
+    }
+
+    std::ofstream o(xml_pre);
     o.write(xml_config.c_str(), xml_config.size());
     o.close();
 
-    std::string syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
-    system(syscmd.c_str());
+    xsltproc_res = system(syscmd.c_str());
 
-    std::ifstream t("xml_post.xml");
+    std::ifstream t(xml_post);
     xml_config = std::string((std::istreambuf_iterator<char>(t)),
-                 std::istreambuf_iterator<char>());
+                    std::istreambuf_iterator<char>());
+
+    if ( xsltproc_res != 0 )
+    {
+        std::cerr << "Failed to call up xsltproc : \t" << syscmd << std::endl;
+
+        // try again
+        if ( !gadgetron_home_from_env )
+        {
+            xml_post = std::string("/xml_post.xml");
+            xml_pre = std::string("/xml_pre.xml");
+
+            syscmd = std::string("xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
+        }
+
+        std::ofstream o(xml_pre);
+        o.write(xml_config.c_str(), xml_config.size());
+        o.close();
+
+        xsltproc_res = system(syscmd.c_str());
+
+        if ( xsltproc_res != 0 )
+        {
+            std::cerr << "Failed to generate XML header" << std::endl;
+            return -1;
+        }
+
+        std::ifstream t(xml_post);
+        xml_config = std::string((std::istreambuf_iterator<char>(t)),
+                        std::istreambuf_iterator<char>());
+    }
 #endif //WIN32
 
     ISMRMRD::AcquisitionHeader acq_head_base;
@@ -722,7 +768,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             return -1;
         }
     }
-
 
     GadgetronConnector con;
     if (!write_to_file_only)

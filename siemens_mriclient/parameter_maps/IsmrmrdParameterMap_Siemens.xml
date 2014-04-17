@@ -53,6 +53,7 @@
         <p><s>DICOM.tPatientName</s>                                <d>siemens.DICOM.tPatientName</d></p>
         <p><s>YAPS.flUsedPatientWeight</s>                          <d>siemens.YAPS.flUsedPatientWeight</d></p>
         <p><s>IRIS.RECOMPOSE.PatientID</s>                          <d>siemens.IRIS.RECOMPOSE.PatientID</d></p>
+        <p><s>IRIS.RECOMPOSE.PatientLOID</s>                        <d>siemens.IRIS.RECOMPOSE.PatientLOID</d></p>
         <p><s>IRIS.RECOMPOSE.PatientBirthDay</s>                    <d>siemens.IRIS.RECOMPOSE.PatientBirthDay</d></p>
         <p><s>DICOM.lPatientSex</s>                                 <d>siemens.DICOM.lPatientSex</d></p>
 
@@ -62,8 +63,8 @@
         <p><s>HEADER.MeasUID</s>                                    <d>siemens.HEADER.MeasUID</d></p>
         <p><s>YAPS.tPatientPosition</s>                             <d>siemens.YAPS.tPatientPosition</d></p>
         <p><s>MEAS.tProtocolName</s>                                <d>siemens.MEAS.tProtocolName</d></p>
-        <p><s>YAPS.ReconMeasDependencies.0</s>                      <d>siemens.YAPS.ReconMeasDependencies.unused</d></p>
-        <p><s>YAPS.ReconMeasDependencies.1</s>                      <d>siemens.YAPS.ReconMeasDependencies.surfaceCoil</d></p>
+        <p><s>YAPS.ReconMeasDependencies.0</s>                      <d>siemens.YAPS.ReconMeasDependencies.RFMap</d></p>
+        <p><s>YAPS.ReconMeasDependencies.1</s>                      <d>siemens.YAPS.ReconMeasDependencies.senMap</d></p>
         <p><s>YAPS.ReconMeasDependencies.2</s>                      <d>siemens.YAPS.ReconMeasDependencies.noise</d></p>
         <!-- acquisitionSystemInformationType --> 
         <p><s>DICOM.Manufacturer</s>                                <d>siemens.DICOM.Manufacturer</d></p>
