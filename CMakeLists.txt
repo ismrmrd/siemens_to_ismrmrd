@@ -48,5 +48,5 @@ set(CMAKE_INSTALL_PREFIX ${GADGETRON_HOME})
  
 LINK_DIRECTORIES(${GADGETRON_LIB_DIR})
 
-# add_subdirectory(dependencies)
+add_subdirectory(dependencies)
 add_subdirectory(siemens_mriclient)
