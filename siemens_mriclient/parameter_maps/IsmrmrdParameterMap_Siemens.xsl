@@ -85,11 +85,34 @@
                 <protocolName>
                     <xsl:value-of select="siemens/MEAS/tProtocolName"/>
                 </protocolName>
-                <measurementDependencyIDs>
-                    <noiseMeasurement>
-                        <xsl:value-of select="string(siemens/YAPS/ReconMeasDependencies/noise)"/>
-                    </noiseMeasurement>
-                </measurementDependencyIDs>
+
+                <xsl:if test="siemens/YAPS/ReconMeasDependencies/RFMap > 0">
+                    <measurementDependency>
+                        <dependencyType>RFMap</dependencyType>
+                        <measurementID>
+                            <xsl:value-of select="siemens/YAPS/ReconMeasDependencies/RFMap"/>
+                        </measurementID>
+                    </measurementDependency>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/ReconMeasDependencies/SenMap > 0">
+                    <measurementDependency>
+                        <dependencyType>SenMap</dependencyType>
+                        <measurementID>
+                            <xsl:value-of select="siemens/YAPS/ReconMeasDependencies/SenMap"/>
+                        </measurementID>
+                    </measurementDependency>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/ReconMeasDependencies/Noise > 0">
+                    <measurementDependency>
+                        <dependencyType>Noise</dependencyType>
+                        <measurementID>
+                            <xsl:value-of select="siemens/YAPS/ReconMeasDependencies/Noise"/>
+                        </measurementID>
+                    </measurementDependency>
+                </xsl:if>
+
             </measurementInformation>
 
             <acquisitionSystemInformation>
@@ -454,6 +477,15 @@
                     </flipAngle_deg>
                 </MRImageModule>
             </dicomParameters>
+
+            <xsl:if test="contains(siemens/MEAS/sProtConsistencyInfo/tMeasuredBaselineString, 'VB') = 'true'">
+            <userParameters>
+                <userParameterDouble>
+                    <name>NoiseDwellTime</name>
+                    <value>130.0</value>
+                </userParameterDouble>
+            </userParameters>
+            </xsl:if>
 
         </ismrmrdHeader>
     </xsl:template>

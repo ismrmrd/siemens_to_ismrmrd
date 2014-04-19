@@ -46,7 +46,7 @@
         <p><s>YAPS.iPEFTLength</s>                                  <d>siemens.YAPS.iPEFTLength</d></p>
         <p><s>YAPS.i3DFTLength</s>                                  <d>siemens.YAPS.i3DFTLength</d></p>
         <p><s>YAPS.tMRAcquisitionType</s>                           <d>siemens.YAPS.tMRAcquisitionType</d></p>
-        <p><s>YAPS.flReadoutOSFactor</s>                            <d>siemens.YAPS.flReadoutOSFactor</d></p>      
+        <p><s>YAPS.flReadoutOSFactor</s>                            <d>siemens.YAPS.flReadoutOSFactor</d></p>
         <p><s>YAPS.iNSet</s>                                        <d>siemens.YAPS.iNSet</d></p>
 
         <!-- subjectInformationType --> 
@@ -64,12 +64,12 @@
         <p><s>YAPS.tPatientPosition</s>                             <d>siemens.YAPS.tPatientPosition</d></p>
         <p><s>MEAS.tProtocolName</s>                                <d>siemens.MEAS.tProtocolName</d></p>
         <p><s>YAPS.ReconMeasDependencies.0</s>                      <d>siemens.YAPS.ReconMeasDependencies.RFMap</d></p>
-        <p><s>YAPS.ReconMeasDependencies.1</s>                      <d>siemens.YAPS.ReconMeasDependencies.senMap</d></p>
-        <p><s>YAPS.ReconMeasDependencies.2</s>                      <d>siemens.YAPS.ReconMeasDependencies.noise</d></p>
+        <p><s>YAPS.ReconMeasDependencies.1</s>                      <d>siemens.YAPS.ReconMeasDependencies.SenMap</d></p>
+        <p><s>YAPS.ReconMeasDependencies.2</s>                      <d>siemens.YAPS.ReconMeasDependencies.Noise</d></p>
         <!-- acquisitionSystemInformationType --> 
         <p><s>DICOM.Manufacturer</s>                                <d>siemens.DICOM.Manufacturer</d></p>
         <p><s>DICOM.ManufacturersModelName</s>                      <d>siemens.DICOM.ManufacturersModelName</d></p>
-        <p><s>YAPS.flMagneticFieldStrength</s>                      <d>siemens.YAPS.flMagneticFieldStrength</d></p>      
+        <p><s>YAPS.flMagneticFieldStrength</s>                      <d>siemens.YAPS.flMagneticFieldStrength</d></p>
         <p><s>YAPS.iMaxNoOfRxChannels</s>                           <d>siemens.YAPS.iMaxNoOfRxChannels</d></p>
         <p><s>DICOM.InstitutionName</s>                             <d>siemens.DICOM.InstitutionName</d></p>
         <!-- experimentalConditionsType --> 
@@ -80,5 +80,7 @@
         <p><s>DICOM.tScanningSequence</s>                           <d>siemens.DICOM.tScanningSequence</d></p>
         <p><s>DICOM.tMRAcquisitionType</s>                          <d>siemens.DICOM.tMRAcquisitionType</d></p>
         <p><s>DICOM.adFlipAngleDegree</s>                           <d>siemens.DICOM.adFlipAngleDegree</d></p>
+        <!-- user defined parameter -->
+        <p><s>MEAS.sProtConsistencyInfo.tMeasuredBaselineString</s> <d>siemens.MEAS.sProtConsistencyInfo.tMeasuredBaselineString</d></p>
     </parameters>
 </gadgetron>

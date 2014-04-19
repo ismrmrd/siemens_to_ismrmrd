@@ -23,7 +23,26 @@ INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
                      ${HDF5_C_INCLUDE_DIR} 
                      ${XSD_INCLUDE_DIR} )
 
-add_executable(siemens_mriclient main.cpp siemensraw.cpp XNode.cpp XNodeParser.cpp vds.cpp ${ISMRMRD_XSD_SOURCE} siemens_hdf5_datatypes.h siemensraw.h)
+set(schema_files parameter_maps/IsmrmrdParameterMap.xml
+               parameter_maps/IsmrmrdParameterMap.xsl
+               parameter_maps/IsmrmrdParameterMap_Siemens.xml
+               parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+               parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
+               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xml
+               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl)
+
+add_executable(siemens_mriclient 
+               main.cpp 
+               siemensraw.cpp 
+               XNode.cpp 
+               XNodeParser.cpp 
+               vds.cpp 
+               ${ISMRMRD_XSD_SOURCE} 
+               siemens_hdf5_datatypes.h 
+               siemensraw.h 
+               ${schema_files} 
+               )
+
 add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp ${ISMRMRD_XSD_SOURCE})
 
 IF (WIN32)
@@ -61,10 +80,4 @@ target_link_libraries(siemens_to_HDF5
 install(TARGETS siemens_mriclient siemens_to_HDF5 DESTINATION bin)
 install(FILES ${ISMRMRD_LIBRARIES} DESTINATION lib)
 install(FILES ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd DESTINATION schema)
-install(FILES parameter_maps/IsmrmrdParameterMap.xml DESTINATION schema)
-install(FILES parameter_maps/IsmrmrdParameterMap.xsl DESTINATION schema)
-install(FILES parameter_maps/IsmrmrdParameterMap_Siemens.xml DESTINATION schema)
-install(FILES parameter_maps/IsmrmrdParameterMap_Siemens.xsl DESTINATION schema)
-install(FILES parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml DESTINATION schema)
-install(FILES parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xml DESTINATION schema)
-install(FILES parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl DESTINATION schema)
+install(FILES ${schema_files} DESTINATION schema)
