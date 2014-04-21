@@ -3,6 +3,7 @@
 #include "ace/Get_Opt.h"
 #include "ace/OS_NS_string.h"
 
+#include "url_encode.h"
 #include "IceGadgetronConfig.h"
 #include "IceGadgetron.hxx"
 
@@ -95,9 +96,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     if ( useSimpleParser )
     {
-        IceGadgetronConfig config;
+        Gadgetron::IceGadgetronConfig config;
 
-        if ( parseIceGadgetronConfiguration(xmlName, config) )
+        if ( Gadgetron::parseIceGadgetronConfiguration(xmlName, config) )
         {
             GADGET_MSG("Success in parsing IceGadgetron configuration xml with simple parser : " << xmlName);
 

@@ -2,13 +2,15 @@
 #pragma once
 
 #include "GadgetronCommon.h"
-#include "url_encode.h"
 #include <iomanip>
 #include <string>
 #include <vector>
 #include <fstream>
 
 #include "tinyxml.h"
+
+namespace Gadgetron
+{
 
 struct GadgetronEmitter
 {
@@ -286,4 +288,6 @@ bool parseIceGadgetronConfiguration(const std::string& xmlName, IceGadgetronConf
     }
 
     return true;
+}
+
 }
