@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<IceGadgetronConfiguration xmlns="http://gadgetron.sf.net/gadgetron" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://gadgetron.sf.net/gadgetron IceGadgetron.xsd">
+
+    <!--
+       _____              _____     _____   ______   _______   _____     ____    _   _ 
+      / ____|     /\     |  __ \   / ____| |  ____| |__   __| |  __ \   / __ \  | \ | |
+     | |  __     /  \    | |  | | | |  __  | |__       | |    | |__) | | |  | | |  \| |
+     | | |_ |   / /\ \   | |  | | | | |_ | |  __|      | |    |  _  /  | |  | | | . ` |
+     | |__| |  / ____ \  | |__| | | |__| | | |____     | |    | | \ \  | |__| | | |\  |
+      \_____| /_/    \_\ |_____/   \_____| |______|    |_|    |_|  \_\  \____/  |_| \_|
+                                                                                       
+    -->
+
+    <!-- Configuration xml file for IceGadgetron package 
+
+         This file is to pass the necessary parameters to the 
+         IceGadgetron package.
+
+         The name of xml configuration file should be the same as the ICE ipr/evp file, e.g.
+         if the ice program ipr file is called "test.ipr" which calls up the IceGadgetron, then the corresponding 
+         xml file should be named as "test.xml" and stored in the same directory as the "test.ipr".
+
+         For more information, please check http://gadgetron.sourceforge.net/
+
+         ==========================================================================================================
+         Gadgetron is an open source framework for medical image reconstruction. 
+         It has been developed at the National Heart, Lung, and Blood Institute, NIH, Bethesda, MD, USA.
+         ==========================================================================================================
+    -->
+
+    <GadgetronEmitter>
+        <!-- This is the gadgetron *.xml config file which will be started on the remote host -->
+        <Config>default.xml</Config>
+        <!-- This is the gadgetron *.xml config file will be used to map parameters from ICE to the Gadgetron -->
+        <ParameterMap>IsmrmrdParameterMap_Siemens.xml</ParameterMap>
+        <!-- This style sheet is applied (XSLT) to the XML parameters produced by the map above -->
+        <XslStylesheet>IsmrmrdParameterMap_Siemens.xsl</XslStylesheet>
+        <!-- This is the Functor in the ICE chain that the emitter will be inserted after -->
+        <Anchor>Flags</Anchor>
+        <!-- This parameter controls whether the original data will be passed on down the functor chain -->
+        <PassOnData>false</PassOnData>
+    </GadgetronEmitter>
+
+    <GadgetronInjector>
+        <!-- This is the Functor in the ICE chain that the injector will be inserted BEFORE -->
+        <Anchor>DistorCor2D</Anchor>
+    </GadgetronInjector>
+
+    <GadgetronConfigurator>
+        <!-- If true, the configurator of gadgetron will auto determine where to insert GadgetronInjector -->
+        <AutoConfigure>true</AutoConfigure>
+        <!-- If true, the gadgetron will first process dependency measurements if there are any -->
+        <ProcessDependency>true</ProcessDependency>
+        <!-- If true, the gadgetron will be queried to find out whether the required dependency has already been stored -->
+        <QueryDependencyStatus>true</QueryDependencyStatus>
+        <!-- If true, the stored dependency will be deleted after certain time period, e.g. one day -->
+        <CleanStoredDependency>true</CleanStoredDependency>
+        <!-- Time limit to keep the dependencies, in the unit of hour -->
+        <TimeLimitStoredDependency>24.0</TimeLimitStoredDependency>
+        <!-- This is the gadgetron chain to process dependency measurements -->
+        <DependencyConfig>default_measurement_dependencies.xml</DependencyConfig>
+        <!-- This is the gadgetron *.xml config file will be used to map parameters from ICE to the Gadgetron for dependency measurements -->
+        <DependencyParameterMap>IsmrmrdParameterMap_Siemens.xml</DependencyParameterMap>
+        <!-- This style sheet is applied (XSLT) to the XML parameters produced by the map above -->
+        <DependencyXslStylesheet>IsmrmrdParameterMap_Siemens.xsl</DependencyXslStylesheet>
+        <!-- This lists the functors to be removed by IceGadgetron -->
+        <FunctorRemoveList>FunctorRemoval1</FunctorRemoveList>
+        <FunctorRemoveList>FunctorRemoval2</FunctorRemoveList>
+    </GadgetronConfigurator>
+
+</IceGadgetronConfiguration>

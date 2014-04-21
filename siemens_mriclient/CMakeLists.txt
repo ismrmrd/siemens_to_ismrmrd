@@ -23,6 +23,14 @@ INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
                      ${HDF5_C_INCLUDE_DIR} 
                      ${XSD_INCLUDE_DIR} )
 
+#Process the XSD files
+SET(XSDS schema/IceGadgetron.xsd)
+SET(XSD_ARGS cxx-tree --generate-serialization)
+WRAP_XSD(XSDS_SOURCES XSD_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/schema ${XSDS} OPTIONS ${XSD_ARGS})
+INCLUDE_DIRECTORIES(${XSD_INCLUDES} ${XERCESC_INCLUDE_DIR})
+
+message("XSDS_SOURCES is " ${XSDS_SOURCES})
+
 set(schema_files parameter_maps/IsmrmrdParameterMap.xml
                parameter_maps/IsmrmrdParameterMap.xsl
                parameter_maps/IsmrmrdParameterMap_Siemens.xml
@@ -44,6 +52,8 @@ add_executable(siemens_mriclient
                )
 
 add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp ${ISMRMRD_XSD_SOURCE})
+
+add_executable(siemens_IceGadgetron siemens_IceGadgetron.cpp ${XSDS_SOURCES} ${XSD_INCLUDES} schema/IceGadgetron.xsd)
 
 IF (WIN32)
     target_link_libraries(siemens_mriclient optimized ${HDF5_hdf5_LIBRARY_RELEASE} ${HDF5_hdf5_cpp_LIBRARY_RELEASE})
@@ -77,7 +87,15 @@ target_link_libraries(siemens_to_HDF5
               ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} 
               )
 
-install(TARGETS siemens_mriclient siemens_to_HDF5 DESTINATION bin)
+target_link_libraries(siemens_IceGadgetron 
+              tinyxml
+              optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
+              optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
+              ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} 
+              )
+
+install(TARGETS siemens_mriclient siemens_to_HDF5 siemens_IceGadgetron DESTINATION bin)
 install(FILES ${ISMRMRD_LIBRARIES} DESTINATION lib)
 install(FILES ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd DESTINATION schema)
+install(FILES schema/IceGadgetron.xsd DESTINATION schema)
 install(FILES ${schema_files} DESTINATION schema)

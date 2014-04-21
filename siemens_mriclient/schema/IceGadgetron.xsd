@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xs:schema xmlns="http://gadgetron.sf.net/gadgetron" xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified" targetNamespace="http://gadgetron.sf.net/gadgetron">
+
+    <xs:element name="IceGadgetronConfiguration">
+        <xs:complexType>
+            <xs:sequence>
+
+                <xs:element maxOccurs="1" minOccurs="1" name="GadgetronEmitter">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element maxOccurs="1" minOccurs="1" name="Config" type="xs:string"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="ParameterMap" type="xs:string"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="XslStylesheet" type="xs:string"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="Anchor" type="xs:string"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="PassOnData" type="xs:boolean"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element maxOccurs="1" minOccurs="1" name="GadgetronInjector">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element maxOccurs="1" minOccurs="1" name="Anchor" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element maxOccurs="1" minOccurs="1" name="GadgetronConfigurator">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element maxOccurs="1" minOccurs="1" name="AutoConfigure" type="xs:boolean"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="ProcessDependency" type="xs:boolean"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="QueryDependencyStatus" type="xs:boolean"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="CleanStoredDependency" type="xs:boolean"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="TimeLimitStoredDependency" type="xs:double"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="DependencyConfig" type="xs:string"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="DependencyParameterMap" type="xs:string"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="DependencyXslStylesheet" type="xs:string"/>
+                            <xs:element maxOccurs="unbounded" minOccurs="0" name="FunctorRemoveList" type="xs:string"/>
+                        </xs:sequence>
+                    </xs:complexType>
+                </xs:element>
+
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
