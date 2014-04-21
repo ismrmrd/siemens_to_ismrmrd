@@ -53,7 +53,7 @@ add_executable(siemens_mriclient
 
 add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp ${ISMRMRD_XSD_SOURCE})
 
-add_executable(siemens_IceGadgetron siemens_IceGadgetron.cpp ${XSDS_SOURCES} ${XSD_INCLUDES} schema/IceGadgetron.xsd)
+add_executable(siemens_IceGadgetron siemens_IceGadgetron.cpp IceGadgetronConfig.h ${XSDS_SOURCES} ${XSD_INCLUDES} schema/IceGadgetron.xsd)
 
 IF (WIN32)
     target_link_libraries(siemens_mriclient optimized ${HDF5_hdf5_LIBRARY_RELEASE} ${HDF5_hdf5_cpp_LIBRARY_RELEASE})

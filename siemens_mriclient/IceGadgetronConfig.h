@@ -137,7 +137,7 @@ bool parseIceGadgetronConfiguration(const std::string& xmlName, IceGadgetronConf
 {
     try
     {
-      std::ifstream file(xmlName.c_str());
+        std::ifstream file(xmlName.c_str());
 
         if ( !file.good() )
         {
