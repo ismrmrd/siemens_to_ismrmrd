@@ -55,7 +55,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     }
 
     // load in the xml using the schema
-    std::ifstream file(xmlName);
+    std::ifstream file(xmlName.c_str());
     file.seekg(0, std::ios::end);
     size_t file_length = file.tellg();
     file.seekg(0, std::ios::beg);
