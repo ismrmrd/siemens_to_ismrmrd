@@ -306,6 +306,7 @@ int main(int argc, char** argv)
         unsigned long int acquisitions = 1;
         unsigned long int sync_data_packets = 0;
         sMDH mdh;//For VB line
+        bool first_call = true;
         while (!(last_mask & 1) && //Last scan not encountered
                 (((ParcFileEntries[i].off_+ ParcFileEntries[i].len_)-f.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
         {
@@ -414,11 +415,17 @@ int main(int argc, char** argv)
             }
 
                 //This check only makes sense in VD line files.
-            if (!VBFILE && (scanhead.scanHeader.lMeasUID != ParcFileEntries[i].measId_)) {
+            if (!VBFILE && (scanhead.scanHeader.lMeasUID != ParcFileEntries[i].measId_))
+            {
                 //Something must have gone terribly wrong. Bail out.
-                std::cout << "Corrupted dataset detected (scanhead.scanHeader.lMeasUID != ParcFileEntries[i].measId_)" << std::endl;
-                std::cout << "Bailing out" << std::endl;
-                return -1;
+                if ( first_call )
+                {
+                    std::cout << "Corrupted or retro-recon dataset detected (scanhead.scanHeader.lMeasUID != ParcFileEntries[i].measId_)" << std::endl;
+                    std::cout << "Fix the scanhead.scanHeader.lMeasUID ... " << std::endl;
+                    first_call = false;
+                }
+
+                scanhead.scanHeader.lMeasUID = ParcFileEntries[i].measId_;
             }
 
             //Allocate data for channels
