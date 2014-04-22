@@ -21,7 +21,8 @@ INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
                      ${ISMRMRD_SCHEMA_DIR} 
                      ${HDF5_CXX_INCLUDE_DIR} 
                      ${HDF5_C_INCLUDE_DIR} 
-                     ${XSD_INCLUDE_DIR} )
+                     ${XSD_INCLUDE_DIR} 
+                     ${CMAKE_SOURCE_DIR}/dependencies/tinyxml )
 
 #Process the XSD files
 SET(XSDS schema/IceGadgetron.xsd)
@@ -75,7 +76,7 @@ target_link_libraries(siemens_mriclient
               optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
               optimized gadgetron_mricore debug gadgetron_mricore${CMAKE_DEBUG_SUFFIX}
               gtplus
-              optimized tinyxml debug tinyxml${CMAKE_DEBUG_SUFFIX}
+              tinyxml
               ${ISMRMRD_LIBRARIES}
               optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
               ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} )
