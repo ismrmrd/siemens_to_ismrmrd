@@ -478,10 +478,10 @@
                 </MRImageModule>
             </dicomParameters>
 
-            <xsl:if test="contains(siemens/MEAS/sProtConsistencyInfo/tMeasuredBaselineString, 'VB') = 'true'">
+            <xsl:if test="contains(siemens/MEAS/sProtConsistencyInfo/tBaselineString, 'VB') = 'true'">
             <userParameters>
                 <userParameterDouble>
-                    <name>NoiseDwellTime</name>
+                    <name>NoiseBandWidth</name>
                     <value>130.0</value>
                 </userParameterDouble>
             </userParameters>

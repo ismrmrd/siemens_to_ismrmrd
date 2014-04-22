@@ -81,6 +81,6 @@
         <p><s>DICOM.tMRAcquisitionType</s>                          <d>siemens.DICOM.tMRAcquisitionType</d></p>
         <p><s>DICOM.adFlipAngleDegree</s>                           <d>siemens.DICOM.adFlipAngleDegree</d></p>
         <!-- user defined parameter -->
-        <p><s>MEAS.sProtConsistencyInfo.tMeasuredBaselineString</s> <d>siemens.MEAS.sProtConsistencyInfo.tMeasuredBaselineString</d></p>
+        <p><s>MEAS.sProtConsistencyInfo.tBaselineString</s> <d>siemens.MEAS.sProtConsistencyInfo.tBaselineString</d></p>
     </parameters>
 </gadgetron>
