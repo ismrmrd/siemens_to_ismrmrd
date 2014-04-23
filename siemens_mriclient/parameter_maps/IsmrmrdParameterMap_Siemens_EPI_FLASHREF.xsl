@@ -78,6 +78,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 </H1resonanceFrequency_Hz>
             </experimentalConditions>
 
+	    <!-- EPI Data Encoding Space 0 -->
             <encoding>
                 <trajectory>epi</trajectory>
                 <trajectoryDescription>
@@ -256,6 +257,73 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         </maximum>
                         <center>0</center>
                     </contrast>
+                </encodingLimits>
+            </encoding>
+
+	    <!-- FLASH PAT Reference Scan Encoding Space 1-->
+            <encoding>
+                <trajectory>cartesian</trajectory>
+                <encodedSpace>
+                    <matrixSize>
+		      <x><xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/></x>
+                      <y><xsl:value-of select="siemens/YAPS/iNoOfFourierLines"/></y>
+                      <z><xsl:value-of select="siemens/YAPS/i3DFTLength"/></z>
+                    </matrixSize>
+                    <fieldOfView_mm>
+		      <x><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/></x>
+                      <y><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV * (1+$phaseOversampling)"/></y>
+                      <z><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness * (1+$sliceOversampling)"/></z>
+                    </fieldOfView_mm>
+                </encodedSpace>
+                <reconSpace>
+                    <matrixSize>
+                        <x><xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/></x>
+                        <y><xsl:value-of select="siemens/IRIS/DERIVED/imageLines"/></y>
+                        <xsl:choose>
+                            <xsl:when test="siemens/YAPS/i3DFTLength = 1">
+                                <z>1</z>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <z><xsl:value-of select="siemens/MEAS/sKSpace/lImagesPerSlab"/></z>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </matrixSize>
+                    <fieldOfView_mm>
+                        <x><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/></x>
+                        <y><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV"/></y>
+                        <z><xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness"/></z>
+                    </fieldOfView_mm>
+                </reconSpace>
+                <encodingLimits>
+                    <kspace_encoding_step_1>
+                        <minimum>0</minimum>
+                        <maximum><xsl:value-of select="siemens/YAPS/iNoOfFourierLines - 1"/></maximum>
+                        <center>
+			  <xsl:value-of select="floor((siemens/MEAS/sKSpace/lPhaseEncodingLines div 2)-(siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines))"/>
+                        </center>
+                    </kspace_encoding_step_1>
+                    <kspace_encoding_step_2>
+                        <minimum>0</minimum>
+                        <xsl:choose>
+                            <xsl:when test="not(siemens/YAPS/iNoOfFourierPartitions) or (siemens/YAPS/i3DFTLength = 1)">
+                                <maximum>0</maximum>
+                                <center>0</center>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <maximum>
+                                    <xsl:value-of select="siemens/YAPS/iNoOfFourierPartitions - 1"/>
+                                </maximum>
+                                <center>
+                                    <xsl:value-of select="floor((siemens/MEAS/sKSpace/lPartitions div 2)-(siemens/MEAS/sKSpace/lPartitions - siemens/YAPS/iNoOfFourierPartitions))"/>
+                                </center>
+                            </xsl:otherwise>
+                        </xsl:choose>
+                    </kspace_encoding_step_2>
+                    <slice>
+                        <minimum>0</minimum>
+                        <maximum><xsl:value-of select="siemens/MEAS/sSliceArray/lSize - 1"/></maximum>
+                        <center>0</center>
+                    </slice>
                 </encodingLimits>
             </encoding>
 

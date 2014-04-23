@@ -251,6 +251,7 @@ void print_usage()
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>          (default default.xml)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                             (write only flag, do not connect to Gadgetron)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                             (Debug XML flag)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F                             (FLASH PAT REF flag)\n") ));
 }
 
 int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
@@ -261,7 +262,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("GADGETRON_HOME variable not set.\n")),-1);
     }
 
-    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wX");
+    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wXF");
 
     ACE_Get_Opt cmd_opts(argc, argv, options);
 
@@ -306,6 +307,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     bool write_to_file = false;
     bool write_to_file_only = false;
+    bool flash_pat_ref_scan = false;
 
     int option;
     while ((option = cmd_opts()) != EOF) {
@@ -350,6 +352,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             break;
         case 'G':
             ACE_OS_String::strncpy(hdf5_out_group, cmd_opts.opt_arg(), 1024);
+            break;
+        case 'F':
+            flash_pat_ref_scan = true;
             break;
         case ':':
             ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("-%c requires an argument.\n"), cmd_opts.opt_opt()),-1);
@@ -861,7 +866,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		ismrmrd_acq_head.discard_pre					= scanhead.scanHeader.sCutOff.ushPre;
 		ismrmrd_acq_head.discard_post					= scanhead.scanHeader.sCutOff.ushPost;
 		ismrmrd_acq_head.center_sample					= scanhead.scanHeader.ushKSpaceCentreColumn;
-		ismrmrd_acq_head.encoding_space_ref            = 0;
+		ismrmrd_acq_head.encoding_space_ref = 0;
 		ismrmrd_acq_head.trajectory_dimensions         = 0;
 		if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
 			ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
@@ -949,6 +954,14 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
 		//ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
+
+	if ((flash_pat_ref_scan) & (ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION)))) {
+	  // For some sequences the PAT Reference data is collected using a different encoding space
+	  // e.g. EPI scans with FLASH PAT Reference
+	  // enabled by command line option
+	  // TODO: it is likely that the dwell time is not set properly for this type of acquisition
+	  ismrmrd_acq->setEncodingSpaceRef(1);
+	}
 
         if (trajectory == 4) { //Spiral, we will add the trajectory to the data
 
