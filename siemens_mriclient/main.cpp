@@ -447,6 +447,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     long dwell_time_0 = 0;
     long max_channels = 0;
     long radial_views = 0;
+    long center_line = 0;
+    long center_partition = 0;
+
     std::string protocol_name = "";
 
     for (unsigned int b = 0; b < mhead.nr_buffers; b++) {
@@ -544,6 +547,81 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 } else {
                     max_channels = std::atoi(temp[0].c_str());
                 }
+            }
+
+            //Get some parameters - cartesian encoding bits
+            {
+	      // get the center line parameters
+	      long lPhaseEncodingLines = 0L;
+	      long iNoOfFourierLines = 0L;
+	      const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lPhaseEncodingLines"), n);
+	      std::vector<std::string> temp;
+	      if (n2) {
+		temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+	      } else {
+		std::cout << "MEAS.sKSpace.lPhaseEncodingLines not found" << std::endl;
+	      }
+	      if (temp.size() != 1) {
+		std::cout << "Failed to find MEAS.sKSpace.lPhaseEncodingLines array" << std::endl;
+		return -1;
+	      } else {
+		lPhaseEncodingLines = std::atoi(temp[0].c_str());
+	      }
+
+	      n2 = boost::apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierLines"), n);
+	      if (n2) {
+		temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+	      } else {
+		std::cout << "YAPS.iNoOfFourierLines not found" << std::endl;
+	      }
+	      if (temp.size() != 1) {
+		std::cout << "Failed to find YAPS.iNoOfFourierLines array" << std::endl;
+		return -1;
+	      } else {
+		iNoOfFourierLines = std::atoi(temp[0].c_str());
+	      }
+	      
+	      // get the center partition parameters
+	      long lPartitions = 0L;
+	      long iNoOfFourierPartitions = 0L;
+	      n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lPartitions"), n);
+	      if (n2) {
+		temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+	      } else {
+		std::cout << "MEAS.sKSpace.lPartitions not found" << std::endl;
+	      }
+	      if (temp.size() != 1) {
+		std::cout << "Failed to find MEAS.sKSpace.lPartitions array" << std::endl;
+		return -1;
+	      } else {
+		lPartitions = std::atoi(temp[0].c_str());
+	      }
+
+	      n2 = boost::apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierPartitions"), n);
+	      if (n2) {
+		temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+	      } else {
+		std::cout << "YAPS.iNoOfFourierPartitions not found" << std::endl;
+	      }
+	      if (temp.size() != 1) {
+		std::cout << "Failed to find YAPS.iNoOfFourierPartitions array" << std::endl;
+		return -1;
+	      } else {
+		iNoOfFourierPartitions = std::atoi(temp[0].c_str());
+	      }
+
+	      // set the values
+	      center_line = lPhaseEncodingLines/2 - (lPhaseEncodingLines - iNoOfFourierLines);
+	      if (iNoOfFourierPartitions > 1) {
+		// 3D
+		center_partition = lPartitions/2 - (lPartitions - iNoOfFourierPartitions);
+	      } else {
+		// 2D
+		center_partition = 0;
+	      }
+	      std::cout << "center_line = " << center_line << std::endl;
+	      std::cout << "center_partition = " << center_partition << std::endl;
+
             }
 
             //Get some parameters - radial views
@@ -851,68 +929,64 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 new GadgetContainerMessage<ISMRMRD::Acquisition>();
 
         ISMRMRD::Acquisition* ismrmrd_acq = m2->getObjectPtr();
-		ISMRMRD::AcquisitionHeader ismrmrd_acq_head;		
+	ISMRMRD::AcquisitionHeader ismrmrd_acq_head;		
 
-		memset(&ismrmrd_acq_head,0,sizeof(ismrmrd_acq_head));
+	memset(&ismrmrd_acq_head,0,sizeof(ismrmrd_acq_head));
 
-		ismrmrd_acq_head.measurement_uid 				= scanhead.scanHeader.lMeasUID;
-		ismrmrd_acq_head.scan_counter					= scanhead.scanHeader.ulScanCounter;
-		ismrmrd_acq_head.acquisition_time_stamp		    = scanhead.scanHeader.ulTimeStamp;
-		ismrmrd_acq_head.physiology_time_stamp[0]		= scanhead.scanHeader.ulPMUTimeStamp;
-		ismrmrd_acq_head.number_of_samples 			= scanhead.scanHeader.ushSamplesInScan;
-		ismrmrd_acq_head.available_channels			= max_channels;
-		ismrmrd_acq_head.active_channels 				= scanhead.scanHeader.ushUsedChannels;
-           uint64_t           channel_mask[16];               //Mask to indicate which channels are active. Support for 1024 channels
-		ismrmrd_acq_head.discard_pre					= scanhead.scanHeader.sCutOff.ushPre;
-		ismrmrd_acq_head.discard_post					= scanhead.scanHeader.sCutOff.ushPost;
-		ismrmrd_acq_head.center_sample					= scanhead.scanHeader.ushKSpaceCentreColumn;
-		ismrmrd_acq_head.encoding_space_ref = 0;
-		ismrmrd_acq_head.trajectory_dimensions         = 0;
-		if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
-			ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
+	ismrmrd_acq_head.measurement_uid 				= scanhead.scanHeader.lMeasUID;
+	ismrmrd_acq_head.scan_counter					= scanhead.scanHeader.ulScanCounter;
+	ismrmrd_acq_head.acquisition_time_stamp		    = scanhead.scanHeader.ulTimeStamp;
+	ismrmrd_acq_head.physiology_time_stamp[0]		= scanhead.scanHeader.ulPMUTimeStamp;
+	ismrmrd_acq_head.number_of_samples 			= scanhead.scanHeader.ushSamplesInScan;
+	ismrmrd_acq_head.available_channels			= max_channels;
+	ismrmrd_acq_head.active_channels 				= scanhead.scanHeader.ushUsedChannels;
+	uint64_t           channel_mask[16];               //Mask to indicate which channels are active. Support for 1024 channels
+	ismrmrd_acq_head.discard_pre					= scanhead.scanHeader.sCutOff.ushPre;
+	ismrmrd_acq_head.discard_post					= scanhead.scanHeader.sCutOff.ushPost;
+	ismrmrd_acq_head.center_sample					= scanhead.scanHeader.ushKSpaceCentreColumn;
+	ismrmrd_acq_head.encoding_space_ref = 0;
+	ismrmrd_acq_head.trajectory_dimensions         = 0;
+	if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
+	  ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
         } else {
-			ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
+	  ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
 
         }
-		ismrmrd_acq_head.position[0]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
-		ismrmrd_acq_head.position[1]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
-		ismrmrd_acq_head.position[2]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
+	ismrmrd_acq_head.position[0]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
+	ismrmrd_acq_head.position[1]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
+	ismrmrd_acq_head.position[2]              		= scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
 
-		// Convert Siemens quaternions to direction cosines.
-		// In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
-                // Siemens stores the quaternion as (W,X,Y,Z)
-                float quat[4];
-                quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
-                quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
-                quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
-                quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
-		ISMRMRD::quaternion_to_directions( quat,
-					  ismrmrd_acq_head.phase_dir,
-					  ismrmrd_acq_head.read_dir,
-					  ismrmrd_acq_head.slice_dir);
+	// Convert Siemens quaternions to direction cosines.
+	// In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
+	// Siemens stores the quaternion as (W,X,Y,Z)
+	float quat[4];
+	quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
+	quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
+	quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
+	quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
+	ISMRMRD::quaternion_to_directions( quat,
+					   ismrmrd_acq_head.phase_dir,
+					   ismrmrd_acq_head.read_dir,
+					   ismrmrd_acq_head.slice_dir);
 
-		ismrmrd_acq_head.patient_table_position[0]   		= scanhead.scanHeader.lPTABPosX;
-		ismrmrd_acq_head.patient_table_position[1]   		= scanhead.scanHeader.lPTABPosY;
-		ismrmrd_acq_head.patient_table_position[2]   		= scanhead.scanHeader.lPTABPosZ;
+	ismrmrd_acq_head.patient_table_position[0]  = scanhead.scanHeader.lPTABPosX;
+	ismrmrd_acq_head.patient_table_position[1]  = scanhead.scanHeader.lPTABPosY;
+	ismrmrd_acq_head.patient_table_position[2]  = scanhead.scanHeader.lPTABPosZ;
 
-		ismrmrd_acq_head.idx.average						= scanhead.scanHeader.sLC.ushAcquisition;
-		ismrmrd_acq_head.idx.contrast						= scanhead.scanHeader.sLC.ushEcho;
-		ismrmrd_acq_head.idx.kspace_encode_step_1          = scanhead.scanHeader.sLC.ushLine;
-		ismrmrd_acq_head.idx.kspace_encode_step_2			= scanhead.scanHeader.sLC.ushPartition;
-		ismrmrd_acq_head.idx.phase							= scanhead.scanHeader.sLC.ushPhase;
-		ismrmrd_acq_head.idx.repetition					= scanhead.scanHeader.sLC.ushRepetition;
-		ismrmrd_acq_head.idx.segment						= scanhead.scanHeader.sLC.ushSeg;
-		ismrmrd_acq_head.idx.set							= scanhead.scanHeader.sLC.ushSet;
-		ismrmrd_acq_head.idx.slice							= scanhead.scanHeader.sLC.ushSlice;
-		ismrmrd_acq_head.idx.user[0]						= scanhead.scanHeader.sLC.ushIda;
-		ismrmrd_acq_head.idx.user[1]						= scanhead.scanHeader.sLC.ushIdb;
-		ismrmrd_acq_head.idx.user[2]						= scanhead.scanHeader.sLC.ushIdc;
-		ismrmrd_acq_head.idx.user[3]						= scanhead.scanHeader.sLC.ushIdd;
-		ismrmrd_acq_head.idx.user[4]						= scanhead.scanHeader.sLC.ushIde;
-        ismrmrd_acq_head.idx.user[5]						= scanhead.scanHeader.ushKSpaceCentreLineNo;
-        ismrmrd_acq_head.idx.user[6]						= scanhead.scanHeader.ushKSpaceCentrePartitionNo;
-        //   int32_t            user_int[8];                    //Free user parameters
-        //   float              user_float[8];                  //Free user parameters
+	ismrmrd_acq_head.idx.average                = scanhead.scanHeader.sLC.ushAcquisition;
+	ismrmrd_acq_head.idx.contrast               = scanhead.scanHeader.sLC.ushEcho;
+	ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine - scanhead.scanHeader.ushKSpaceCentreLineNo + center_line;
+	ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition - scanhead.scanHeader.ushKSpaceCentrePartitionNo + center_partition;
+	ismrmrd_acq_head.idx.phase                  = scanhead.scanHeader.sLC.ushPhase;
+	ismrmrd_acq_head.idx.repetition             = scanhead.scanHeader.sLC.ushRepetition;
+	ismrmrd_acq_head.idx.segment                =  scanhead.scanHeader.sLC.ushSeg;
+	ismrmrd_acq_head.idx.set                    = scanhead.scanHeader.sLC.ushSet;
+	ismrmrd_acq_head.idx.slice                  = scanhead.scanHeader.sLC.ushSlice;
+	ismrmrd_acq_head.idx.user[0]                = scanhead.scanHeader.sLC.ushIda;
+	ismrmrd_acq_head.idx.user[1]                = scanhead.scanHeader.sLC.ushIdb;
+	ismrmrd_acq_head.idx.user[2]                = scanhead.scanHeader.sLC.ushIdc;
+	ismrmrd_acq_head.idx.user[3]                = scanhead.scanHeader.sLC.ushIdd;
+	ismrmrd_acq_head.idx.user[4]                = scanhead.scanHeader.sLC.ushIde;
 
         /*****************************************************************************/
         /* the user_int[0] and user_int[1] are used to store user defined parameters */
