@@ -38,7 +38,9 @@ set(schema_files parameter_maps/IsmrmrdParameterMap.xml
                parameter_maps/IsmrmrdParameterMap_Siemens.xsl
                parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
                parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xml
-               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl)
+               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
+               parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
+               )
 
 add_executable(siemens_mriclient 
                main.cpp 
@@ -96,7 +98,5 @@ target_link_libraries(siemens_IceGadgetron
               )
 
 install(TARGETS siemens_mriclient siemens_to_HDF5 siemens_IceGadgetron DESTINATION bin)
-install(FILES ${ISMRMRD_LIBRARIES} DESTINATION lib)
-install(FILES ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd DESTINATION schema)
 install(FILES schema/IceGadgetron.xsd DESTINATION schema)
 install(FILES ${schema_files} DESTINATION schema)

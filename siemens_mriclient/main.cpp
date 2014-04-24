@@ -253,7 +253,8 @@ void print_usage()
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>                                                       (default default.xml)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                                                                          (write only flag, do not connect to Gadgetron)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                                                                          (Debug XML flag)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F <OUT FILE FORMAT, 'h5 or hdf5' or 'hdf or analyze' or 'nii or nifti'>    (default 'h5' format)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F                                                                          (FLASH PAT REF flag)\n") ));
+    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -U <OUT FILE FORMAT, 'h5 or hdf5' or 'hdf or analyze' or 'nii or nifti'>    (default 'h5' format)\n") ));
     ACE_DEBUG((LM_INFO, ACE_TEXT("                  -H <Gadgetron home>                                                         (if not provided, read from environmental variable 'GADGETRON_HOME'\n") ));
 }
 
@@ -269,7 +270,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         gadgetron_home = std::string(gadgetron_home_env);
     }
 
-    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wX:F:H:");
+    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wXF:U:H:");
 
     ACE_Get_Opt cmd_opts(argc, argv, options);
 
@@ -331,6 +332,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     bool write_to_file = false;
     bool write_to_file_only = false;
+    bool flash_pat_ref_scan = false;
 
     int option;
     while ((option = cmd_opts()) != EOF) {
@@ -377,6 +379,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             ACE_OS_String::strncpy(hdf5_out_group, cmd_opts.opt_arg(), 1024);
             break;
         case 'F':
+            flash_pat_ref_scan = true;
+            break;
+        case 'U':
             ACE_OS_String::strncpy(out_format, cmd_opts.opt_arg(), 128);
             break;
         case 'H':
@@ -929,10 +934,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     for (unsigned int a = 0; a < acquisitions; a++)
     {
         sScanHeader_with_data scanhead;
-
-
         offset[0] = a;
-
         {
             ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 
@@ -951,8 +953,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             break;
         }
 
-
-
         GadgetContainerMessage<GadgetMessageIdentifier>* m1 =
                 new GadgetContainerMessage<GadgetMessageIdentifier>();
 
@@ -962,41 +962,43 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 new GadgetContainerMessage<ISMRMRD::Acquisition>();
 
         ISMRMRD::Acquisition* ismrmrd_acq = m2->getObjectPtr();
+
         ISMRMRD::AcquisitionHeader ismrmrd_acq_head;        
 
         memset(&ismrmrd_acq_head,0,sizeof(ismrmrd_acq_head));
 
         ismrmrd_acq_head.measurement_uid                 = scanhead.scanHeader.lMeasUID;
         ismrmrd_acq_head.scan_counter                    = scanhead.scanHeader.ulScanCounter;
-        ismrmrd_acq_head.acquisition_time_stamp            = scanhead.scanHeader.ulTimeStamp;
+        ismrmrd_acq_head.acquisition_time_stamp          = scanhead.scanHeader.ulTimeStamp;
         ismrmrd_acq_head.physiology_time_stamp[0]        = scanhead.scanHeader.ulPMUTimeStamp;
-        ismrmrd_acq_head.number_of_samples             = scanhead.scanHeader.ushSamplesInScan;
-        ismrmrd_acq_head.available_channels            = max_channels;
+        ismrmrd_acq_head.number_of_samples               = scanhead.scanHeader.ushSamplesInScan;
+        ismrmrd_acq_head.available_channels              = max_channels;
         ismrmrd_acq_head.active_channels                 = scanhead.scanHeader.ushUsedChannels;
-        uint64_t channel_mask[16];                      //Mask to indicate which channels are active. Support for 1024 channels
-        ismrmrd_acq_head.discard_pre                    = scanhead.scanHeader.sCutOff.ushPre;
+        uint64_t channel_mask[16];                       //Mask to indicate which channels are active. Support for 1024 channels
+        ismrmrd_acq_head.discard_pre                     = scanhead.scanHeader.sCutOff.ushPre;
         ismrmrd_acq_head.discard_post                    = scanhead.scanHeader.sCutOff.ushPost;
-        ismrmrd_acq_head.center_sample                    = scanhead.scanHeader.ushKSpaceCentreColumn;
-        ismrmrd_acq_head.encoding_space_ref            = 0;
-        ismrmrd_acq_head.trajectory_dimensions         = 0;
+        ismrmrd_acq_head.center_sample                   = scanhead.scanHeader.ushKSpaceCentreColumn;
+        ismrmrd_acq_head.encoding_space_ref              = 0;
+        ismrmrd_acq_head.trajectory_dimensions           = 0;
         if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
             ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
         } else {
             ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
-
         }
+
         ismrmrd_acq_head.position[0]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
         ismrmrd_acq_head.position[1]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
         ismrmrd_acq_head.position[2]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
 
         // Convert Siemens quaternions to direction cosines.
         // In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
-                // Siemens stores the quaternion as (W,X,Y,Z)
-                float quat[4];
-                quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
-                quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
-                quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
-                quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
+        // Siemens stores the quaternion as (W,X,Y,Z)
+        float quat[4];
+        quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
+        quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
+        quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
+        quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
+
         ISMRMRD::quaternion_to_directions( quat,
                       ismrmrd_acq_head.phase_dir,
                       ismrmrd_acq_head.read_dir,
@@ -1006,22 +1008,22 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_acq_head.patient_table_position[1]           = scanhead.scanHeader.lPTABPosY;
         ismrmrd_acq_head.patient_table_position[2]           = scanhead.scanHeader.lPTABPosZ;
 
-        ismrmrd_acq_head.idx.average                        = scanhead.scanHeader.sLC.ushAcquisition;
+        ismrmrd_acq_head.idx.average                         = scanhead.scanHeader.sLC.ushAcquisition;
         ismrmrd_acq_head.idx.contrast                        = scanhead.scanHeader.sLC.ushEcho;
-        ismrmrd_acq_head.idx.kspace_encode_step_1          = scanhead.scanHeader.sLC.ushLine;
+        ismrmrd_acq_head.idx.kspace_encode_step_1            = scanhead.scanHeader.sLC.ushLine;
         ismrmrd_acq_head.idx.kspace_encode_step_2            = scanhead.scanHeader.sLC.ushPartition;
-        ismrmrd_acq_head.idx.phase                            = scanhead.scanHeader.sLC.ushPhase;
-        ismrmrd_acq_head.idx.repetition                    = scanhead.scanHeader.sLC.ushRepetition;
-        ismrmrd_acq_head.idx.segment                        = scanhead.scanHeader.sLC.ushSeg;
-        ismrmrd_acq_head.idx.set                            = scanhead.scanHeader.sLC.ushSet;
-        ismrmrd_acq_head.idx.slice                            = scanhead.scanHeader.sLC.ushSlice;
-        ismrmrd_acq_head.idx.user[0]                        = scanhead.scanHeader.sLC.ushIda;
-        ismrmrd_acq_head.idx.user[1]                        = scanhead.scanHeader.sLC.ushIdb;
-        ismrmrd_acq_head.idx.user[2]                        = scanhead.scanHeader.sLC.ushIdc;
-        ismrmrd_acq_head.idx.user[3]                        = scanhead.scanHeader.sLC.ushIdd;
-        ismrmrd_acq_head.idx.user[4]                        = scanhead.scanHeader.sLC.ushIde;
-        ismrmrd_acq_head.idx.user[5]                        = scanhead.scanHeader.ushKSpaceCentreLineNo;
-        ismrmrd_acq_head.idx.user[6]                        = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
+        ismrmrd_acq_head.idx.phase                           = scanhead.scanHeader.sLC.ushPhase;
+        ismrmrd_acq_head.idx.repetition                      = scanhead.scanHeader.sLC.ushRepetition;
+        ismrmrd_acq_head.idx.segment                         = scanhead.scanHeader.sLC.ushSeg;
+        ismrmrd_acq_head.idx.set                             = scanhead.scanHeader.sLC.ushSet;
+        ismrmrd_acq_head.idx.slice                           = scanhead.scanHeader.sLC.ushSlice;
+        ismrmrd_acq_head.idx.user[0]                         = scanhead.scanHeader.sLC.ushIda;
+        ismrmrd_acq_head.idx.user[1]                         = scanhead.scanHeader.sLC.ushIdb;
+        ismrmrd_acq_head.idx.user[2]                         = scanhead.scanHeader.sLC.ushIdc;
+        ismrmrd_acq_head.idx.user[3]                         = scanhead.scanHeader.sLC.ushIdd;
+        ismrmrd_acq_head.idx.user[4]                         = scanhead.scanHeader.sLC.ushIde;
+        ismrmrd_acq_head.idx.user[5]                         = scanhead.scanHeader.ushKSpaceCentreLineNo;
+        ismrmrd_acq_head.idx.user[6]                         = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
         //   int32_t            user_int[8];                    //Free user parameters
         //   float              user_float[8];                  //Free user parameters
 
@@ -1066,6 +1068,14 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
         //ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
+
+    if ((flash_pat_ref_scan) & (ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION)))) {
+        // For some sequences the PAT Reference data is collected using a different encoding space
+        // e.g. EPI scans with FLASH PAT Reference
+        // enabled by command line option
+        // TODO: it is likely that the dwell time is not set properly for this type of acquisition
+        ismrmrd_acq->setEncodingSpaceRef(1);
+    }
 
         if (trajectory == 4) { //Spiral, we will add the trajectory to the data
 
