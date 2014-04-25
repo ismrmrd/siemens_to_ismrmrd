@@ -597,17 +597,17 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		lPartitions = std::atoi(temp[0].c_str());
 	      }
 
+	      // Note: iNoOfFourierPartitions is sometimes absent for 2D sequences
 	      n2 = boost::apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierPartitions"), n);
 	      if (n2) {
 		temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+		if (temp.size() != 1) {
+		  iNoOfFourierPartitions = 1;
+		} else {
+		  iNoOfFourierPartitions = std::atoi(temp[0].c_str());
+		}
 	      } else {
-		std::cout << "YAPS.iNoOfFourierPartitions not found" << std::endl;
-	      }
-	      if (temp.size() != 1) {
-		std::cout << "Failed to find YAPS.iNoOfFourierPartitions array" << std::endl;
-		return -1;
-	      } else {
-		iNoOfFourierPartitions = std::atoi(temp[0].c_str());
+		iNoOfFourierPartitions = 1;
 	      }
 
 	      // set the values
@@ -619,6 +619,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 		// 2D
 		center_partition = 0;
 	      }
+
+	      // for spiral sequences the center_line and center_partition are zero
+	      if (trajectory == 4) {
+		center_line = 0;
+		center_partition = 0;
+	      }
+
 	      std::cout << "center_line = " << center_line << std::endl;
 	      std::cout << "center_partition = " << center_partition << std::endl;
 
