@@ -196,6 +196,68 @@
                         <comment>Using spiral design by Brian Hargreaves (http://mrsrl.stanford.edu/~brian/vdspiral/)</comment>
                     </trajectoryDescription>
                 </xsl:if>
+
+                <xsl:if test="siemens/YAPS/alRegridRampupTime > 0">
+                    <xsl:if test="siemens/YAPS/alRegridRampdownTime > 0">
+                        <trajectoryDescription>
+                            <identifier>ConventionalEPI</identifier>
+                            <userParameterLong>
+                                <name>etl</name>
+                                <value>
+                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lEPIFactor"/>
+                                </value>
+                            </userParameterLong>
+                            <userParameterLong>
+                                <name>numberOfNavigators</name>
+                                <value>3</value>
+                            </userParameterLong>
+                            <userParameterLong>
+                                <name>rampUpTime</name>
+                                <value>
+                                    <xsl:value-of select="siemens/YAPS/alRegridRampupTime"/>
+                                </value>
+                            </userParameterLong>
+                            <userParameterLong>
+                                <name>rampDownTime</name>
+                                <value>
+                                    <xsl:value-of select="siemens/YAPS/alRegridRampdownTime"/>
+                                </value>
+                            </userParameterLong>
+                            <userParameterLong>
+                                <name>flatTopTime</name>
+                                <value>
+                                    <xsl:value-of select="siemens/YAPS/alRegridFlattopTime"/>
+                                </value>
+                            </userParameterLong>
+                            <userParameterLong>
+                                <name>echoSpacing</name>
+                                <value>
+                                    <xsl:value-of select="siemens/YAPS/lEchoSpacing"/>
+                                </value>
+                            </userParameterLong>
+                            <userParameterLong>
+                                <name>acqDelayTime</name>
+                                <value>
+                                    <xsl:value-of select="siemens/YAPS/alRegridDelaySamplesTime"/>
+                                </value>
+                            </userParameterLong>
+                            <userParameterLong>
+                                <name>numSamples</name>
+                                <value>
+                                    <xsl:value-of select="siemens/YAPS/alRegridDestSamples"/>
+                                </value>
+                            </userParameterLong>
+                            <userParameterDouble>
+                                <name>dwellTime</name>
+                                <value>
+                                    <xsl:value-of select="siemens/MEAS/sRXSPEC/alDwellTime div 1000.0"/>
+                                </value>
+                            </userParameterDouble>
+                            <comment>Conventional 2D EPI sequence</comment>
+                        </trajectoryDescription>
+                    </xsl:if>
+                </xsl:if>
+
                 <encodedSpace>
                     <matrixSize>
 
@@ -213,7 +275,7 @@
                         </xsl:choose>
 
                         <y>
-                            <xsl:value-of select="siemens/MEAS/sKSpace/lPhaseEncodingLines"/>
+                            <xsl:value-of select="siemens/YAPS/iNoOfFourierLines"/>
                         </y>
 
                         <xsl:choose>
@@ -284,12 +346,12 @@
                     <kspace_encoding_step_1>
                         <minimum>0</minimum>
                         <maximum>
-                            <xsl:value-of select="siemens/YAPS/iNoOfFourierLines - 1"/>
+                            <xsl:value-of select="siemens/MEAS/sKSpace/lPhaseEncodingLines - 1"/>
                         </maximum>
                         <xsl:choose>
                             <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
                                 <center>
-                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2) - (siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines)"/>
+                                    <xsl:value-of select="floor((siemens/MEAS/sKSpace/lPhaseEncodingLines div 2))"/>
                                 </center>
                             </xsl:when>
                             <xsl:otherwise>
@@ -306,7 +368,7 @@
                             </xsl:when>
                             <xsl:otherwise>
                                 <maximum>
-                                    <xsl:value-of select="siemens/YAPS/iNoOfFourierPartitions - 1"/>
+                                    <xsl:value-of select="siemens/MEAS/sKSpace/lPartitions - 1"/>
                                 </maximum>
                                 <center>
                                     <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2) - (siemens/MEAS/sKSpace/lPartitions - siemens/YAPS/iNoOfFourierPartitions)"/>
