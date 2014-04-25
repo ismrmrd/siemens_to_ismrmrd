@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
 
-<xsl:stylesheet version="1.0" 
+<xsl:stylesheet version="1.0"
     xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
     <xsl:output method="xml" indent="yes"/>
@@ -198,6 +198,7 @@
                 </xsl:if>
                 <encodedSpace>
                     <matrixSize>
+
                         <xsl:choose>
                             <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
                                 <x>
@@ -210,13 +211,23 @@
                                 </x>
                             </xsl:otherwise>
                         </xsl:choose>
+
                         <y>
                             <xsl:value-of select="siemens/MEAS/sKSpace/lPhaseEncodingLines"/>
                         </y>
-                        <z>
-                            <xsl:value-of select="siemens/MEAS/sKspace/lPartitions"/>
-                        </z>
+
+                        <xsl:choose>
+                            <xsl:when test="not(siemens/YAPS/iNoOfFourierPartitions) or (siemens/YAPS/i3DFTLength = 1)">
+                                <z>1</z>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <z>
+                                    <xsl:value-of select="siemens/MEAS/sKSpace/lPartitions"/>
+                                </z>
+                            </xsl:otherwise>
+                        </xsl:choose>
                     </matrixSize>
+
                     <fieldOfView_mm>
                         <xsl:choose>
                             <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
@@ -298,7 +309,7 @@
                                     <xsl:value-of select="siemens/YAPS/iNoOfFourierPartitions - 1"/>
                                 </maximum>
                                 <center>
-                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2) - (siemens/MEAS/sKSpace/lPartitions-siemens/YAPS/iNoOfFourierPartitions)"/>
+                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2) - (siemens/MEAS/sKSpace/lPartitions - siemens/YAPS/iNoOfFourierPartitions)"/>
                                 </center>
                             </xsl:otherwise>
                         </xsl:choose>
@@ -478,12 +489,12 @@
             </dicomParameters>
 
             <xsl:if test="contains(siemens/MEAS/sProtConsistencyInfo/tBaselineString, 'VB') = 'true'">
-            <userParameters>
-                <userParameterDouble>
-                    <name>NoiseBandWidth</name>
-                    <value>130.0</value>
-                </userParameterDouble>
-            </userParameters>
+                <userParameters>
+                    <userParameterDouble>
+                        <name>NoiseBandWidth</name>
+                        <value>130.0</value>
+                    </userParameterDouble>
+                </userParameters>
             </xsl:if>
 
         </ismrmrdHeader>
