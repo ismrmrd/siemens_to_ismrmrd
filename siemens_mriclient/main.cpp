@@ -55,12 +55,12 @@ using namespace H5;
 using namespace Gadgetron;
 
 void calc_vds(double slewmax,double gradmax,double Tgsample,double Tdsample,int Ninterleaves,
-        double* fov, int numfov,double krmax,
-        int ngmax, double** xgrad,double** ygrad,int* numgrad);
+    double* fov, int numfov,double krmax,
+    int ngmax, double** xgrad,double** ygrad,int* numgrad);
 
 void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp, double krmax,
-        double** x_trajectory, double** y_trajectory,
-        double** weights);
+    double** x_trajectory, double** y_trajectory,
+    double** weights);
 
 #ifndef WIN32
 int xml_file_is_valid(std::string& xml, const char *schema_filename)
@@ -118,15 +118,15 @@ std::string get_date_time_string()
 
     std::stringstream str;
     str << timeinfo->tm_year+1900 << "-"
-            << std::setw(2) << std::setfill('0') << timeinfo->tm_mon+1
-            << "-"
-            << std::setw(2) << std::setfill('0') << timeinfo->tm_mday
-            << " "
-            << std::setw(2) << std::setfill('0') << timeinfo->tm_hour
-            << ":"
-            << std::setw(2) << std::setfill('0') << timeinfo->tm_min
-            << ":"
-            << std::setw(2) << std::setfill('0') << timeinfo->tm_sec;
+        << std::setw(2) << std::setfill('0') << timeinfo->tm_mon+1
+        << "-"
+        << std::setw(2) << std::setfill('0') << timeinfo->tm_mday
+        << " "
+        << std::setw(2) << std::setfill('0') << timeinfo->tm_hour
+        << ":"
+        << std::setw(2) << std::setfill('0') << timeinfo->tm_min
+        << ":"
+        << std::setw(2) << std::setfill('0') << timeinfo->tm_sec;
 
     std::string ret = str.str();
 
@@ -188,8 +188,8 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
                 for (unsigned int i = 1; i < split_path.size()-1; i++) {
                     /*
                     if (is_number(split_path[i]) && (i != split_path.size())) {
-                        std::cout << "Numeric index not supported inside path for source = " << source << std::endl;
-                        continue;
+                    std::cout << "Numeric index not supported inside path for source = " << source << std::endl;
+                    continue;
                     }*/
 
                     search_path += std::string(".") + split_path[i];
@@ -385,13 +385,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             ACE_OS_String::strncpy(out_format, cmd_opts.opt_arg(), 128);
             break;
         case 'H':
-        {
-            char gadgetron_home_str[1024];
-            ACE_OS_String::strncpy(gadgetron_home_str, cmd_opts.opt_arg(), 1024);
+            {
+                char gadgetron_home_str[1024];
+                ACE_OS_String::strncpy(gadgetron_home_str, cmd_opts.opt_arg(), 1024);
 
-            gadgetron_home = std::string(gadgetron_home_str);
-            gadgetron_home_from_env = false;
-        }
+                gadgetron_home = std::string(gadgetron_home_str);
+                gadgetron_home_from_env = false;
+            }
             break;
         case ':':
             ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("-%c requires an argument.\n"), cmd_opts.opt_opt()),-1);
@@ -446,7 +446,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file, hdf5_group));
     }
 
-
     //Get the HDF5 file opened.
     H5File hdf5file;
 
@@ -491,6 +490,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     long dwell_time_0 = 0;
     long max_channels = 0;
     long radial_views = 0;
+    long center_line = 0;
+    long center_partition = 0;
+    long lPhaseEncodingLines = 0;
+    long iNoOfFourierLines = 0;
+    long lPartitions = 0;
+    long iNoOfFourierPartitions = 0;
+
     std::string protocol_name = "";
 
     for (unsigned int b = 0; b < mhead.nr_buffers; b++) {
@@ -590,6 +596,84 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 }
             }
 
+            //Get some parameters - cartesian encoding bits
+            {
+                // get the center line parameters
+                const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lPhaseEncodingLines"), n);
+                std::vector<std::string> temp;
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                } else {
+                    std::cout << "MEAS.sKSpace.lPhaseEncodingLines not found" << std::endl;
+                }
+                if (temp.size() != 1) {
+                    std::cout << "Failed to find MEAS.sKSpace.lPhaseEncodingLines array" << std::endl;
+                    return -1;
+                } else {
+                    lPhaseEncodingLines = std::atoi(temp[0].c_str());
+                }
+
+                n2 = boost::apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierLines"), n);
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                } else {
+                    std::cout << "YAPS.iNoOfFourierLines not found" << std::endl;
+                }
+                if (temp.size() != 1) {
+                    std::cout << "Failed to find YAPS.iNoOfFourierLines array" << std::endl;
+                    return -1;
+                } else {
+                    iNoOfFourierLines = std::atoi(temp[0].c_str());
+                }
+
+                // get the center partition parameters
+                n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lPartitions"), n);
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                } else {
+                    std::cout << "MEAS.sKSpace.lPartitions not found" << std::endl;
+                }
+                if (temp.size() != 1) {
+                    std::cout << "Failed to find MEAS.sKSpace.lPartitions array" << std::endl;
+                    return -1;
+                } else {
+                    lPartitions = std::atoi(temp[0].c_str());
+                }
+
+                // Note: iNoOfFourierPartitions is sometimes absent for 2D sequences
+                n2 = boost::apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierPartitions"), n);
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                    if (temp.size() != 1) {
+                        iNoOfFourierPartitions = 1;
+                    } else {
+                        iNoOfFourierPartitions = std::atoi(temp[0].c_str());
+                    }
+                } else {
+                    iNoOfFourierPartitions = 1;
+                }
+
+                // set the values
+                center_line = lPhaseEncodingLines/2 - (lPhaseEncodingLines - iNoOfFourierLines);
+                if (iNoOfFourierPartitions > 1) {
+                    // 3D
+                    center_partition = lPartitions/2 - (lPartitions - iNoOfFourierPartitions);
+                } else {
+                    // 2D
+                    center_partition = 0;
+                }
+
+                // for spiral sequences the center_line and center_partition are zero
+                if (trajectory == 4) {
+                    center_line = 0;
+                    center_partition = 0;
+                }
+
+                std::cout << "center_line = " << center_line << std::endl;
+                std::cout << "center_partition = " << center_partition << std::endl;
+
+            }
+
             //Get some parameters - radial views
             {
                 const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lRadialViews"), n);
@@ -620,7 +704,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                     std::cout << "Failed to find HEADER.tProtocolName" << std::endl;
                     return -1;
                 } else {
-            protocol_name = temp[0];
+                    protocol_name = temp[0];
                 }
             }
 
@@ -637,7 +721,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         o.write(xml_config.c_str(), xml_config.size());
         o.close();
     }
-
 
     //Get rid of dynamically allocated memory in header
     {
@@ -666,9 +749,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     xmlChar* out_ptr = NULL;
     int xslt_length = 0;
     int xslt_result = xsltSaveResultToString(&out_ptr,
-                         &xslt_length,
-                         res,
-                         cur);
+        &xslt_length,
+        res,
+        cur);
 
     if (xslt_result < 0) {
         std::cout << "Failed to save converted doc to string" << std::endl;
@@ -724,7 +807,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     std::ifstream t(xml_post);
     xml_config = std::string((std::istreambuf_iterator<char>(t)),
-                    std::istreambuf_iterator<char>());
+        std::istreambuf_iterator<char>());
 
     if ( xsltproc_res != 0 )
     {
@@ -753,7 +836,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
         std::ifstream t(xml_post);
         xml_config = std::string((std::istreambuf_iterator<char>(t)),
-                        std::istreambuf_iterator<char>());
+            std::istreambuf_iterator<char>());
     }
 #endif //WIN32
 
@@ -825,7 +908,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         }
     }
 
-
     //Let's figure out how many acquisitions we have
     DataSet rawdataset;
     DataSpace rawspace;
@@ -834,7 +916,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     std::vector<hsize_t> offset;
     boost::shared_ptr<DataType> rawdatatype = getSiemensHDF5Type<sScanHeader_with_data>();
     unsigned long int acquisitions = 0;
-    try {
+    try
+    {
         std::stringstream str;
         str << "/files/" << hdf5_dataset_no << "/data";
 
@@ -863,13 +946,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         }
 
         acquisitions = raw_dimensions[0];
-
-
     } catch ( ... ) {
         std::cout << "Error accessing data variable for raw dataset" << std::endl;
         return -1;
     }
-
 
     //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
     boost::shared_ptr< hoNDArray<floatd2> > traj;
@@ -895,13 +975,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
         /*
         std::cout << "Calculated trajectory for spiral: " << std::endl
-                << "sample_time: " << sample_time << std::endl
-                << "smax: " << smax << std::endl
-                << "gmax: " << gmax << std::endl
-                << "fov: " << fov << std::endl
-                << "krmax: " << krmax << std::endl
-                << "interleaves: " << interleaves << std::endl
-                << "ngrad: " << ngrad << std::endl;
+        << "sample_time: " << sample_time << std::endl
+        << "smax: " << smax << std::endl
+        << "gmax: " << gmax << std::endl
+        << "fov: " << fov << std::endl
+        << "krmax: " << krmax << std::endl
+        << "interleaves: " << interleaves << std::endl
+        << "ngrad: " << ngrad << std::endl;
         */
 
         /* Calcualte the trajectory and weights*/
@@ -954,16 +1034,16 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         }
 
         GadgetContainerMessage<GadgetMessageIdentifier>* m1 =
-                new GadgetContainerMessage<GadgetMessageIdentifier>();
+            new GadgetContainerMessage<GadgetMessageIdentifier>();
 
         m1->getObjectPtr()->id = GADGET_MESSAGE_ISMRMRD_ACQUISITION;
 
         GadgetContainerMessage<ISMRMRD::Acquisition>* m2 =
-                new GadgetContainerMessage<ISMRMRD::Acquisition>();
+            new GadgetContainerMessage<ISMRMRD::Acquisition>();
 
         ISMRMRD::Acquisition* ismrmrd_acq = m2->getObjectPtr();
 
-        ISMRMRD::AcquisitionHeader ismrmrd_acq_head;        
+        ISMRMRD::AcquisitionHeader ismrmrd_acq_head;
 
         memset(&ismrmrd_acq_head,0,sizeof(ismrmrd_acq_head));
 
@@ -980,15 +1060,57 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_acq_head.center_sample                   = scanhead.scanHeader.ushKSpaceCentreColumn;
         ismrmrd_acq_head.encoding_space_ref              = 0;
         ismrmrd_acq_head.trajectory_dimensions           = 0;
+
         if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
             ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
         } else {
             ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
         }
 
-        ismrmrd_acq_head.position[0]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
-        ismrmrd_acq_head.position[1]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
-        ismrmrd_acq_head.position[2]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
+        //ismrmrd_acq_head.position[0]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
+        //ismrmrd_acq_head.position[1]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
+        //ismrmrd_acq_head.position[2]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
+
+        //// Convert Siemens quaternions to direction cosines.
+        //// In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
+        //// Siemens stores the quaternion as (W,X,Y,Z)
+        //float quat[4];
+        //quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
+        //quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
+        //quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
+        //quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
+
+        //ISMRMRD::quaternion_to_directions( quat,
+        //                                ismrmrd_acq_head.phase_dir,
+        //                                ismrmrd_acq_head.read_dir,
+        //                                ismrmrd_acq_head.slice_dir);
+
+        //ismrmrd_acq_head.patient_table_position[0]           = scanhead.scanHeader.lPTABPosX;
+        //ismrmrd_acq_head.patient_table_position[1]           = scanhead.scanHeader.lPTABPosY;
+        //ismrmrd_acq_head.patient_table_position[2]           = scanhead.scanHeader.lPTABPosZ;
+
+        //ismrmrd_acq_head.idx.average                         = scanhead.scanHeader.sLC.ushAcquisition;
+        //ismrmrd_acq_head.idx.contrast                        = scanhead.scanHeader.sLC.ushEcho;
+        //ismrmrd_acq_head.idx.kspace_encode_step_1            = scanhead.scanHeader.sLC.ushLine;
+        //ismrmrd_acq_head.idx.kspace_encode_step_2            = scanhead.scanHeader.sLC.ushPartition;
+        //ismrmrd_acq_head.idx.phase                           = scanhead.scanHeader.sLC.ushPhase;
+        //ismrmrd_acq_head.idx.repetition                      = scanhead.scanHeader.sLC.ushRepetition;
+        //ismrmrd_acq_head.idx.segment                         = scanhead.scanHeader.sLC.ushSeg;
+        //ismrmrd_acq_head.idx.set                             = scanhead.scanHeader.sLC.ushSet;
+        //ismrmrd_acq_head.idx.slice                           = scanhead.scanHeader.sLC.ushSlice;
+        //ismrmrd_acq_head.idx.user[0]                         = scanhead.scanHeader.sLC.ushIda;
+        //ismrmrd_acq_head.idx.user[1]                         = scanhead.scanHeader.sLC.ushIdb;
+        //ismrmrd_acq_head.idx.user[2]                         = scanhead.scanHeader.sLC.ushIdc;
+        //ismrmrd_acq_head.idx.user[3]                         = scanhead.scanHeader.sLC.ushIdd;
+        //ismrmrd_acq_head.idx.user[4]                         = scanhead.scanHeader.sLC.ushIde;
+        //ismrmrd_acq_head.idx.user[5]                         = scanhead.scanHeader.ushKSpaceCentreLineNo;
+        //ismrmrd_acq_head.idx.user[6]                         = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
+        ////   int32_t            user_int[8];                    //Free user parameters
+        ////   float              user_float[8];                  //Free user parameters
+
+        ismrmrd_acq_head.position[0]                        = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
+        ismrmrd_acq_head.position[1]                        = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
+        ismrmrd_acq_head.position[2]                        = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
 
         // Convert Siemens quaternions to direction cosines.
         // In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
@@ -998,34 +1120,84 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
         quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
         quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
-
         ISMRMRD::quaternion_to_directions( quat,
-                      ismrmrd_acq_head.phase_dir,
-                      ismrmrd_acq_head.read_dir,
-                      ismrmrd_acq_head.slice_dir);
+                                        ismrmrd_acq_head.phase_dir,
+                                        ismrmrd_acq_head.read_dir,
+                                        ismrmrd_acq_head.slice_dir);
 
-        ismrmrd_acq_head.patient_table_position[0]           = scanhead.scanHeader.lPTABPosX;
-        ismrmrd_acq_head.patient_table_position[1]           = scanhead.scanHeader.lPTABPosY;
-        ismrmrd_acq_head.patient_table_position[2]           = scanhead.scanHeader.lPTABPosZ;
+        ismrmrd_acq_head.patient_table_position[0]  = scanhead.scanHeader.lPTABPosX;
+        ismrmrd_acq_head.patient_table_position[1]  = scanhead.scanHeader.lPTABPosY;
+        ismrmrd_acq_head.patient_table_position[2]  = scanhead.scanHeader.lPTABPosZ;
 
-        ismrmrd_acq_head.idx.average                         = scanhead.scanHeader.sLC.ushAcquisition;
-        ismrmrd_acq_head.idx.contrast                        = scanhead.scanHeader.sLC.ushEcho;
-        ismrmrd_acq_head.idx.kspace_encode_step_1            = scanhead.scanHeader.sLC.ushLine;
-        ismrmrd_acq_head.idx.kspace_encode_step_2            = scanhead.scanHeader.sLC.ushPartition;
-        ismrmrd_acq_head.idx.phase                           = scanhead.scanHeader.sLC.ushPhase;
-        ismrmrd_acq_head.idx.repetition                      = scanhead.scanHeader.sLC.ushRepetition;
-        ismrmrd_acq_head.idx.segment                         = scanhead.scanHeader.sLC.ushSeg;
-        ismrmrd_acq_head.idx.set                             = scanhead.scanHeader.sLC.ushSet;
-        ismrmrd_acq_head.idx.slice                           = scanhead.scanHeader.sLC.ushSlice;
-        ismrmrd_acq_head.idx.user[0]                         = scanhead.scanHeader.sLC.ushIda;
-        ismrmrd_acq_head.idx.user[1]                         = scanhead.scanHeader.sLC.ushIdb;
-        ismrmrd_acq_head.idx.user[2]                         = scanhead.scanHeader.sLC.ushIdc;
-        ismrmrd_acq_head.idx.user[3]                         = scanhead.scanHeader.sLC.ushIdd;
-        ismrmrd_acq_head.idx.user[4]                         = scanhead.scanHeader.sLC.ushIde;
-        ismrmrd_acq_head.idx.user[5]                         = scanhead.scanHeader.ushKSpaceCentreLineNo;
-        ismrmrd_acq_head.idx.user[6]                         = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
-        //   int32_t            user_int[8];                    //Free user parameters
-        //   float              user_float[8];                  //Free user parameters
+        bool fixedE1E2 = true;
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25)))   fixedE1E2 = false; // noise
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))    fixedE1E2 = false; // navigator, rt feedback
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 2)))    fixedE1E2 = false; // hp feedback
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 51)))   fixedE1E2 = false; // dummy
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 5)))    fixedE1E2 = false; // synch data
+
+        ismrmrd_acq_head.idx.average                = scanhead.scanHeader.sLC.ushAcquisition;
+        ismrmrd_acq_head.idx.contrast               = scanhead.scanHeader.sLC.ushEcho;
+
+        if ( fixedE1E2 )
+        {
+            if ( std::abs(lPhaseEncodingLines/2 - scanhead.scanHeader.ushKSpaceCentreLineNo) < 2 ) // post-padding zeros
+            {
+                ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine;
+            }
+            else
+            {
+                if ( scanhead.scanHeader.ushKSpaceCentreLineNo < center_line )
+                {
+                    // probably the seperate ref lines
+                    ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine;
+                }
+                else
+                {
+                    ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine + lPhaseEncodingLines/2 - center_line; // - scanhead.scanHeader.ushKSpaceCentreLineNo + center_line;
+                }
+            }
+
+            if ( iNoOfFourierPartitions > 1 )
+            {
+                if ( std::abs(lPartitions/2 - scanhead.scanHeader.ushKSpaceCentrePartitionNo) < 2 ) // post-padding zeros
+                {
+                    ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
+                }
+                else
+                {
+                    if ( scanhead.scanHeader.ushKSpaceCentrePartitionNo < center_partition )
+                    {
+                        // probably the seperate ref lines
+                        ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
+                    }
+                    else
+                    {
+                        ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition + lPartitions/2 - center_partition; // - scanhead.scanHeader.ushKSpaceCentrePartitionNo + center_partition;
+                    }
+                }
+            }
+            else
+            {
+                ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
+            }
+        }
+        else
+        {
+            ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine;
+            ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
+        }
+
+        ismrmrd_acq_head.idx.phase                  = scanhead.scanHeader.sLC.ushPhase;
+        ismrmrd_acq_head.idx.repetition             = scanhead.scanHeader.sLC.ushRepetition;
+        ismrmrd_acq_head.idx.segment                =  scanhead.scanHeader.sLC.ushSeg;
+        ismrmrd_acq_head.idx.set                    = scanhead.scanHeader.sLC.ushSet;
+        ismrmrd_acq_head.idx.slice                  = scanhead.scanHeader.sLC.ushSlice;
+        ismrmrd_acq_head.idx.user[0]                = scanhead.scanHeader.sLC.ushIda;
+        ismrmrd_acq_head.idx.user[1]                = scanhead.scanHeader.sLC.ushIdb;
+        ismrmrd_acq_head.idx.user[2]                = scanhead.scanHeader.sLC.ushIdc;
+        ismrmrd_acq_head.idx.user[3]                = scanhead.scanHeader.sLC.ushIdd;
+        ismrmrd_acq_head.idx.user[4]                = scanhead.scanHeader.sLC.ushIde;
 
         /*****************************************************************************/
         /* the user_int[0] and user_int[1] are used to store user defined parameters */
@@ -1059,28 +1231,29 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 24)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_REVERSE));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 21)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PHASECORR_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NAVIGATION_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 2)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NAVIGATION_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 2)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 51)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 10)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 5)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
         // if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
         //ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
 
-    if ((flash_pat_ref_scan) & (ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION)))) {
-        // For some sequences the PAT Reference data is collected using a different encoding space
-        // e.g. EPI scans with FLASH PAT Reference
-        // enabled by command line option
-        // TODO: it is likely that the dwell time is not set properly for this type of acquisition
-        ismrmrd_acq->setEncodingSpaceRef(1);
-    }
+        if ((flash_pat_ref_scan) & (ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION)))) {
+            // For some sequences the PAT Reference data is collected using a different encoding space
+            // e.g. EPI scans with FLASH PAT Reference
+            // enabled by command line option
+            // TODO: it is likely that the dwell time is not set properly for this type of acquisition
+            ismrmrd_acq->setEncodingSpaceRef(1);
+        }
 
         if (trajectory == 4) { //Spiral, we will add the trajectory to the data
 
             if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
-              unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();//head_.number_of_samples;
+                unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();//head_.number_of_samples;
                 if (traj->get_size(0) < traj_samples_to_copy) {
                     traj_samples_to_copy = traj->get_size(0);
                     ismrmrd_acq->setDiscardPost(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy);
@@ -1097,9 +1270,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         for (unsigned int c = 0; c < m2->getObjectPtr()->getActiveChannels(); c++) {
             std::complex<float>* dptr = reinterpret_cast< std::complex<float>* >(channel_header[c].data.p);
             memcpy(const_cast<float*>(&ismrmrd_acq->getData()[c*ismrmrd_acq->getNumberOfSamples()*2]),
-                   dptr, ismrmrd_acq->getNumberOfSamples()*sizeof(float)*2);
+                dptr, ismrmrd_acq->getNumberOfSamples()*sizeof(float)*2);
         }
-
 
         if (write_to_file) {
             ISMRMRD::HDF5Exclusive lock;
@@ -1138,7 +1310,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         GADGET_START_TIMING(gtTimer, "Waiting for recon to finish ... ");
 
         GadgetContainerMessage<GadgetMessageIdentifier>* m1 =
-                new GadgetContainerMessage<GadgetMessageIdentifier>();
+            new GadgetContainerMessage<GadgetMessageIdentifier>();
 
         m1->getObjectPtr()->id = GADGET_MESSAGE_CLOSE;
 
