@@ -626,6 +626,22 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                     iNoOfFourierLines = std::atoi(temp[0].c_str());
                 }
 
+                long lFirstFourierLine;
+                bool has_FirstFourierLine = false;
+                n2 = boost::apply_visitor(XProtocol::getChildNodeByName("YAPS.lFirstFourierLine"), n);
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                } else {
+                    std::cout << "YAPS.lFirstFourierLine not found" << std::endl;
+                }
+                if (temp.size() != 1) {
+                    std::cout << "Failed to find YAPS.lFirstFourierLine array" << std::endl;
+                    has_FirstFourierLine = false;
+                } else {
+                    lFirstFourierLine = std::atoi(temp[0].c_str());
+                    has_FirstFourierLine = true;
+                }
+
                 // get the center partition parameters
                 n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lPartitions"), n);
                 if (n2) {
@@ -653,11 +669,42 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                     iNoOfFourierPartitions = 1;
                 }
 
+                long lFirstFourierPartition;
+                bool has_FirstFourierPartition = false;
+                n2 = boost::apply_visitor(XProtocol::getChildNodeByName("YAPS.lFirstFourierPartition"), n);
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                } else {
+                    std::cout << "YAPS.lFirstFourierPartition not found" << std::endl;
+                }
+                if (temp.size() != 1) {
+                    std::cout << "Failed to find YAPS.lFirstFourierPartition array" << std::endl;
+                    has_FirstFourierPartition = false;
+                } else {
+                    lFirstFourierPartition = std::atoi(temp[0].c_str());
+                    has_FirstFourierPartition = true;
+                }
+
                 // set the values
-                center_line = lPhaseEncodingLines/2 - (lPhaseEncodingLines - iNoOfFourierLines);
+                if ( has_FirstFourierLine ) // bottom half for partial fourier
+                {
+                    center_line = lPhaseEncodingLines/2 - ( lPhaseEncodingLines - iNoOfFourierLines );
+                }
+                else
+                {
+                    center_line = lPhaseEncodingLines/2;
+                }
+
                 if (iNoOfFourierPartitions > 1) {
                     // 3D
-                    center_partition = lPartitions/2 - (lPartitions - iNoOfFourierPartitions);
+                    if ( has_FirstFourierPartition ) // bottom half for partial fourier
+                    {
+                        center_partition = lPartitions/2 - ( lPartitions - iNoOfFourierPartitions );
+                    }
+                    else
+                    {
+                        center_partition = lPartitions/2;
+                    }
                 } else {
                     // 2D
                     center_partition = 0;
@@ -671,7 +718,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
                 std::cout << "center_line = " << center_line << std::endl;
                 std::cout << "center_partition = " << center_partition << std::endl;
-
             }
 
             //Get some parameters - radial views
@@ -1067,47 +1113,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
         }
 
-        //ismrmrd_acq_head.position[0]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
-        //ismrmrd_acq_head.position[1]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
-        //ismrmrd_acq_head.position[2]                      = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
-
-        //// Convert Siemens quaternions to direction cosines.
-        //// In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
-        //// Siemens stores the quaternion as (W,X,Y,Z)
-        //float quat[4];
-        //quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
-        //quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
-        //quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
-        //quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
-
-        //ISMRMRD::quaternion_to_directions( quat,
-        //                                ismrmrd_acq_head.phase_dir,
-        //                                ismrmrd_acq_head.read_dir,
-        //                                ismrmrd_acq_head.slice_dir);
-
-        //ismrmrd_acq_head.patient_table_position[0]           = scanhead.scanHeader.lPTABPosX;
-        //ismrmrd_acq_head.patient_table_position[1]           = scanhead.scanHeader.lPTABPosY;
-        //ismrmrd_acq_head.patient_table_position[2]           = scanhead.scanHeader.lPTABPosZ;
-
-        //ismrmrd_acq_head.idx.average                         = scanhead.scanHeader.sLC.ushAcquisition;
-        //ismrmrd_acq_head.idx.contrast                        = scanhead.scanHeader.sLC.ushEcho;
-        //ismrmrd_acq_head.idx.kspace_encode_step_1            = scanhead.scanHeader.sLC.ushLine;
-        //ismrmrd_acq_head.idx.kspace_encode_step_2            = scanhead.scanHeader.sLC.ushPartition;
-        //ismrmrd_acq_head.idx.phase                           = scanhead.scanHeader.sLC.ushPhase;
-        //ismrmrd_acq_head.idx.repetition                      = scanhead.scanHeader.sLC.ushRepetition;
-        //ismrmrd_acq_head.idx.segment                         = scanhead.scanHeader.sLC.ushSeg;
-        //ismrmrd_acq_head.idx.set                             = scanhead.scanHeader.sLC.ushSet;
-        //ismrmrd_acq_head.idx.slice                           = scanhead.scanHeader.sLC.ushSlice;
-        //ismrmrd_acq_head.idx.user[0]                         = scanhead.scanHeader.sLC.ushIda;
-        //ismrmrd_acq_head.idx.user[1]                         = scanhead.scanHeader.sLC.ushIdb;
-        //ismrmrd_acq_head.idx.user[2]                         = scanhead.scanHeader.sLC.ushIdc;
-        //ismrmrd_acq_head.idx.user[3]                         = scanhead.scanHeader.sLC.ushIdd;
-        //ismrmrd_acq_head.idx.user[4]                         = scanhead.scanHeader.sLC.ushIde;
-        //ismrmrd_acq_head.idx.user[5]                         = scanhead.scanHeader.ushKSpaceCentreLineNo;
-        //ismrmrd_acq_head.idx.user[6]                         = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
-        ////   int32_t            user_int[8];                    //Free user parameters
-        ////   float              user_float[8];                  //Free user parameters
-
         ismrmrd_acq_head.position[0]                        = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
         ismrmrd_acq_head.position[1]                        = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
         ismrmrd_acq_head.position[2]                        = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
@@ -1139,54 +1144,26 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_acq_head.idx.average                = scanhead.scanHeader.sLC.ushAcquisition;
         ismrmrd_acq_head.idx.contrast               = scanhead.scanHeader.sLC.ushEcho;
 
-        if ( fixedE1E2 )
-        {
-            if ( std::abs(lPhaseEncodingLines/2 - scanhead.scanHeader.ushKSpaceCentreLineNo) < 2 ) // post-padding zeros
-            {
-                ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine;
-            }
-            else
-            {
-                if ( scanhead.scanHeader.ushKSpaceCentreLineNo < center_line )
-                {
-                    // probably the seperate ref lines
-                    ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine;
-                }
-                else
-                {
-                    ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine + lPhaseEncodingLines/2 - center_line; // - scanhead.scanHeader.ushKSpaceCentreLineNo + center_line;
-                }
-            }
+        //if( fixedE1E2 )
+        //{
+        //    // if the partial fourier fills the bottom of kspace, the line should be shifted up
+        //    // if the top of kspace is filled, the line number does not need to be changed
+        //    ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine + lPhaseEncodingLines/2 - center_line;
 
-            if ( iNoOfFourierPartitions > 1 )
-            {
-                if ( std::abs(lPartitions/2 - scanhead.scanHeader.ushKSpaceCentrePartitionNo) < 2 ) // post-padding zeros
-                {
-                    ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
-                }
-                else
-                {
-                    if ( scanhead.scanHeader.ushKSpaceCentrePartitionNo < center_partition )
-                    {
-                        // probably the seperate ref lines
-                        ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
-                    }
-                    else
-                    {
-                        ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition + lPartitions/2 - center_partition; // - scanhead.scanHeader.ushKSpaceCentrePartitionNo + center_partition;
-                    }
-                }
-            }
-            else
-            {
-                ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
-            }
-        }
-        else
-        {
+        //    if ( iNoOfFourierPartitions > 1 )
+        //    {
+        //        ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition + lPartitions/2 - center_partition;
+        //    }
+        //    else
+        //    {
+        //        ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
+        //    }
+        //}
+        //else
+        //{
             ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine;
             ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
-        }
+        //}
 
         ismrmrd_acq_head.idx.phase                  = scanhead.scanHeader.sLC.ushPhase;
         ismrmrd_acq_head.idx.repetition             = scanhead.scanHeader.sLC.ushRepetition;
@@ -1198,6 +1175,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_acq_head.idx.user[2]                = scanhead.scanHeader.sLC.ushIdc;
         ismrmrd_acq_head.idx.user[3]                = scanhead.scanHeader.sLC.ushIdd;
         ismrmrd_acq_head.idx.user[4]                = scanhead.scanHeader.sLC.ushIde;
+        // TODO: remove this once the GTPlus can properly autodetect partial fourier
+        ismrmrd_acq_head.idx.user[5]                = scanhead.scanHeader.ushKSpaceCentreLineNo;
+        ismrmrd_acq_head.idx.user[6]                = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
 
         /*****************************************************************************/
         /* the user_int[0] and user_int[1] are used to store user defined parameters */

@@ -90,6 +90,10 @@
         <p><s>YAPS.alRegridDelaySamplesTime</s>                     <d>siemens.YAPS.alRegridDelaySamplesTime</d></p>
         <p><s>YAPS.aflRegridADCDuration</s>                         <d>siemens.YAPS.aflRegridADCDuration</d></p>
         <p><s>YAPS.alRegridDestSamples</s>                          <d>siemens.YAPS.alRegridDestSamples</d></p>
+
+        <p><s>YAPS.lFirstFourierLine</s>                            <d>siemens.YAPS.lFirstFourierLine</d></p>
+        <p><s>YAPS.lFirstFourierPartition</s>                       <d>siemens.YAPS.lFirstFourierPartition</d></p>
+
         <!-- user defined parameter -->
         <p><s>MEAS.sProtConsistencyInfo.tBaselineString</s> <d>siemens.MEAS.sProtConsistencyInfo.tBaselineString</d></p>
     </parameters>
