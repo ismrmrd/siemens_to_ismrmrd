@@ -3,6 +3,8 @@ find_package(HDF5 1.8 COMPONENTS C CXX REQUIRED)
 find_package(XSD REQUIRED)
 find_package(XercesC REQUIRED)
 
+find_package(MKL)
+
 # whether to compile toolboxes as static library
 OPTION(BUILD_TOOLBOX_STATIC "Build static library for toolboxes" Off)
 
@@ -65,10 +67,18 @@ IF (WIN32)
     target_link_libraries(siemens_to_HDF5 optimized ${HDF5_hdf5_LIBRARY_RELEASE} ${HDF5_hdf5_cpp_LIBRARY_RELEASE})
     target_link_libraries(siemens_to_HDF5 debug ${HDF5_hdf5_LIBRARY_DEBUG} ${HDF5_hdf5_cpp_LIBRARY_DEBUG})
 
-    set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
+    IF (MKL_FOUND)
+        target_link_libraries(siemens_mriclient ${MKL_LIBRARIES})
+    ENDIF (MKL_FOUND)
 
+    set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 ELSE(WIN32)
-    target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
+    IF (MKL_FOUND)
+        target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES} ${MKL_LIBRARIES})
+    ELSE (MKL_FOUND)
+        target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
+    ENDIF (MKL_FOUND)
+
     target_link_libraries(siemens_to_HDF5 tinyxml ${HDF5_LIBRARIES})
 ENDIF(WIN32)
 
