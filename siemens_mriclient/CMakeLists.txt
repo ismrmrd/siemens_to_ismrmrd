@@ -8,6 +8,7 @@ find_package(MKL)
 find_package(CUDA 4.1)
 if (CUDA_FOUND)
     ADD_DEFINITIONS(-DUSE_CUDA)
+    find_package(CULA)
 endif (CUDA_FOUND)
 
 # whether to compile toolboxes as static library
@@ -88,7 +89,10 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 IF (CUDA_FOUND)
-    target_link_libraries(siemens_mriclient ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} )
+    target_link_libraries(siemens_mriclient ${CUDA_LIBRARIES} ${CUDA_CUFFT_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CULA_LIBRARIES})
+    IF (CULA_FOUND)
+        target_link_libraries(siemens_mriclient ${CULA_LIBRARIES})
+    ENDIF(CULA_FOUND)
 ENDIF (CUDA_FOUND)
 
 target_link_libraries(siemens_mriclient
