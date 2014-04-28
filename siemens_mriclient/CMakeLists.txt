@@ -67,6 +67,7 @@ IF (WIN32)
 
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 ELSE(WIN32)
+    target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
     target_link_libraries(siemens_to_HDF5 tinyxml ${HDF5_LIBRARIES})
 ENDIF(WIN32)
 
