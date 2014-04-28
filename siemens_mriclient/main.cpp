@@ -27,6 +27,7 @@
 #include "siemensraw.h"
 #include "GadgetronConnector.h"
 #include "ImageWriter.h"
+#include "ImageAttribWriter.h"
 #include "hoNDArray.h"
 #include "GadgetXml.h"
 #include "XNode.h"
@@ -35,6 +36,7 @@
 
 #include "siemens_hdf5_datatypes.h"
 #include "HDF5ImageWriter.h"
+#include "HDF5ImageAttribWriter.h"
 #include "BlobFileWriter.h"
 #include "BlobFileWithAttribWriter.h"
 
