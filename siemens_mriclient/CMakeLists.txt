@@ -73,7 +73,6 @@ ENDIF(WIN32)
 
 target_link_libraries(siemens_mriclient
               optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
-              optimized cpucore_math debug cpucore_math${CMAKE_DEBUG_SUFFIX}
               optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
               optimized gadgetron_mricore debug gadgetron_mricore${CMAKE_DEBUG_SUFFIX}
               gtplus_io
