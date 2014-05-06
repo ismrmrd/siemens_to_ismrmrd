@@ -198,9 +198,16 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <maximum>
                             <xsl:value-of select="siemens/YAPS/iNoOfFourierLines - 1"/>
                         </maximum>
-                        <center>
-                          <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2) - (siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines)"/>
-                        </center>
+                        <xsl:choose>
+                            <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
+                                <center>
+                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2) - (siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines)"/>
+                                </center>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <center>0</center>
+                            </xsl:otherwise>
+                        </xsl:choose>
                     </kspace_encoding_step_1>
                     <kspace_encoding_step_2>
                         <minimum>0</minimum>
@@ -214,7 +221,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                                     <xsl:value-of select="siemens/YAPS/iNoOfFourierPartitions - 1"/>
                                 </maximum>
                                 <center>
-                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2)"/>
+                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2) - (siemens/MEAS/sKSpace/lPartitions - siemens/YAPS/iNoOfFourierPartitions)"/>
                                 </center>
                             </xsl:otherwise>
                         </xsl:choose>
@@ -226,30 +233,78 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         </maximum>
                         <center>0</center>
                     </slice>
+                    <set>
+                        <minimum>0</minimum>
+                        <maximum>
+                            <xsl:choose>
+                                <xsl:when test="siemens/YAPS/iNSet">
+                                    <xsl:value-of select="siemens/YAPS/iNSet"/>
+                                </xsl:when>
+                                <xsl:otherwise>0</xsl:otherwise>
+                            </xsl:choose>
+                        </maximum>
+                        <center>0</center>
+                    </set>
+                    <phase>
+                        <minimum>0</minimum>
+                        <maximum>
+                            <xsl:choose>
+                                <xsl:when test="siemens/MEAS/sPhysioImaging/lPhases">
+                                    <xsl:value-of select="siemens/MEAS/sPhysioImaging/lPhases"/>
+                                </xsl:when>
+                                <xsl:otherwise>0</xsl:otherwise>
+                            </xsl:choose>
+                        </maximum>
+                        <center>0</center>
+                    </phase>
                     <repetition>
                         <minimum>0</minimum>
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/MEAS/lRepetitions">
-                                    <xsl:value-of select="siemens/MEAS/lRepetitions - 1"/>
+                                    <xsl:value-of select="siemens/MEAS/lRepetitions"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
                         </maximum>
                         <center>0</center>
                     </repetition>
+                    <segment>
+                        <minimum>0</minimum>
+                        <maximum>
+                            <xsl:choose>
+                                <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
+                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments"/>
+                                </xsl:when>
+                                <xsl:otherwise>0</xsl:otherwise>
+                            </xsl:choose>
+                        </maximum>
+                        <center>0</center>
+                    </segment>
                     <contrast>
                         <minimum>0</minimum>
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/MEAS/lContrasts">
-                                    <xsl:value-of select="siemens/MEAS/lContrasts - 1"/>
+                                    <xsl:value-of select="siemens/MEAS/lContrasts"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
                         </maximum>
                         <center>0</center>
                     </contrast>
+                    <average>
+                        <minimum>0</minimum>
+                        <maximum>
+                            <xsl:choose>
+                                <xsl:when test="siemens/MEAS/lAverages">
+                                    <xsl:value-of select="siemens/MEAS/lAverages"/>
+                                </xsl:when>
+                                <xsl:otherwise>0</xsl:otherwise>
+                            </xsl:choose>
+                        </maximum>
+                        <center>0</center>
+                    </average>
                 </encodingLimits>
             </encoding>
 
