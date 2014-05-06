@@ -272,7 +272,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         gadgetron_home = std::string(gadgetron_home_env);
     }
 
-    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:wXF:U:H:");
+    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:U:H:wXF");
 
     ACE_Get_Opt cmd_opts(argc, argv, options);
 
