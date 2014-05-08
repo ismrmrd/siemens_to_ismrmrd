@@ -81,83 +81,83 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             <encoding>
                 <trajectory>epi</trajectory>
                 <trajectoryDescription>
-                  <identifier>ConventionalEPI</identifier>
-                  <userParameterLong>
-                    <name>etl</name>
-                    <value>
-                      <xsl:value-of select="siemens/MEAS/sFastImaging/lEPIFactor"/>
-                    </value>
-                  </userParameterLong>
-                  <userParameterLong>
-                    <name>numberOfNavigators</name>
-                    <value>3</value>
-                  </userParameterLong>
-                  <userParameterLong>
-                    <name>rampUpTime</name>
-                    <value>
-                      <xsl:value-of select="siemens/YAPS/alRegridRampupTime"/>
-                    </value>
-                  </userParameterLong>
-                  <userParameterLong>
-                    <name>rampDownTime</name>
-                    <value>
-                      <xsl:value-of select="siemens/YAPS/alRegridRampdownTime"/>
-                    </value>
-                  </userParameterLong>
-                  <userParameterLong>
-                    <name>flatTopTime</name>
-                    <value>
-                      <xsl:value-of select="siemens/YAPS/alRegridFlattopTime"/>
-                    </value>
-                  </userParameterLong>
-                  <userParameterLong>
-                    <name>echoSpacing</name>
-                    <value>
-                      <xsl:value-of select="siemens/YAPS/lEchoSpacing"/>
-                    </value>
-                  </userParameterLong>
-                  <userParameterLong>
-                    <name>acqDelayTime</name>
-                    <value>
-                      <xsl:value-of select="siemens/YAPS/alRegridDelaySamplesTime"/>
-                    </value>
-                  </userParameterLong>
-                  <userParameterLong>
-                    <name>numSamples</name>
-                    <value>
-                      <xsl:value-of select="siemens/YAPS/alRegridDestSamples"/>
-                    </value>
-                  </userParameterLong>
-                  <userParameterDouble>
-                    <name>dwellTime</name>
-                    <value>
-                      <xsl:value-of select="siemens/MEAS/sRXSPEC/alDwellTime div 1000.0"/>
-                    </value>
-                  </userParameterDouble>
-                  <comment>Conventional 2D EPI sequence</comment>
+                    <identifier>ConventionalEPI</identifier>
+                    <userParameterLong>
+                        <name>etl</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/sFastImaging/lEPIFactor"/>
+                        </value>
+                    </userParameterLong>
+                    <userParameterLong>
+                        <name>numberOfNavigators</name>
+                        <value>3</value>
+                    </userParameterLong>
+                    <userParameterLong>
+                        <name>rampUpTime</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/alRegridRampupTime"/>
+                        </value>
+                    </userParameterLong>
+                    <userParameterLong>
+                        <name>rampDownTime</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/alRegridRampdownTime"/>
+                        </value>
+                    </userParameterLong>
+                    <userParameterLong>
+                        <name>flatTopTime</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/alRegridFlattopTime"/>
+                        </value>
+                    </userParameterLong>
+                    <userParameterLong>
+                        <name>echoSpacing</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/lEchoSpacing"/>
+                        </value>
+                    </userParameterLong>
+                    <userParameterLong>
+                        <name>acqDelayTime</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/alRegridDelaySamplesTime"/>
+                        </value>
+                    </userParameterLong>
+                    <userParameterLong>
+                        <name>numSamples</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/alRegridDestSamples"/>
+                        </value>
+                    </userParameterLong>
+                    <userParameterDouble>
+                        <name>dwellTime</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/sRXSPEC/alDwellTime div 1000.0"/>
+                        </value>
+                    </userParameterDouble>
+                    <comment>Conventional 2D EPI sequence</comment>
                 </trajectoryDescription>
                 <encodedSpace>
                     <matrixSize>
-		      <x>
-			<xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
-		      </x>
-                      <y>
-                        <xsl:value-of select="siemens/MEAS/sKSpace/lPhaseEncodingLines"/>
-                      </y>
-                      <z>
-                        <xsl:value-of select="siemens/YAPS/i3DFTLength"/>
-                      </z>
+                        <x>
+                            <xsl:value-of select="siemens/MEAS/sKSpace/lBaseResolution"/>
+                        </x>
+                        <y>
+                            <xsl:value-of select="siemens/MEAS/sKSpace/lPhaseEncodingLines"/>
+                        </y>
+                        <z>
+                            <xsl:value-of select="siemens/YAPS/i3DFTLength"/>
+                        </z>
                     </matrixSize>
                     <fieldOfView_mm>
-		      <x>
-			<xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/>
-                      </x>
-                      <y>
-                        <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV * (1+$phaseOversampling)"/>
-                      </y>
-                      <z>
-                        <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness * (1+$sliceOversampling)"/>
-                      </z>
+                        <x>
+                            <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV"/>
+                        </x>
+                        <y>
+                            <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV * (1+$phaseOversampling)"/>
+                        </y>
+                        <z>
+                            <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dThickness * (1+$sliceOversampling)"/>
+                        </z>
                     </fieldOfView_mm>
                 </encodedSpace>
                 <reconSpace>
@@ -198,7 +198,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                             <xsl:value-of select="siemens/YAPS/iNoOfFourierLines - 1"/>
                         </maximum>
                         <center>
-                          <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2) - (siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines)"/>
+                            <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2) - (siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines)"/>
                         </center>
                     </kspace_encoding_step_1>
                     <kspace_encoding_step_2>
@@ -225,30 +225,78 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         </maximum>
                         <center>0</center>
                     </slice>
+                    <set>
+                        <minimum>0</minimum>
+                        <maximum>
+                            <xsl:choose>
+                                <xsl:when test="siemens/YAPS/iNSet">
+                                    <xsl:value-of select="siemens/YAPS/iNSet"/>
+                                </xsl:when>
+                                <xsl:otherwise>0</xsl:otherwise>
+                            </xsl:choose>
+                        </maximum>
+                        <center>0</center>
+                    </set>
+                    <phase>
+                        <minimum>0</minimum>
+                        <maximum>
+                            <xsl:choose>
+                                <xsl:when test="siemens/MEAS/sPhysioImaging/lPhases">
+                                    <xsl:value-of select="siemens/MEAS/sPhysioImaging/lPhases"/>
+                                </xsl:when>
+                                <xsl:otherwise>0</xsl:otherwise>
+                            </xsl:choose>
+                        </maximum>
+                        <center>0</center>
+                    </phase>
                     <repetition>
                         <minimum>0</minimum>
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/MEAS/lRepetitions">
-                                    <xsl:value-of select="siemens/MEAS/lRepetitions - 1"/>
+                                    <xsl:value-of select="siemens/MEAS/lRepetitions"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
                         </maximum>
                         <center>0</center>
                     </repetition>
+                    <segment>
+                        <minimum>0</minimum>
+                        <maximum>
+                            <xsl:choose>
+                                <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
+                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments"/>
+                                </xsl:when>
+                                <xsl:otherwise>0</xsl:otherwise>
+                            </xsl:choose>
+                        </maximum>
+                        <center>0</center>
+                    </segment>
                     <contrast>
                         <minimum>0</minimum>
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/MEAS/lContrasts">
-                                    <xsl:value-of select="siemens/MEAS/lContrasts - 1"/>
+                                    <xsl:value-of select="siemens/MEAS/lContrasts"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
                         </maximum>
                         <center>0</center>
                     </contrast>
+                    <average>
+                        <minimum>0</minimum>
+                        <maximum>
+                            <xsl:choose>
+                                <xsl:when test="siemens/MEAS/lAverages">
+                                    <xsl:value-of select="siemens/MEAS/lAverages"/>
+                                </xsl:when>
+                                <xsl:otherwise>0</xsl:otherwise>
+                            </xsl:choose>
+                        </maximum>
+                        <center>0</center>
+                    </average>
                 </encodingLimits>
             </encoding>
 
