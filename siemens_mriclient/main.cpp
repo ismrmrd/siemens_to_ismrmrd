@@ -993,7 +993,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             return -1;
         }
 
-        acquisitions = raw_dimensions[0];
+        acquisitions = (unsigned long)raw_dimensions[0];
     } catch ( ... ) {
         std::cout << "Error accessing data variable for raw dataset" << std::endl;
         return -1;
@@ -1003,7 +1003,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     boost::shared_ptr< hoNDArray<floatd2> > traj;
     if (trajectory == 4) {
         int     nfov   = 1;         /*  number of fov coefficients.             */
-        int     ngmax  = 1e5;       /*  maximum number of gradient samples      */
+        int     ngmax  = (int)1e5;       /*  maximum number of gradient samples      */
         double  *xgrad;             /*  x-component of gradient.                */
         double  *ygrad;             /*  y-component of gradient.                */
         double  *x_trajectory;
@@ -1046,8 +1046,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         float* co_ptr = reinterpret_cast<float*>(traj->get_data_ptr());
 
         for (int i = 0; i < (ngrad*interleaves); i++) {
-            co_ptr[i*2]   = -x_trajectory[i]/2;
-            co_ptr[i*2+1] = -y_trajectory[i]/2;
+            co_ptr[i*2]   = (float)(-x_trajectory[i]/2);
+            co_ptr[i*2+1] = (float)(-y_trajectory[i]/2);
         }
 
         delete [] xgrad;
@@ -1100,19 +1100,19 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_acq_head.acquisition_time_stamp          = scanhead.scanHeader.ulTimeStamp;
         ismrmrd_acq_head.physiology_time_stamp[0]        = scanhead.scanHeader.ulPMUTimeStamp;
         ismrmrd_acq_head.number_of_samples               = scanhead.scanHeader.ushSamplesInScan;
-        ismrmrd_acq_head.available_channels              = max_channels;
+        ismrmrd_acq_head.available_channels              = (uint16_t)max_channels;
         ismrmrd_acq_head.active_channels                 = scanhead.scanHeader.ushUsedChannels;
-        uint64_t channel_mask[16];                       //Mask to indicate which channels are active. Support for 1024 channels
+        // uint64_t channel_mask[16];                       //Mask to indicate which channels are active. Support for 1024 channels
         ismrmrd_acq_head.discard_pre                     = scanhead.scanHeader.sCutOff.ushPre;
         ismrmrd_acq_head.discard_post                    = scanhead.scanHeader.sCutOff.ushPost;
         ismrmrd_acq_head.center_sample                   = scanhead.scanHeader.ushKSpaceCentreColumn;
         ismrmrd_acq_head.encoding_space_ref              = 0;
         ismrmrd_acq_head.trajectory_dimensions           = 0;
 
-        if (scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
+        if (scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
             ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
         } else {
-            ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0;
+            ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0f;
         }
 
         ismrmrd_acq_head.position[0]                        = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
@@ -1132,16 +1132,16 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                                         ismrmrd_acq_head.read_dir,
                                         ismrmrd_acq_head.slice_dir);
 
-        ismrmrd_acq_head.patient_table_position[0]  = scanhead.scanHeader.lPTABPosX;
-        ismrmrd_acq_head.patient_table_position[1]  = scanhead.scanHeader.lPTABPosY;
-        ismrmrd_acq_head.patient_table_position[2]  = scanhead.scanHeader.lPTABPosZ;
+        ismrmrd_acq_head.patient_table_position[0]  = (float)scanhead.scanHeader.lPTABPosX;
+        ismrmrd_acq_head.patient_table_position[1]  = (float)scanhead.scanHeader.lPTABPosY;
+        ismrmrd_acq_head.patient_table_position[2]  = (float)scanhead.scanHeader.lPTABPosZ;
 
         bool fixedE1E2 = true;
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25)))   fixedE1E2 = false; // noise
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))    fixedE1E2 = false; // navigator, rt feedback
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 2)))    fixedE1E2 = false; // hp feedback
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 51)))   fixedE1E2 = false; // dummy
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 5)))    fixedE1E2 = false; // synch data
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25)))   fixedE1E2 = false; // noise
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1)))    fixedE1E2 = false; // navigator, rt feedback
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 2)))    fixedE1E2 = false; // hp feedback
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 51)))   fixedE1E2 = false; // dummy
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 5)))    fixedE1E2 = false; // synch data
 
         ismrmrd_acq_head.idx.average                = scanhead.scanHeader.sLC.ushAcquisition;
         ismrmrd_acq_head.idx.contrast               = scanhead.scanHeader.sLC.ushEcho;
@@ -1204,22 +1204,22 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
         ismrmrd_acq->setHead(ismrmrd_acq_head);
 
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 25)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 28)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 29)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 22)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 23)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 24)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_REVERSE));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 21)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PHASECORR_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NAVIGATION_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 2)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 51)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 10)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA));
-        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 5)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
-        // if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1 << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 28)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 29)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 22)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 23)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 24)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_REVERSE));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 21)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PHASECORR_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NAVIGATION_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 2)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 51)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 10)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA));
+        if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 5)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
+        // if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
 
         //This memory will be deleted by the ISMRMRD::Acquisition object
         //ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
@@ -1237,8 +1237,8 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
                 unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();//head_.number_of_samples;
                 if (traj->get_size(0) < traj_samples_to_copy) {
-                    traj_samples_to_copy = traj->get_size(0);
-                    ismrmrd_acq->setDiscardPost(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy);
+                    traj_samples_to_copy = (unsigned long)traj->get_size(0);
+                    ismrmrd_acq->setDiscardPost( (uint16_t)(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy) );
                 }
                 ismrmrd_acq->setTrajectoryDimensions(2);
                 //ismrmrd_acq->traj_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions];
