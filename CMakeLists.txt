@@ -30,7 +30,11 @@ set(CMAKE_MODULE_PATH ${GADGETRON_CMAKE_MODULES})
 ###############################################################
 
 find_package(Gadgetron REQUIRED)
-set(Boost_NO_BOOST_CMAKE ON)
+
+if(WIN32)
+    set(Boost_NO_BOOST_CMAKE ON)
+endif(WIN32)
+
 find_package(Boost COMPONENTS thread system REQUIRED)
 find_package(ACE REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
