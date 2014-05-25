@@ -239,6 +239,25 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
     return XmlToString(out_doc);
 }
 
+/// compute noise dwell time in us for dependency and built-in noise in VD/VB lines
+double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isAdjustCoilSens, bool isVB)
+{
+    if ( isAdjustCoilSens )
+    {
+        return 5.0;
+    }
+    else if ( isVB )
+    {
+        return (10e6/num_of_noise_samples_this_acq/130.0);
+    }
+    else
+    {
+        return ( ((long)(76800.0/num_of_noise_samples_this_acq)) / 10.0 );
+    }
+
+    return 5.0;
+}
+
 void print_usage() 
 {
     ACE_DEBUG((LM_INFO, ACE_TEXT("Usage: \n") ));
@@ -498,6 +517,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     long iNoOfFourierLines = 0;
     long lPartitions = 0;
     long iNoOfFourierPartitions = 0;
+    std::string seqString;
+    std::string baseLineString;
+
 
     std::string protocol_name = "";
 
@@ -756,6 +778,36 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 }
             }
 
+            // Get some parameters - base line
+            {
+                const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sProtConsistencyInfo.tBaselineString"), n);
+                std::vector<std::string> temp;
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                }
+                if (temp.size() > 0)
+                {
+                    baseLineString = temp[0];
+                }
+            }
+
+            if ( baseLineString.empty() )
+            {
+                const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sProtConsistencyInfo.tMeasuredBaselineString"), n);
+                std::vector<std::string> temp;
+                if (n2) {
+                    temp = boost::apply_visitor(XProtocol::getStringValueArray(), *n2);
+                }
+                if (temp.size() > 0)
+                {
+                    baseLineString = temp[0];
+                }
+            }
+
+            if ( baseLineString.empty() )
+            {
+                std::cout << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString" << std::endl;
+            }
 
             xml_config = ProcessGadgetronParameterMap(n,parammap_file);
             break;
@@ -763,6 +815,21 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     }
 
     std::cout << "Protocol Name: " << protocol_name << std::endl;
+
+    // whether this scan is a adjustment scan
+    bool isAdjustCoilSens = false;
+    if ( protocol_name == "AdjCoilSens" )
+    {
+        isAdjustCoilSens = true;
+    }
+
+    // whether this scan is from VB line
+    bool isVB = false;
+    if ( baseLineString.find("VB") != std::string::npos )
+    {
+        isVB = true;
+    }
+    std::cout << "Baseline: " << baseLineString << std::endl;
 
     if (debug_xml) {
         std::ofstream o("xml_raw.xml");
@@ -1109,9 +1176,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_acq_head.encoding_space_ref              = 0;
         ismrmrd_acq_head.trajectory_dimensions           = 0;
 
-        if (scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25) && (protocol_name.compare("AdjCoilSens") != 0)) { //This is noise
-            ismrmrd_acq_head.sample_time_us                =  7680.0f/ismrmrd_acq_head.number_of_samples;
-        } else {
+        if ( scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25) )
+        { //This is noise
+            ismrmrd_acq_head.sample_time_us                =  compute_noise_sample_in_us(ismrmrd_acq_head.number_of_samples, isAdjustCoilSens, isVB);
+        }
+        else
+        {
             ismrmrd_acq_head.sample_time_us                = dwell_time_0 / 1000.0f;
         }
 
