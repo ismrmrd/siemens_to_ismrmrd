@@ -13,6 +13,7 @@
                             <xs:element maxOccurs="1" minOccurs="1" name="XslStylesheet" type="xs:string"/>
                             <xs:element maxOccurs="1" minOccurs="1" name="Anchor" type="xs:string"/>
                             <xs:element maxOccurs="1" minOccurs="1" name="PassOnData" type="xs:boolean"/>
+                            <xs:element maxOccurs="1" minOccurs="1" name="RefAsFlashReadOut" type="xs:boolean"/>
                         </xs:sequence>
                     </xs:complexType>
                 </xs:element>

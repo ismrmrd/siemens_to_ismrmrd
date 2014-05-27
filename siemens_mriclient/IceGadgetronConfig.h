@@ -19,6 +19,7 @@ struct GadgetronEmitter
     std::string XslStylesheet;
     std::string Anchor;
     bool PassOnData;
+    bool RefAsFlashReadOut;
 
     GadgetronEmitter()
     {
@@ -27,6 +28,7 @@ struct GadgetronEmitter
         XslStylesheet = "IsmrmrdParameterMap_Siemens.xsl";
         Anchor = "Flags";
         PassOnData = false;
+        RefAsFlashReadOut = false;
     }
 
     ~GadgetronEmitter() {}
@@ -40,6 +42,7 @@ struct GadgetronEmitter
         GADGET_MSG("XslStylesheet               is " << XslStylesheet);
         GADGET_MSG("Anchor                      is " << Anchor);
         GADGET_MSG("PassOnData                  is " << PassOnData);
+        GADGET_MSG("RefAsFlashReadOut           is " << RefAsFlashReadOut);
         GADGET_MSG("---------------------------");
     }
 };
@@ -198,6 +201,13 @@ bool parseIceGadgetronConfiguration(const std::string& xmlName, IceGadgetronConf
                 {
                     std::string valueStr = value->FirstChild()->ToText()->ValueStr();
                     config.emitter.PassOnData = config.read_bool_str(valueStr);
+                }
+
+                value = pElem->FirstChildElement("RefAsFlashReadOut")->ToElement();
+                if ( value != NULL )
+                {
+                    std::string valueStr = value->FirstChild()->ToText()->ValueStr();
+                    config.emitter.RefAsFlashReadOut = config.read_bool_str(valueStr);
                 }
             }
             else if ( elemStr == "GadgetronInjector" )
