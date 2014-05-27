@@ -825,7 +825,10 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     // whether this scan is from VB line
     bool isVB = false;
-    if ( baseLineString.find("VB") != std::string::npos )
+    if ( (baseLineString.find("VB17") != std::string::npos) 
+        || (baseLineString.find("VB15") != std::string::npos) 
+        || (baseLineString.find("VB13") != std::string::npos)
+        || (baseLineString.find("VB11") != std::string::npos) )
     {
         isVB = true;
     }
