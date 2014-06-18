@@ -35,7 +35,7 @@ if(WIN32)
     set(Boost_NO_BOOST_CMAKE ON)
 endif(WIN32)
 
-find_package(Boost COMPONENTS thread system REQUIRED)
+find_package(Boost COMPONENTS thread system program_options REQUIRED)
 find_package(ACE REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
 

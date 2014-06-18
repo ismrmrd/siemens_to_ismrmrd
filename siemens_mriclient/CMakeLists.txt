@@ -47,7 +47,8 @@ add_executable(siemens_mriclient
                siemensraw.cpp 
                XNode.cpp 
                XNodeParser.cpp 
-               vds.cpp 
+               vds.cpp
+	       defaults.cpp 
                ${ISMRMRD_XSD_SOURCE} 
                siemens_hdf5_datatypes.h 
                siemensraw.h 

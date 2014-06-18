@@ -1,11 +1,3 @@
-#include "ace/INET_Addr.h"
-#include "ace/SOCK_Stream.h"
-#include "ace/SOCK_Connector.h"
-#include "ace/Log_Msg.h"
-#include "ace/Get_Opt.h"
-#include "ace/OS_NS_string.h"
-#include "ace/Reactor.h"
-
 #ifndef WIN32
 #include <libxml/parser.h>
 #include <libxml/xmlschemas.h>
@@ -21,40 +13,550 @@
 #include <libxslt/xsltutils.h>
 #endif //WIN32
 
-#include "GadgetronCommon.h"
-#include "GadgetMessageInterface.h"
-#include "GadgetMRIHeaders.h"
+#include <cassert>
+
 #include "siemensraw.h"
-#include "GadgetronConnector.h"
-#include "ImageWriter.h"
-#include "ImageAttribWriter.h"
-#include "hoNDArray.h"
-#include "GadgetXml.h"
+
+#include "GadgetXml.h" //ACE is here!!! (Not anymore!!!)
 #include "XNode.h"
-#include "FileInfo.h"
-#include "GadgetronTimer.h"
 
 #include "siemens_hdf5_datatypes.h"
-#include "HDF5ImageWriter.h"
-#include "HDF5ImageAttribWriter.h"
-#include "BlobFileWriter.h"
-#include "BlobFileWithAttribWriter.h"
 
 #include "ismrmrd.h"
 #include "ismrmrd_hdf5.h"
 
-#include <H5Cpp.h>
+#include "base64.h"
 
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
+
+#include <H5Cpp.h>
 #include <iomanip>
 
 #define EXCLUDE_ISMRMRD_XSD
-#include "GadgetIsmrmrdReadWrite.h"
 
 #ifndef H5_NO_NAMESPACE
 using namespace H5;
 #endif
 
-using namespace Gadgetron;
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <streambuf>
+
+
+#include <typeinfo>
+
+extern std::string global_xml_string;
+extern std::string global_xsl_string;
+extern std::string global_xsd_string;
+
+
+//BASE64 STUFF----------------------------------------------------
+static const std::string base64_chars =
+             "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+             "abcdefghijklmnopqrstuvwxyz"
+             "0123456789+/";
+
+static inline bool is_base64(unsigned char c) {
+	return (isalnum(c) || (c == '+') || (c == '/'));
+}
+
+std::string base64_decode(std::string const& encoded_string) {
+  int in_len = encoded_string.size();
+  int i = 0;
+  int j = 0;
+  int in_ = 0;
+  unsigned char char_array_4[4], char_array_3[3];
+  std::string ret;
+
+  while (in_len-- && ( encoded_string[in_] != '=') && is_base64(encoded_string[in_])) {
+	  char_array_4[i++] = encoded_string[in_]; in_++;
+	  if (i ==4) {
+		  for (i = 0; i <4; i++)
+			  char_array_4[i] = base64_chars.find(char_array_4[i]);
+
+		  	  char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
+		  	  char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
+		  	  char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+
+		  	  for (i = 0; (i < 3); i++)
+		  		  ret += char_array_3[i];
+		  	  	  i = 0;
+	  }
+  }
+
+  if (i) {
+	  for (j = i; j <4; j++)
+		  char_array_4[j] = 0;
+
+	  for (j = 0; j <4; j++)
+		  char_array_4[j] = base64_chars.find(char_array_4[j]);
+
+	  	  char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
+	  	  char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
+	  	  char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
+
+	  	  for (j = 0; (j < i - 1); j++) ret += char_array_3[j];
+  }
+  return ret;
+}
+
+
+H5File dat_to_HDF5(std::string infile, std::string tempfile)
+{
+    std::cout << "Siemens MRI VD line converter:" << std::endl;
+    std::cout << "  input file  :   " << infile << std::endl;
+
+    std::string outfile("middleFile.h5");
+    std::string errorfile("errorFile.h5");
+
+    //Get the HDF5 file opened. We will overwrite if the file exists
+	H5File hdf5file(tempfile.c_str(), H5F_ACC_TRUNC);
+
+    /* OK, let's open the file and start by checking
+     * (as best as we can) that it is indeed a VD line file
+     *
+     */
+    std::ifstream f(infile.c_str(), std::ios::in | std::ios::binary);
+
+    MrParcRaidFileHeader ParcRaidHead;
+
+    f.read(reinterpret_cast<char*>(&ParcRaidHead),sizeof(MrParcRaidFileHeader));
+
+    bool VBFILE = false;
+
+    std::cout << "ParcRaidHead.hdSize_ is: " << ParcRaidHead.hdSize_ << std::endl;
+
+    if (ParcRaidHead.hdSize_ > 32)  {
+        std::cout << "VB line file detected." << std::endl;
+        std::cout << "ParcRaidHead.count_ is: " << ParcRaidHead.count_ << std::endl;
+        VBFILE = true;
+        f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
+        ParcRaidHead.hdSize_ = ParcRaidHead.count_;
+        ParcRaidHead.count_ = 1;
+    } else if (ParcRaidHead.hdSize_ != 0) { //This is a VB line data file
+        throw std::runtime_error("Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported.");
+    	}
+
+    std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
+
+    //Now lets head the Parc file entries for each of the included measurements.
+    std::vector<MrParcRaidFileEntry> ParcFileEntries(64);
+
+    unsigned int totalNumScan = 0;
+
+    if (VBFILE)
+    {
+        //We are just going to fill these with zeros in this case. It doesn't exist.
+        for (unsigned int i = 0; i < ParcFileEntries.size(); i++) {
+            memset(&ParcFileEntries[i],0,sizeof(MrParcRaidFileEntry));
+        }
+
+        ParcFileEntries[0].off_ = 0;
+        f.seekg(0,std::ios::end); //Rewind a bit, we have no raid file header.
+        ParcFileEntries[0].len_ = f.tellg();
+        f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
+
+        std::cout << " ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
+
+    } else {
+        for (unsigned int i = 0; i < ParcFileEntries.size(); i++) {
+            f.read(reinterpret_cast<char*>(&ParcFileEntries[i]),sizeof(MrParcRaidFileEntry));
+            if (i < ParcRaidHead.count_) {
+                std::cout << "File id: " << ParcFileEntries[i].fileId_
+                        << ", Meas id: " << ParcFileEntries[i].measId_
+                        << ", Protocol name: " << ParcFileEntries[i].protName_ << std::endl;
+            }
+        }
+    }
+
+    //Let us write all the raid file headers to the root of the file
+    try {
+        std::vector<hsize_t> dims(1,1);
+        DataSpace dspace( dims.size(), &dims[0], &dims[0]);
+
+        boost::shared_ptr<DataType> headtype = getSiemensHDF5Type<MrParcRaidFileHeader>();
+        DataSet dataset = hdf5file.createDataSet( "MrParcRaidFileHeader", *headtype, dspace);
+        DataSpace mspace = dataset.getSpace();
+        dataset.write(&ParcRaidHead, *headtype, mspace, dspace );
+
+        headtype = getSiemensHDF5Type<MrParcRaidFileEntry>();
+        dims[0] = 64; dims.push_back(1);
+        dspace = DataSpace( dims.size(), &dims[0], &dims[0]);
+        dataset = hdf5file.createDataSet( "MrParcRaidFileEntries", *headtype, dspace);
+        mspace = dataset.getSpace();
+        dataset.write(&ParcFileEntries[0], *headtype, mspace, dspace );
+
+    } catch ( ... ) {
+        throw std::runtime_error("Error writing headers to the root of the HDF5 file");
+    }
+
+    std::stringstream str;
+    str << "/files";
+    try {
+        hdf5file.createGroup(str.str());
+    } catch ( FileIException& e) {
+        throw std::runtime_error("Error creating basic group in HDF5 file.");
+
+    }
+
+    //Now we can loop over the measurements/files
+    for (unsigned int i = 0; i < ParcRaidHead.count_; i++) {
+        str.clear();
+        str.str("");
+        str << "/files/" << i;
+
+        try {
+            hdf5file.createGroup(str.str());
+        } catch ( FileIException& e) {
+            //std::cout << "Error creating group for file " << i
+            //        << " in HDF5 file."
+            //        << "(" << str.str() << ")" << std::endl;
+            //return -1;
+            //return hdf5errorfile;
+            throw std::runtime_error("Error creating group for file");
+
+        }
+
+        f.seekg(ParcFileEntries[i].off_, std::ios::beg);
+
+        MeasurementHeader mhead;
+        f.read(reinterpret_cast<char*>(&mhead.dma_length),sizeof(uint32_t));
+
+        f.read(reinterpret_cast<char*>(&mhead.nr_buffers),sizeof(uint32_t));
+
+        //Now allocate dynamic memory for the buffers
+        mhead.buffers.len = mhead.nr_buffers;
+        MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[mhead.nr_buffers];
+        mhead.buffers.p = reinterpret_cast<void*>(buffers);
+
+        std::cout << "Number of parameter buffers: " << mhead.nr_buffers << std::endl;
+
+        char bufname_tmp[32];
+        for (unsigned int b = 0; b < mhead.nr_buffers; b++) {
+            f.getline(bufname_tmp,32,'\0');
+            buffers[b].bufName_.len = f.gcount() + 1;
+            bufname_tmp[f.gcount()] = '\0';
+            buffers[b].bufName_.p = reinterpret_cast<void*>(new char[buffers[b].bufName_.len]);
+            memcpy(buffers[b].bufName_.p, bufname_tmp, buffers[b].bufName_.len);
+
+            std::cout << "Buffer name: " << bufname_tmp << std::endl;
+
+            f.read(reinterpret_cast<char*>(&buffers[b].bufLen_),sizeof(uint32_t));
+            buffers[b].buf_.len = buffers[b].bufLen_;
+            //std::cout << "buffers[b].buf_.len: " << buffers[b].buf_.len<< std::endl;
+            buffers[b].buf_.p = reinterpret_cast<void*>(new char[buffers[b].buf_.len]);
+            f.read(reinterpret_cast<char*>(buffers[b].buf_.p),buffers[b].buf_.len);
+        }
+
+        try {
+            //Let's write the buffers to the HDF5 file.
+            std::vector<hsize_t> dims(1,1);
+            DataSpace dspace( dims.size(), &dims[0], &dims[0]); //There will only be one of these
+
+            str << "/MeasurementHeader";
+
+            boost::shared_ptr<DataType> headtype = getSiemensHDF5Type<MeasurementHeader>();
+            DataSet dataset = hdf5file.createDataSet( str.str(), *headtype, dspace);
+            DataSpace mspace = dataset.getSpace();
+
+            dataset.write(&mhead, *headtype, mspace, dspace );
+        } catch ( ... ) {
+            throw std::runtime_error("Error caught while trying to write header buffers to HDF5 file");
+        }
+
+        ClearMeasurementHeader(&mhead);
+
+        //We need to be on a 32 byte boundary after reading the buffers
+        long long int position_in_meas = static_cast<long long int>(f.tellg())-ParcFileEntries[i].off_;
+        if (position_in_meas % 32) {
+            f.seekg(32-(position_in_meas % 32), std::ios::cur);
+        }
+
+        //Now we can read data from the Siemens file and append to the HDF5 file.
+        str.clear();
+        str.str("");
+        str << "/files/" << i << "/data";
+
+        std::vector<hsize_t> dims(2,1);
+        std::vector<hsize_t> ddims(2,1);
+        std::vector<hsize_t> max_dims(2,1);
+        max_dims[0] = -1;
+
+        //Create variable for the data
+        DataSpace mspace1;
+        DataSpace mspace2;
+        DataSet dataset;
+        boost::shared_ptr<DataType> datatype = getSiemensHDF5Type<sScanHeader_with_data>();
+
+        try {
+            mspace1 = DataSpace( dims.size(), &dims[0], &max_dims[0]);
+
+            DSetCreatPropList cparms;
+            cparms.setChunk( dims.size(), &dims[0] );
+
+
+            dataset = hdf5file.createDataSet( str.str(), *datatype, mspace1, cparms);
+            mspace1 = dataset.getSpace();
+
+            mspace2 = DataSpace( dims.size(), &dims[0] );
+        } catch ( ... ) {
+            throw std::runtime_error("Error creating variable for measurment data in file");
+        }
+
+        std::vector<hsize_t> offset(dims.size(),0);
+
+        //Preparations for syncdata variable. We will not create it now, because it may not be needed.
+        DataSpace sync_mspace1;
+        DataSpace sync_mspace2;
+        DataSet sync_dataset;
+        boost::shared_ptr<DataType> sync_datatype = getSiemensHDF5Type<sScanHeader_with_syncdata>();
+
+        std::vector<hsize_t> sync_dims(2,1);
+        std::vector<hsize_t> sync_ddims(2,1);
+        std::vector<hsize_t> sync_max_dims(2,1);
+        sync_max_dims[0] = -1;
+        std::vector<hsize_t> sync_offset(sync_dims.size(),0);
+        //End of variables for syncdata
+
+        uint32_t last_mask = 0;
+        unsigned long int acquisitions = 1;
+        unsigned long int sync_data_packets = 0;
+        sMDH mdh;//For VB line
+        bool first_call = true;
+        while (!(last_mask & 1) && //Last scan not encountered
+                (((ParcFileEntries[i].off_+ ParcFileEntries[i].len_)-f.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
+        {
+            size_t position_in_meas = f.tellg();
+            sScanHeader_with_data scanhead;
+            f.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
+
+            if ( mdh.ulScanCounter%1000 == 0 )
+            {
+                std::cout << " mdh.ulScanCounter = " <<  mdh.ulScanCounter << std::endl;
+            }
+
+            if (VBFILE) {
+                f.read(reinterpret_cast<char*>(&mdh)+sizeof(uint32_t), sizeof(sMDH)-sizeof(uint32_t));
+                scanhead.scanHeader.lMeasUID = mdh.lMeasUID;
+                scanhead.scanHeader.ulScanCounter = mdh.ulScanCounter;
+                scanhead.scanHeader.ulTimeStamp = mdh.ulTimeStamp;
+                scanhead.scanHeader.ulPMUTimeStamp = mdh.ulPMUTimeStamp;
+                scanhead.scanHeader.ushSystemType = 0;
+                scanhead.scanHeader.ulPTABPosDelay = 0;
+                scanhead.scanHeader.lPTABPosX = 0;
+                scanhead.scanHeader.lPTABPosY = 0;
+                scanhead.scanHeader.lPTABPosZ = mdh.ushPTABPosNeg;//TODO: Modify calculation
+                scanhead.scanHeader.ulReserved1 = 0;
+                scanhead.scanHeader.aulEvalInfoMask[0] = mdh.aulEvalInfoMask[0];
+                scanhead.scanHeader.aulEvalInfoMask[1] = mdh.aulEvalInfoMask[1];
+                scanhead.scanHeader.ushSamplesInScan = mdh.ushSamplesInScan;
+                scanhead.scanHeader.ushUsedChannels = mdh.ushUsedChannels;
+                scanhead.scanHeader.sLC = mdh.sLC;
+                scanhead.scanHeader.sCutOff = mdh.sCutOff;
+                scanhead.scanHeader.ushKSpaceCentreColumn = mdh.ushKSpaceCentreColumn;
+                scanhead.scanHeader.ushCoilSelect = mdh.ushCoilSelect;
+                scanhead.scanHeader.fReadOutOffcentre = mdh.fReadOutOffcentre;
+                scanhead.scanHeader.ulTimeSinceLastRF = mdh.ulTimeSinceLastRF;
+                scanhead.scanHeader.ushKSpaceCentreLineNo = mdh.ushKSpaceCentreLineNo;
+                scanhead.scanHeader.ushKSpaceCentrePartitionNo = mdh.ushKSpaceCentrePartitionNo;
+                scanhead.scanHeader.sSliceData = mdh.sSliceData;
+                memset(scanhead.scanHeader.aushIceProgramPara,0,sizeof(uint16_t)*24);
+                memcpy(scanhead.scanHeader.aushIceProgramPara,mdh.aushIceProgramPara,8*sizeof(uint16_t));
+                memset(scanhead.scanHeader.aushReservedPara,0,sizeof(uint16_t)*4);
+                scanhead.scanHeader.ushApplicationCounter = 0;
+                scanhead.scanHeader.ushApplicationMask = 0;
+                scanhead.scanHeader.ulCRC = 0;
+            } else {
+                f.read(reinterpret_cast<char*>(&scanhead.scanHeader) + sizeof(uint32_t),sizeof(sScanHeader)-sizeof(uint32_t));
+            }
+
+            uint32_t dma_length = scanhead.scanHeader.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
+            uint32_t mdh_enable_flags = scanhead.scanHeader.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
+
+            if (scanhead.scanHeader.aulEvalInfoMask[0] & ( 1 << 5)) { //Check is this is synch data, if so, it must be handled differently.
+                //This is synch data.
+
+                sScanHeader_with_syncdata synch_data;
+                synch_data.scanHeader = scanhead.scanHeader;
+                synch_data.last_scan_counter = acquisitions-1;
+
+                if (VBFILE) {
+                    synch_data.syncdata.len = dma_length-sizeof(sMDH);
+                }
+                else {
+                    synch_data.syncdata.len = dma_length-sizeof(sScanHeader);
+                }
+                std::vector<uint8_t> synchdatabytes(synch_data.syncdata.len);
+                synch_data.syncdata.p = &synchdatabytes[0];
+                f.read(reinterpret_cast<char*>(&synchdatabytes[0]), synch_data.syncdata.len);
+
+                if (!sync_data_packets) { //This is the first, let's create the variable
+                    try {
+                        sync_mspace1 = DataSpace( sync_dims.size(), &sync_dims[0], &sync_max_dims[0]);
+
+                        DSetCreatPropList sync_cparms;
+                        sync_cparms.setChunk( sync_dims.size(), &sync_dims[0] );
+
+                        str.clear();
+                        str.str("");
+                        str << "/files/" << i << "/syncdata";
+
+                        sync_dataset = hdf5file.createDataSet( str.str(), *sync_datatype, sync_mspace1, sync_cparms);
+                        sync_mspace1 = dataset.getSpace();
+
+                        sync_mspace2 = DataSpace( sync_dims.size(), &sync_dims[0] );
+                    } catch ( ... ) {
+                        throw std::runtime_error("Error creating variable for sync data in file");
+
+                    }
+                }
+                sync_data_packets++;
+
+                if (sync_ddims[0] != sync_data_packets) {
+                    sync_ddims[0] = sync_data_packets;
+                    sync_dataset.extend(&sync_ddims[0]);
+                }
+                sync_mspace1 = sync_dataset.getSpace();
+                sync_offset[0] = sync_data_packets-1;
+
+                try {
+                    sync_mspace1.selectHyperslab(H5S_SELECT_SET, &sync_dims[0], &sync_offset[0]);
+                    sync_dataset.write( &synch_data, *sync_datatype, sync_mspace2, sync_mspace1 );
+                } catch ( ... ) {
+                    throw std::runtime_error("Error appending syncdata to HDF5 file");
+
+                }
+                continue;
+            }
+
+                //This check only makes sense in VD line files.
+            if (!VBFILE && (scanhead.scanHeader.lMeasUID != ParcFileEntries[i].measId_))
+            {
+                //Something must have gone terribly wrong. Bail out.
+                if ( first_call )
+                {
+                    std::cout << "Corrupted or retro-recon dataset detected (scanhead.scanHeader.lMeasUID != ParcFileEntries[i].measId_)" << std::endl;
+                    std::cout << "Fix the scanhead.scanHeader.lMeasUID ... " << std::endl;
+                    first_call = false;
+                }
+
+                scanhead.scanHeader.lMeasUID = ParcFileEntries[i].measId_;
+            }
+
+            //Allocate data for channels
+            scanhead.data.len = scanhead.scanHeader.ushUsedChannels;
+            sChannelHeader_with_data* chan = new sChannelHeader_with_data[scanhead.data.len];
+            scanhead.data.p = reinterpret_cast<void*>(chan);
+
+            for (unsigned int c = 0; c < scanhead.scanHeader.ushUsedChannels; c++) {
+                if (VBFILE) {
+                    if (c > 0) {
+                        f.read(reinterpret_cast<char*>(&mdh),sizeof(sMDH));
+                    }
+                    chan[c].channelHeader.ulTypeAndChannelLength = 0;
+                    chan[c].channelHeader.lMeasUID = mdh.lMeasUID;
+                    chan[c].channelHeader.ulScanCounter = mdh.ulScanCounter;
+                    chan[c].channelHeader.ulReserved1 = 0;
+                    chan[c].channelHeader.ulSequenceTime = 0;
+                    chan[c].channelHeader.ulUnused2 = 0;
+                    chan[c].channelHeader.ulChannelId = mdh.ushChannelId;
+                    chan[c].channelHeader.ulUnused3 = 0;
+                    chan[c].channelHeader.ulCRC = 0;
+                }
+                else {
+                    f.read(reinterpret_cast<char*>(&chan[c].channelHeader),sizeof(sChannelHeader));
+                }
+                chan[c].data.len = scanhead.scanHeader.ushSamplesInScan;
+                chan[c].data.p = reinterpret_cast<void*>(new complex_t[chan[c].data.len]);
+                f.read(reinterpret_cast<char*>(chan[c].data.p ),chan[c].data.len*sizeof(complex_t));
+            }
+
+            if (ddims[0] != acquisitions) {
+                ddims[0] = acquisitions;
+                dataset.extend(&ddims[0]);
+            }
+            mspace1 = dataset.getSpace();
+            offset[0] = acquisitions-1;
+
+            try {
+                mspace1.selectHyperslab(H5S_SELECT_SET, &dims[0], &offset[0]);
+                dataset.write( &scanhead, *datatype, mspace2, mspace1 );
+            } catch ( ... ) {
+                throw std::runtime_error("Error appending measurement data to HDF5 file");
+            }
+            ClearsScanHeader_with_data(&scanhead);
+            acquisitions++;
+            last_mask = scanhead.scanHeader.aulEvalInfoMask[0];
+        }
+
+        std::cout << " final mdh.ulScanCounter = " <<  mdh.ulScanCounter << " - last_mask : " << last_mask << std::endl;
+
+        //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
+        //We will store them in the HDF file in case we need them for creating a binary
+        //identical dat file.
+        unsigned int mystery_bytes = (ParcFileEntries[i].off_+ParcFileEntries[i].len_)-f.tellg();
+
+        if (mystery_bytes > 0) {
+            if (mystery_bytes != 160) {
+                std::cout << "WARNING: An unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
+                std::cout << "ParcFileEntries[i].off_ = " << ParcFileEntries[i].off_ << std::endl;
+                std::cout << "ParcFileEntries[i].len_ = " << ParcFileEntries[i].len_ << std::endl;
+                std::cout << "f.tellg() = " << f.tellg() << std::endl;
+                //return -1;
+                //return hdf5errorfile;
+                throw std::runtime_error("Error caught while writing mystery bytes to HDF5 file.");
+            }
+
+            try {
+                hsize_t mystery_dims[] = {1};
+
+                DataSpace mysspace = DataSpace(1, mystery_dims, mystery_dims);
+
+                hsize_t mystery_array_dims[1];
+                mystery_array_dims[0] = mystery_bytes;
+                DataType mysarraytype = ArrayType(PredType::NATIVE_CHAR, 1, mystery_array_dims);
+
+                char* mystery_data = new char[mystery_bytes];
+                f.read(mystery_data,mystery_bytes);
+
+                str.clear();
+                str.str("");
+                str << "/files/" << i << "/mysteryBytesPost";
+
+                DataSet mysdataset = hdf5file.createDataSet( str.str(), mysarraytype, mysspace);
+                mysdataset.write( mystery_data, mysarraytype, mysspace);
+                delete [] mystery_data;
+            } catch (...) {
+                throw std::runtime_error("Error caught while writing mystery bytes to HDF5 file.");
+            }
+
+            //After this we have to be on a 512 byte boundary
+            if (f.tellg() % 512) {
+                f.seekg(512-(f.tellg() % 512), std::ios::cur);
+            }
+        }
+    }
+
+    size_t end_position = f.tellg();
+    f.seekg(0,std::ios::end);
+    size_t eof_position = f.tellg();
+    if (end_position != eof_position) {
+        size_t additional_bytes = eof_position-end_position;
+        std::cout << "WARNING: End of file was not reached during conversion. There are "
+                << additional_bytes << " additional bytes at the end of file." << std::endl;
+    }
+
+    f.close();
+
+    //hdf5file.close();
+
+    std::cout << "Data conversion complete." << std::endl;
+    return hdf5file;
+}
+
 
 void calc_vds(double slewmax,double gradmax,double Tgsample,double Tdsample,int Ninterleaves,
     double* fov, int numfov,double krmax,
@@ -110,13 +612,13 @@ int xml_file_is_valid(std::string& xml, const char *schema_filename)
 }
 #endif //WIN32
 
+
 std::string get_date_time_string()
 {
     time_t rawtime;
     struct tm * timeinfo;
     time ( &rawtime );
     timeinfo = localtime ( &rawtime );
-
 
     std::stringstream str;
     str << timeinfo->tm_year+1900 << "-"
@@ -148,9 +650,9 @@ bool is_number(const std::string& s)
     return ret;
 }
 
+
 std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::string mapfilename)
 {
-
     TiXmlDocument out_doc;
 
     TiXmlDeclaration* decl = new TiXmlDeclaration( "1.0", "", "" );
@@ -204,8 +706,6 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
                     search_path += std::string(".") + split_path[split_path.size()-1];
                 }
 
-                //std::cout << "search_path: " << search_path << std::endl;
-
                 const XProtocol::XNode* n = boost::apply_visitor(XProtocol::getChildNodeByName(search_path), node);
 
                 std::vector<std::string> parameters;
@@ -226,230 +726,164 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
                     out_n.add(destination, parameters);
                 }
             } else {
-                ACE_DEBUG(( LM_ERROR, ACE_TEXT("Malformed Gadgetron parameter map\n") ));
+                std::cout << "Malformed Gadgetron parameter map" << std::endl;
             }
         }
 
     } else {
-        ACE_DEBUG(( LM_ERROR, ACE_TEXT("Malformed Gadgetron parameter map (parameters section not found)\n") ));
+        std::cout << "Malformed Gadgetron parameter map (parameters section not found)" << std::endl;
         return std::string("");
     }
-
 
     return XmlToString(out_doc);
 }
 
-void print_usage() 
+
+int main(int argc, char *argv[] )
 {
-    ACE_DEBUG((LM_INFO, ACE_TEXT("Usage: \n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("siemens_mriclient -p <PORT>                                                                   (default 9002)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -h <HOST>                                                                   (default localhost)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -f <HDF5 DATA FILE>                                                         (default ./data.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -d <HDF5 DATASET NUMBER>                                                    (default 0)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -m <PARAMETER MAP FILE>                                                     (default ./parammap.xml)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -x <PARAMETER MAP STYLESHEET>                                               (default ./parammap.xsl)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -o <HDF5 dump file>                                                         (default dump.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -g <HDF5 dump group>                                                        (/dataset)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -r <HDF5 result file>                                                       (default result.h5)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -G <HDF5 result group>                                                      (default date and time)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -c <GADGETRON CONFIG>                                                       (default default.xml)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -w                                                                          (write only flag, do not connect to Gadgetron)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -X                                                                          (Debug XML flag)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -F                                                                          (FLASH PAT REF flag)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -U <OUT FILE FORMAT, 'h5 or hdf5' or 'hdf or analyze' or 'nii or nifti'>    (default 'h5' format)\n") ));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("                  -H <Gadgetron home>                                                         (if not provided, read from environmental variable 'GADGETRON_HOME'\n") ));
-}
+	std::string filename;
+	unsigned int hdf5_dataset_no;
 
-int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
-{
-    bool gadgetron_home_from_env = false;
-    std::string gadgetron_home;
+	std::string parammap_file;
+	std::string parammap_xsl;
+	std::string schema_file_name;
 
-    char * gadgetron_home_env = ACE_OS::getenv("GADGETRON_HOME");
-    if ( gadgetron_home_env!=NULL && (std::string(gadgetron_home_env).size()>0) )
-    {
-        gadgetron_home_from_env = true;
-        gadgetron_home = std::string(gadgetron_home_env);
-    }
+	std::string hdf5_file;
+	std::string hdf5_group;
+	std::string hdf5_out_file;
+	std::string hdf5_out_group;
+	std::string out_format;
+	std::string date_time = get_date_time_string();
 
-    static const ACE_TCHAR options[] = ACE_TEXT(":p:h:f:d:o:c:m:x:g:r:G:U:H:wXF");
+	bool debug_xml = false;
+	bool flash_pat_ref_scan = false;
+    bool write_to_file = true;
 
-    ACE_Get_Opt cmd_opts(argc, argv, options);
+	po::options_description desc("Allowed options");
+	desc.add_options()
+	    ("help, h", "produce help message")
+	    (",f",                 			  po::value<std::string>(&filename)->default_value("./meas_MiniGadgetron_GRE.dat"), "<DAT FILE>")
+	    (",d",   	   					  po::value<unsigned int>(&hdf5_dataset_no)->default_value(0), "<HDF5 DATASET NUMBER>")
+	    (",m",       					  po::value<std::string>(&parammap_file)->default_value("default"), "<PARAMETER MAP FILE>")
+	    (",x", 							  po::value<std::string>(&parammap_xsl)->default_value("default"), "<PARAMETER MAP STYLESHEET>")
+	    (",c",         					  po::value<std::string>(&schema_file_name)->default_value("default"), "<SCHEMA FILE NAME>")
+	    (",o",           				  po::value<std::string>(&hdf5_file)->default_value("dump.h5"), "<HDF5 dump file>")
+	    (",g",	          				  po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 dump group>")
+	    (",r",         					  po::value<std::string>(&hdf5_out_file)->default_value("./result.h5"), "<HDF5 result file>")
+	    (",G",        					  po::value<std::string>(&hdf5_out_group)->default_value(date_time.c_str()), "<HDF5 result group>")
+	    (",X",           				  po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
+	    (",F",       					  po::value<bool>(&flash_pat_ref_scan)->implicit_value(false), "<FLASH PAT REF flag>")
+	    (",U", 							  po::value<std::string>(&out_format)->default_value("h5"), "<OUT FILE FORMAT, 'h5 or hdf5' or 'hdf or analyze' or 'nii or nifti'>")
+	;
 
-    ACE_TCHAR port_no[1024];
-    ACE_OS_String::strncpy(port_no, "9002", 1024);
+	po::variables_map vm;
+	po::store(po::parse_command_line(argc, argv, desc), vm);
+	po::notify(vm);
 
-    ACE_TCHAR hostname[1024];
-    ACE_OS_String::strncpy(hostname, "localhost", 1024);
+	if (vm.count("help")) {
+	    std::cout << desc << "\n";
+	    return 1;
+	}
 
-    ACE_TCHAR filename[4096];
-    ACE_OS_String::strncpy(filename, "./data.h5", 4096);
+	if (parammap_file == "default") {
+		std::string parammap_file_content = base64_decode(global_xml_string);
+		std::ofstream default_parammap_file("default_xml.xml", std::ofstream::out);
+		default_parammap_file << parammap_file_content;
+		default_parammap_file.close();
+		parammap_file = "./default_xml.xml";
+	}
 
-    ACE_TCHAR config_file[1024];
-    ACE_OS_String::strncpy(config_file, "default.xml", 1024);
+	if (parammap_xsl == "default") {
+		std::string parammap_xsl_content = base64_decode(global_xsl_string);
+		std::ofstream default_parammap_xsl("default_xsl.xsl", std::ofstream::out);
+		default_parammap_xsl << parammap_xsl_content;
+		default_parammap_xsl.close();
+		parammap_xsl = "./default_xsl.xsl";
 
-    ACE_TCHAR parammap_file[4096];
-    if ( gadgetron_home.empty() )
-    {
-        ACE_OS::sprintf(parammap_file, "./schema/IsmrmrdParameterMap.xml");
-    }
-    else
-    {
-        ACE_OS::sprintf(parammap_file, "%s/schema/IsmrmrdParameterMap.xml", gadgetron_home.c_str());
-    }
+	}
 
-    ACE_TCHAR parammap_xsl[4096];
-    if ( gadgetron_home.empty() )
-    {
-        ACE_OS::sprintf(parammap_file, "./schema/IsmrmrdParameterMap.xsl");
-    }
-    else
-    {
-        ACE_OS::sprintf(parammap_file, "%s/schema/IsmrmrdParameterMap.xml", gadgetron_home.c_str());
-    }
+	if (schema_file_name == "default") {
+		std::string schema_file_name_content = base64_decode(global_xsd_string);
+		std::ofstream default_schema_file_name("default_xsd.xsd", std::ofstream::out);
+		default_schema_file_name << schema_file_name_content;
+		default_schema_file_name.close();
+		schema_file_name = "./default_xsd.xsd";
+	}
 
-    ACE_TCHAR hdf5_file[1024];
-    ACE_OS_String::strncpy(hdf5_file, "dump.h5", 1024);
 
-    ACE_TCHAR hdf5_group[1024];
-    ACE_OS_String::strncpy(hdf5_group, "dataset", 1024);
+	std::cout << "OUTPUT FILE IS: " << hdf5_file << std::endl;
+	std::cout << "003 parammap_file: " << parammap_file << std::endl;
+    std::cout << "003 parammap_xsl: " << parammap_xsl << std::endl;
 
-    ACE_TCHAR hdf5_out_file[1024];
-    ACE_OS_String::strncpy(hdf5_out_file, "./result.h5", 1024);
+    std::cout << "Siemens MRI Client (for ISMRMRD format)" << std::endl;
 
-    ACE_TCHAR hdf5_out_group[1024];
-
-    std::string date_time = get_date_time_string();
-
-    ACE_OS_String::strncpy(hdf5_out_group, date_time.c_str(), 1024);
-
-    ACE_TCHAR out_format[128];
-    ACE_OS_String::strncpy(out_format, "h5", 128);
-
-    Gadgetron::GadgetronTimer gtTimer;
-    gtTimer.set_timing_in_destruction(false);
-
-    unsigned int hdf5_dataset_no = 0;
-    bool debug_xml = false;
-
-    bool write_to_file = false;
-    bool write_to_file_only = false;
-    bool flash_pat_ref_scan = false;
-
-    int option;
-    while ((option = cmd_opts()) != EOF) {
-        switch (option) {
-        case 'p':
-            ACE_OS_String::strncpy(port_no, cmd_opts.opt_arg(), 1024);
-            break;
-        case 'h':
-            ACE_OS_String::strncpy(hostname, cmd_opts.opt_arg(), 1024);
-            break;
-        case 'f':
-            ACE_OS_String::strncpy(filename, cmd_opts.opt_arg(), 4096);
-            break;
-        case 'd':
-            hdf5_dataset_no = atoi(cmd_opts.opt_arg());;
-            break;
-        case 'm':
-            ACE_OS_String::strncpy(parammap_file, cmd_opts.opt_arg(), 4096);
-            break;
-        case 'x':
-            ACE_OS_String::strncpy(parammap_xsl, cmd_opts.opt_arg(), 4096);
-            break;
-        case 'c':
-            ACE_OS_String::strncpy(config_file, cmd_opts.opt_arg(), 1024);
-            break;
-        case 'o':
-            ACE_OS_String::strncpy(hdf5_file, cmd_opts.opt_arg(), 1024);
-            write_to_file = true;
-            break;
-        case 'g':
-            ACE_OS_String::strncpy(hdf5_group, cmd_opts.opt_arg(), 1024);
-            write_to_file = true;
-            break;
-        case 'w':
-            write_to_file_only = true;
-            break;
-        case 'X':
-            debug_xml = true;
-            break;
-        case 'r':
-            ACE_OS_String::strncpy(hdf5_out_file, cmd_opts.opt_arg(), 1024);
-            break;
-        case 'G':
-            ACE_OS_String::strncpy(hdf5_out_group, cmd_opts.opt_arg(), 1024);
-            break;
-        case 'F':
-            flash_pat_ref_scan = true;
-            break;
-        case 'U':
-            ACE_OS_String::strncpy(out_format, cmd_opts.opt_arg(), 128);
-            break;
-        case 'H':
-            {
-                char gadgetron_home_str[1024];
-                ACE_OS_String::strncpy(gadgetron_home_str, cmd_opts.opt_arg(), 1024);
-
-                gadgetron_home = std::string(gadgetron_home_str);
-                gadgetron_home_from_env = false;
-            }
-            break;
-        case ':':
-            ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("-%c requires an argument.\n"), cmd_opts.opt_opt()),-1);
-            break;
-        default:
-            ACE_ERROR_RETURN( (LM_ERROR, ACE_TEXT("Command line parse error\n")), -1);
-            break;
-        }
-    }
-
-    if ( gadgetron_home.empty() )
-    {
-        ACE_ERROR((LM_ERROR, ACE_TEXT("gadgetron_home is not set.\n")));
-        print_usage();
+    std::ifstream file_1(filename);
+    if (!file_1) {
+    	std::cout << "Data file: " << filename << " does not exist." << std::endl;
+        std::cout << desc << "\n";
         return -1;
     }
+    else {
+    		std::cout << "Data file is: " << filename << std::endl;
+    }
+    file_1.close();
 
-    ACE_DEBUG(( LM_INFO, ACE_TEXT("Siemens MRI Client (for ISMRMRD format)\n") ));
-
-
-    if (!FileInfo(std::string(filename)).exists()) {
-        ACE_DEBUG((LM_INFO, ACE_TEXT("Data file %s does not exist.\n"), filename));
-        print_usage();
+    std::ifstream file_2(parammap_file);
+    if (!file_2) {
+    	std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
+    	std::cout << desc << "\n";
         return -1;
     }
+    else {
+        	std::cout << "Parameter map file is: " << parammap_file << std::endl;
+    }
+    file_2.close();
 
-    if (!FileInfo(std::string(parammap_file)).exists()) {
-        ACE_DEBUG((LM_INFO, ACE_TEXT("Parameter map file %s does not exist.\n"), parammap_file));
-        print_usage();
+    std::ifstream file_3(parammap_xsl);
+    if (!file_3) {
+    	std::cout << "Parameter map XSLT stylesheet: " << parammap_xsl << " does not exist." << std::endl;
+    	std::cout << desc << "\n";
         return -1;
     }
+    else {
+        	std::cout << "Parameter map XSLT stylesheet is: " << parammap_xsl << std::endl;
+    }
+    file_3.close();
 
-    if (!FileInfo(std::string(parammap_xsl)).exists()) {
-        ACE_DEBUG((LM_INFO, ACE_TEXT("Parameter map XSLT stylesheet %s does not exist.\n"), parammap_xsl));
-        print_usage();
+    std::ifstream file_4(schema_file_name);
+    if (!file_4) {
+        std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
+        std::cout << desc << "\n";
         return -1;
     }
-
-    if (!write_to_file_only) {
-        ACE_DEBUG((LM_INFO, ACE_TEXT("  -- host          :            %s\n"), hostname));
-        ACE_DEBUG((LM_INFO, ACE_TEXT("  -- port          :            %s\n"), port_no));
-        ACE_DEBUG((LM_INFO, ACE_TEXT("  -- config        :            %s\n"), config_file));
+    else {
+        	std::cout << "Schema file name is: " << schema_file_name << std::endl;
     }
-    ACE_DEBUG((LM_INFO, ACE_TEXT("  -- data          :            %s\n"), filename));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("  -- parameter map :            %s\n"), parammap_file));
-    ACE_DEBUG((LM_INFO, ACE_TEXT("  -- parameter xsl :            %s\n"), parammap_xsl));
+    file_4.close();
 
+    std::cout << "  -- data             :            " << filename << std::endl;
+    std::cout << "  -- parameter map    :            " << parammap_file << std::endl;
+    std::cout << "  -- parameter xsl    :            " << parammap_xsl << std::endl;
+    std::cout << "  -- schema file name :            " << schema_file_name << std::endl;
 
     boost::shared_ptr<ISMRMRD::IsmrmrdDataset>  ismrmrd_dataset;
 
     if (write_to_file) {
-        ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file, hdf5_group));
+    	ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
     }
 
-    //Get the HDF5 file opened.
+    std::string tempfile("tempfile.h5"); // tmpname
+
     H5File hdf5file;
+    try{
+    	//Get the HDF5 file.
+    	hdf5file = dat_to_HDF5(filename, tempfile);
+    }
+    catch(const std::runtime_error &error){
+    	std::cerr << error.what() << std::endl;
+    	remove(tempfile.c_str());
+    	exit(-1);
+    }
 
     MeasurementHeader mhead;
     {
@@ -457,10 +891,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
         try
         {
-            hdf5file = H5File(filename, H5F_ACC_RDONLY);
-
             std::stringstream str;
             str << "/files/" << hdf5_dataset_no << "/MeasurementHeader";
+            //str << "/files/" << atoi(hdf5_dataset_no.c_str()) << "/MeasurementHeader";
 
             DataSet headds = hdf5file.openDataSet(str.str().c_str());
             DataType dtype = headds.getDataType();
@@ -514,7 +947,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             }
 
             if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0) {
-                ACE_DEBUG((LM_ERROR, ACE_TEXT("Failed to parse XProtocol")));
+            	std::cout << "Failed to parse XProtocol" << std::endl;
                 return -1;
             }
 
@@ -563,7 +996,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                 }
             }
 
-
             //Get some parameters - trajectory
             {
                 const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.ucTrajectory"), n);
@@ -578,6 +1010,9 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                     return -1;
                 } else {
                     trajectory = std::atoi(temp[0].c_str());
+
+                    std::cout << "Trajectory is: " << trajectory << std::endl;
+
                 }
             }
 
@@ -755,8 +1190,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
                     protocol_name = temp[0];
                 }
             }
-
-
             xml_config = ProcessGadgetronParameterMap(n,parammap_file);
             break;
         }
@@ -776,10 +1209,6 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ClearMeasurementHeader(&mhead);
     }
 
-
-    ACE_TCHAR schema_file_name[4096];
-    ACE_OS::sprintf(schema_file_name, "%s/schema/ismrmrd.xsd", gadgetron_home.c_str());
-
 #ifndef WIN32
     xsltStylesheetPtr cur = NULL;
     xmlDocPtr doc, res;
@@ -790,7 +1219,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     xmlSubstituteEntitiesDefault(1);
     xmlLoadExtDtdDefaultValue = 1;
 
-    cur = xsltParseStylesheetFile((const xmlChar*)parammap_xsl);
+    cur = xsltParseStylesheetFile((const xmlChar*)parammap_xsl.c_str());
     doc = xmlParseMemory(xml_config.c_str(),xml_config.size());
     res = xsltApplyStylesheet(cur, doc, params);
 
@@ -808,23 +1237,16 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
 
     xml_config = std::string((char*)out_ptr,xslt_length);
 
-
-    if (!FileInfo(std::string(schema_file_name)).exists()) {
-        ACE_DEBUG((LM_INFO, ACE_TEXT("ISMRMRD schema file %s does not exist.\n"), schema_file_name));
-        return -1;
-    }
-
     if (debug_xml) {
         std::ofstream o("processed.xml");
         o.write(xml_config.c_str(), xml_config.size());
         o.close();
     }
 
-    if (xml_file_is_valid(xml_config,schema_file_name) <= 0) {
-        ACE_DEBUG((LM_INFO, ACE_TEXT("Generated XML is not valid according to the ISMRMRD schema %s.\n"), schema_file_name));
+    if (xml_file_is_valid(xml_config,schema_file_name.c_str()) <= 0) {
+        std::cout << "Generated XML is not valid according to the ISMRMRD schema" << schema_file_name << std::endl;
         return -1;
     }
-
 
     xsltFreeStylesheet(cur);
     xmlFreeDoc(res);
@@ -839,13 +1261,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
     syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
 
-    if ( !gadgetron_home_from_env )
-    {
-        xml_post = gadgetron_home + std::string("/xml_post.xml");
-        xml_pre = gadgetron_home + std::string("/xml_pre.xml");
+    //if ( !gadgetron_home_from_env )
+    //{
+    //    xml_post = gadgetron_home + std::string("/xml_post.xml");
+    //    xml_pre = gadgetron_home + std::string("/xml_pre.xml");
 
-        syscmd = gadgetron_home + std::string("/xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
-    }
+    //    syscmd = gadgetron_home + std::string("/xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
+    //}
 
     std::ofstream o(xml_pre);
     o.write(xml_config.c_str(), xml_config.size());
@@ -862,13 +1284,13 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         std::cerr << "Failed to call up xsltproc : \t" << syscmd << std::endl;
 
         // try again
-        if ( !gadgetron_home_from_env )
-        {
-            xml_post = std::string("/xml_post.xml");
-            xml_pre = std::string("/xml_pre.xml");
+        //if ( !gadgetron_home_from_env )
+        //{
+        //    xml_post = std::string("/xml_post.xml");
+        //    xml_pre = std::string("/xml_pre.xml");
 
-            syscmd = std::string("xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
-        }
+        //    syscmd = std::string("xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
+        //}
 
         std::ofstream o(xml_pre);
         o.write(xml_config.c_str(), xml_config.size());
@@ -891,69 +1313,20 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     ISMRMRD::AcquisitionHeader acq_head_base;
     memset(&acq_head_base, 0, sizeof(ISMRMRD::AcquisitionHeader) );
 
+
+    //THERE IS STH WIERD HERE:
     if (write_to_file) {
-        ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
-        if (ismrmrd_dataset->writeHeader(xml_config) < 0 ) {
-            std::cerr << "Failed to write XML header to HDF file" << std::endl;
-            return -1;
-        }
+		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+		if (ismrmrd_dataset->writeHeader(xml_config) < 0 ) {
+			std::cerr << "Failed to write XML header to HDF file" << std::endl;
+			return -1;
+		}
 
-        // a test
-        if (ismrmrd_dataset->writeHeader(xml_config) < 0 ) {
-            std::cerr << "Failed to write XML header to HDF file" << std::endl;
-            return -1;
-        }
-    }
-
-    GadgetronConnector con;
-    if (!write_to_file_only)
-    {
-        std::string out_format_str(out_format);
-
-        //con.register_writer(GADGET_MESSAGE_ACQUISITION, new GadgetAcquisitionMessageWriter());
-        con.register_writer(GADGET_MESSAGE_ISMRMRD_ACQUISITION,                         new GadgetIsmrmrdAcquisitionMessageWriter());
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_USHORT,                   new HDF5ImageWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_REAL_FLOAT,                    new HDF5ImageWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGE_CPLX_FLOAT,                    new HDF5ImageWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-
-        if ( out_format_str=="analyze" || out_format_str=="hdr" )
-        {
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new AnalyzeImageAttribWriter<ACE_UINT16>());
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new AnalyzeImageAttribWriter<float>());
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new AnalyzeComplexImageAttribWriter< std::complex<float> >());
-        }
-        else if ( out_format_str=="nifti" || out_format_str=="nii" )
-        {
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new NiftiImageAttribWriter<ACE_UINT16>());
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new NiftiImageAttribWriter<float>());
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new NiftiComplexImageAttribWriter< std::complex<float> >());
-        }
-        else
-        {
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_USHORT,     new HDF5ImageAttribWriter<ACE_UINT16>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_REAL_FLOAT,      new HDF5ImageAttribWriter<float>(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-            con.register_reader(GADGET_MESSAGE_ISMRMRD_IMAGEWITHATTRIB_CPLX_FLOAT,      new HDF5ImageAttribWriter< std::complex<float> >(std::string(hdf5_out_file), std::string(hdf5_out_group)));
-        }
-
-        con.register_reader(GADGET_MESSAGE_DICOM,                                       new BlobFileWriter(std::string(hdf5_out_file), std::string("dcm")));
-        con.register_reader(GADGET_MESSAGE_DICOM_WITHNAME,                              new BlobFileWithAttribWriter(std::string(), std::string("dcm")));
-
-        //Open a connection with the gadgetron
-        if (con.open(std::string(hostname),std::string(port_no)) != 0) {
-            ACE_DEBUG((LM_ERROR, ACE_TEXT("Unable to connect to the Gadgetron host")));
-            return -1;
-        }
-
-        //Tell Gadgetron which XML configuration to run.
-        if (con.send_gadgetron_configuration_file(std::string(config_file)) != 0) {
-            ACE_DEBUG((LM_ERROR, ACE_TEXT("Unable to send XML configuration to the Gadgetron host")));
-            return -1;
-        }
-
-        if (con.send_gadgetron_parameters(xml_config) != 0) {
-            ACE_DEBUG((LM_ERROR, ACE_TEXT("Unable to send XML parameters to the Gadgetron host")));
-            return -1;
-        }
+		// a test
+		if (ismrmrd_dataset->writeHeader(xml_config) < 0 ) {
+			std::cerr << "Failed to write XML header to HDF file" << std::endl;
+			return -1;
+		}
     }
 
     //Let's figure out how many acquisitions we have
@@ -967,6 +1340,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     try
     {
         std::stringstream str;
+        //str << "/files/" << atoi(hdf5_dataset_no.c_str()) << "/data";
         str << "/files/" << hdf5_dataset_no << "/data";
 
         ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
@@ -1000,65 +1374,61 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
     }
 
     //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
-    boost::shared_ptr< hoNDArray<floatd2> > traj;
-    if (trajectory == 4) {
-        int     nfov   = 1;         /*  number of fov coefficients.             */
-        int     ngmax  = (int)1e5;       /*  maximum number of gradient samples      */
-        double  *xgrad;             /*  x-component of gradient.                */
-        double  *ygrad;             /*  y-component of gradient.                */
-        double  *x_trajectory;
-        double  *y_trajectory;
-        double  *weighting;
-        int     ngrad;
+	 ISMRMRD::NDArrayContainer<float> traj;
+	 if (trajectory == 4) {
+		 int     nfov   = 1;         /*  number of fov coefficients.             */
+		 int     ngmax  = (int)1e5;  /*  maximum number of gradient samples      */
+		 double  *xgrad;             /*  x-component of gradient.                */
+		 double  *ygrad;             /*  y-component of gradient.                */
+		 double  *x_trajectory;
+		 double  *y_trajectory;
+		 double  *weighting;
+		 int     ngrad;
 
-        double sample_time = (1.0*dwell_time_0) * 1e-9;
-        double smax = std::atof(wip_double[7].c_str());
-        double gmax = std::atof(wip_double[6].c_str());
-        double fov = std::atof(wip_double[9].c_str());
-        double krmax = std::atof(wip_double[8].c_str());
-        long interleaves = radial_views;
+		 double sample_time = (1.0*dwell_time_0) * 1e-9;
+		 double smax = std::atof(wip_double[7].c_str());
+		 double gmax = std::atof(wip_double[6].c_str());
+		 double fov = std::atof(wip_double[9].c_str());
+		 double krmax = std::atof(wip_double[8].c_str());
+		 long interleaves = radial_views;
 
-        /*    call c-function here to calculate gradients */
-        calc_vds(smax,gmax,sample_time,sample_time,interleaves,&fov,nfov,krmax,ngmax,&xgrad,&ygrad,&ngrad);
+		 /*    call c-function here to calculate gradients */
+		 calc_vds(smax, gmax, sample_time, sample_time, interleaves, &fov, nfov, krmax, ngmax, &xgrad, &ygrad, &ngrad);
 
-        /*
-        std::cout << "Calculated trajectory for spiral: " << std::endl
-        << "sample_time: " << sample_time << std::endl
-        << "smax: " << smax << std::endl
-        << "gmax: " << gmax << std::endl
-        << "fov: " << fov << std::endl
-        << "krmax: " << krmax << std::endl
-        << "interleaves: " << interleaves << std::endl
-        << "ngrad: " << ngrad << std::endl;
-        */
+		 /*
+		 std::cout << "Calculated trajectory for spiral: " << std::endl
+		 << "sample_time: " << sample_time << std::endl
+		 << "smax: " << smax << std::endl
+		 << "gmax: " << gmax << std::endl
+		 << "fov: " << fov << std::endl
+		 << "krmax: " << krmax << std::endl
+		 << "interleaves: " << interleaves << std::endl
+		 << "ngrad: " << ngrad << std::endl;
+		 */
 
-        /* Calcualte the trajectory and weights*/
-        calc_traj(xgrad, ygrad, ngrad, interleaves, sample_time, krmax, &x_trajectory, &y_trajectory, &weighting);
+		 /* Calcualte the trajectory and weights*/
+		 calc_traj(xgrad, ygrad, ngrad, interleaves, sample_time, krmax, &x_trajectory, &y_trajectory, &weighting);
 
-        traj = boost::shared_ptr< hoNDArray<floatd2> >(new hoNDArray<floatd2>);
+		 std::vector<unsigned int> trajectory_dimensions;
+		 trajectory_dimensions.push_back(ngrad);
+		 trajectory_dimensions.push_back(interleaves);
 
-        std::vector<size_t> trajectory_dimensions;
-        trajectory_dimensions.push_back(ngrad);
-        trajectory_dimensions.push_back(interleaves);
+		 traj = ISMRMRD::NDArrayContainer<float>(trajectory_dimensions);
 
-        traj->create(&trajectory_dimensions);
+		 // 2 * number of points for each X and Y
+		 traj.resize(2 * ngrad * interleaves);
 
-        float* co_ptr = reinterpret_cast<float*>(traj->get_data_ptr());
+		 for (int i = 0; i < (ngrad*interleaves); i++) {
+			 traj[i * 2]     = (float)(-x_trajectory[i]/2);
+			 traj[i * 2 + 1] = (float)(-y_trajectory[i]/2);
+		 }
 
-        for (int i = 0; i < (ngrad*interleaves); i++) {
-            co_ptr[i*2]   = (float)(-x_trajectory[i]/2);
-            co_ptr[i*2+1] = (float)(-y_trajectory[i]/2);
-        }
-
-        delete [] xgrad;
-        delete [] ygrad;
-        delete [] x_trajectory;
-        delete [] y_trajectory;
-        delete [] weighting;
-    }
-
-    GADGET_START_TIMING(gtTimer, "Sending the data to server ... ");
-
+		 delete [] xgrad;
+		 delete [] ygrad;
+		 delete [] x_trajectory;
+		 delete [] y_trajectory;
+		 delete [] weighting;
+	 }
     for (unsigned int a = 0; a < acquisitions; a++)
     {
         sScanHeader_with_data scanhead;
@@ -1081,15 +1451,7 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
             break;
         }
 
-        GadgetContainerMessage<GadgetMessageIdentifier>* m1 =
-            new GadgetContainerMessage<GadgetMessageIdentifier>();
-
-        m1->getObjectPtr()->id = GADGET_MESSAGE_ISMRMRD_ACQUISITION;
-
-        GadgetContainerMessage<ISMRMRD::Acquisition>* m2 =
-            new GadgetContainerMessage<ISMRMRD::Acquisition>();
-
-        ISMRMRD::Acquisition* ismrmrd_acq = m2->getObjectPtr();
+        ISMRMRD::Acquisition* ismrmrd_acq = new ISMRMRD::Acquisition;
 
         ISMRMRD::AcquisitionHeader ismrmrd_acq_head;
 
@@ -1146,30 +1508,12 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         ismrmrd_acq_head.idx.average                = scanhead.scanHeader.sLC.ushAcquisition;
         ismrmrd_acq_head.idx.contrast               = scanhead.scanHeader.sLC.ushEcho;
 
-        //if( fixedE1E2 )
-        //{
-        //    // if the partial fourier fills the bottom of kspace, the line should be shifted up
-        //    // if the top of kspace is filled, the line number does not need to be changed
-        //    ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine + lPhaseEncodingLines/2 - center_line;
-
-        //    if ( iNoOfFourierPartitions > 1 )
-        //    {
-        //        ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition + lPartitions/2 - center_partition;
-        //    }
-        //    else
-        //    {
-        //        ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
-        //    }
-        //}
-        //else
-        //{
-            ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine;
-            ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
-        //}
+		ismrmrd_acq_head.idx.kspace_encode_step_1   = scanhead.scanHeader.sLC.ushLine;
+		ismrmrd_acq_head.idx.kspace_encode_step_2   = scanhead.scanHeader.sLC.ushPartition;
 
         ismrmrd_acq_head.idx.phase                  = scanhead.scanHeader.sLC.ushPhase;
         ismrmrd_acq_head.idx.repetition             = scanhead.scanHeader.sLC.ushRepetition;
-        ismrmrd_acq_head.idx.segment                =  scanhead.scanHeader.sLC.ushSeg;
+        ismrmrd_acq_head.idx.segment                = scanhead.scanHeader.sLC.ushSeg;
         ismrmrd_acq_head.idx.set                    = scanhead.scanHeader.sLC.ushSet;
         ismrmrd_acq_head.idx.slice                  = scanhead.scanHeader.sLC.ushSlice;
         ismrmrd_acq_head.idx.user[0]                = scanhead.scanHeader.sLC.ushIda;
@@ -1233,76 +1577,50 @@ int ACE_TMAIN(int argc, ACE_TCHAR *argv[] )
         }
 
         if (trajectory == 4) { //Spiral, we will add the trajectory to the data
+     	    std::valarray<float> traj_data = traj.data_;
+	        std::vector<unsigned int> traj_dims = traj.dimensions_;
 
-            if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
-                unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();//head_.number_of_samples;
-                if (traj->get_size(0) < traj_samples_to_copy) {
-                    traj_samples_to_copy = (unsigned long)traj->get_size(0);
-                    ismrmrd_acq->setDiscardPost( (uint16_t)(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy) );
-                }
-                ismrmrd_acq->setTrajectoryDimensions(2);
-                //ismrmrd_acq->traj_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions];
-                float* t_ptr = reinterpret_cast<float*>(traj->get_data_ptr() + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj->get_size(0)));
-                //memset(ismrmrd_acq->traj_,0,sizeof(float)*ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.trajectory_dimensions);
-                memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]),t_ptr, sizeof(float)*traj_samples_to_copy*ismrmrd_acq->getTrajectoryDimensions());
+	        std::cout << traj_data.size() << " " << traj_dims.size() << std::endl;
+
+			if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
+				 unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();
+				 std::cout << traj_samples_to_copy << std::endl;
+				 if (traj_dims[0] < traj_samples_to_copy) {
+					 traj_samples_to_copy = (unsigned long)traj_dims[0];
+					 ismrmrd_acq->setDiscardPost((uint16_t)(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy) );
+				 }
+				 ismrmrd_acq->setTrajectoryDimensions(2);
+				 float* t_ptr = reinterpret_cast<float*>(&traj_data[0] + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj_dims[0]));
+				 assert(&ismrmrd_acq->getTraj()[0] != NULL);
+				 assert(t_ptr != NULL);
+				 std::cout << ismrmrd_acq->getTraj().size() << std::endl;
+				 std::cout << sizeof(float) * traj_samples_to_copy * ismrmrd_acq->getTrajectoryDimensions() << std::endl;
+				 memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]), t_ptr, sizeof(float) * traj_samples_to_copy * ismrmrd_acq->getTrajectoryDimensions());
             }
         }
 
         sChannelHeader_with_data* channel_header = reinterpret_cast<sChannelHeader_with_data*>(scanhead.data.p);
-        for (unsigned int c = 0; c < m2->getObjectPtr()->getActiveChannels(); c++) {
+        for (unsigned int c = 0; c < ismrmrd_acq->getActiveChannels(); c++) {
             std::complex<float>* dptr = reinterpret_cast< std::complex<float>* >(channel_header[c].data.p);
-            memcpy(const_cast<float*>(&ismrmrd_acq->getData()[c*ismrmrd_acq->getNumberOfSamples()*2]),
-                dptr, ismrmrd_acq->getNumberOfSamples()*sizeof(float)*2);
+            memcpy(const_cast<float*>(&ismrmrd_acq->getData()[c*ismrmrd_acq->getNumberOfSamples()*2]), dptr, ismrmrd_acq->getNumberOfSamples()*sizeof(float)*2);
         }
 
         if (write_to_file) {
-            ISMRMRD::HDF5Exclusive lock;
-            if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0) {
-                std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
-                return -1;
-            }
+			ISMRMRD::HDF5Exclusive lock;
+			if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0) {
+				std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
+				return -1;
+			}
         }
 
-        if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 )
-        {
+        if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 ) {
             std::cout << "sending scan : " << scanhead.scanHeader.ulScanCounter << std::endl;
-        }
-
-        //Chain the message block together.
-        m1->cont(m2);
-        if (!write_to_file_only) {
-            if (con.putq(m1) == -1) {
-                ACE_DEBUG((LM_ERROR, ACE_TEXT("Unable to put data package on queue")));
-                return -1;
-            }
-        } else {
-            m1->release();
         }
 
         {
             ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
             ClearsScanHeader_with_data(&scanhead);
         }
-    }
-
-    GADGET_STOP_TIMING(gtTimer);
-
-    if (!write_to_file_only)
-    {
-        GADGET_START_TIMING(gtTimer, "Waiting for recon to finish ... ");
-
-        GadgetContainerMessage<GadgetMessageIdentifier>* m1 =
-            new GadgetContainerMessage<GadgetMessageIdentifier>();
-
-        m1->getObjectPtr()->id = GADGET_MESSAGE_CLOSE;
-
-        if (con.putq(m1) == -1) {
-            ACE_DEBUG((LM_ERROR, ACE_TEXT("Unable to put CLOSE package on queue")));
-            return -1;
-        }
-
-        con.wait(); //Wait for recon to finish
-        GADGET_STOP_TIMING(gtTimer);
     }
 
     return 0;

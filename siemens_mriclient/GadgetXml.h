@@ -7,10 +7,10 @@
 
 #include "tinyxml.h"
 
-#include "ace/OS_NS_stdlib.h"
-#include "ace/OS_NS_string.h"
-#include "ace/OS_NS_stdio.h"
-#include "ace/OS_NS_netdb.h"
+//#include "ace/OS_NS_stdlib.h"
+//#include "ace/OS_NS_string.h"
+//#include "ace/OS_NS_stdio.h"
+//#include "ace/OS_NS_netdb.h"
 
 //#include <boost/algorithm/string.hpp>
 
@@ -252,9 +252,11 @@ inline std::string GetStringParameterValueFromXML(TiXmlNode* anchor, const char*
   std::string ret("");
   while( (child = parent->IterateChildren( child )) ) {
     if ((child->Type() == TiXmlNode::TINYXML_ELEMENT) &&
-	(ACE_OS::strncmp(child->ToElement()->Value(),"parameter",9) == 0)) 
+	//(ACE_OS::strncmp(child->ToElement()->Value(),"parameter",9) == 0))
+    (strncmp(child->ToElement()->Value(),"parameter",9) == 0))
       {
-	if ((ACE_OS::strncmp(child->ToElement()->Attribute("name"),name,100) == 0)) {
+	//if ((ACE_OS::strncmp(child->ToElement()->Attribute("name"),name,100) == 0)) {
+    if ((strncmp(child->ToElement()->Attribute("name"),name,100) == 0)) {
 	  ret = std::string(child->ToElement()->Attribute("value"));
 	  break;
 	}
@@ -267,13 +269,15 @@ inline std::string GetStringParameterValueFromXML(TiXmlNode* anchor, const char*
 inline int GetIntParameterValueFromXML(TiXmlNode* anchor, const char* section, 
 				       const char* name)
 {
-  return ACE_OS::atoi(GetStringParameterValueFromXML(anchor, section, name).c_str());
+  //return ACE_OS::atoi(GetStringParameterValueFromXML(anchor, section, name).c_str());
+  return atoi(GetStringParameterValueFromXML(anchor, section, name).c_str());
 }
 
 inline double GetDoubleParameterValueFromXML(TiXmlNode* anchor, const char* section, 
 					     const char* name)
 {
-  return ACE_OS::atof(GetStringParameterValueFromXML(anchor, section, name).c_str());
+  //return ACE_OS::atof(GetStringParameterValueFromXML(anchor, section, name).c_str());
+  return atof(GetStringParameterValueFromXML(anchor, section, name).c_str());
 }
 
 inline std::string XmlToString(TiXmlNode& base)

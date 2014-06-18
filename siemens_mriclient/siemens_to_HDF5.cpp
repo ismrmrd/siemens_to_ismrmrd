@@ -21,6 +21,8 @@
 
 #include <H5Cpp.h>
 
+#include <typeinfo>
+
 #ifndef H5_NO_NAMESPACE
 using namespace H5;
 #endif
@@ -63,6 +65,8 @@ int main(int argc, char** argv)
 
     if (ParcRaidHead.hdSize_ > 32)  {
         std::cout << "VB line file detected." << std::endl;
+        std::cout << "ParcRaidHead.hdSize_ is: " << ParcRaidHead.hdSize_ << std::endl;
+        std::cout << "ParcRaidHead.count_ is: " << ParcRaidHead.count_ << std::endl;
         VBFILE = true;
         f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
         ParcRaidHead.hdSize_ = ParcRaidHead.count_;
@@ -80,18 +84,30 @@ int main(int argc, char** argv)
 
     unsigned int totalNumScan = 0;
 
+
     if (VBFILE)
     {
         //We are just going to fill these with zeros in this case. It doesn't exist.
         for (unsigned int i = 0; i < ParcFileEntries.size(); i++) {
             memset(&ParcFileEntries[i],0,sizeof(MrParcRaidFileEntry));
         }
+
         ParcFileEntries[0].off_ = 0;
         f.seekg(0,std::ios::end); //Rewind a bit, we have no raid file header.
         ParcFileEntries[0].len_ = f.tellg();
         f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
 
         std::cout << " ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
+
+        std::cout << "-----------------------------------------------------" << std::endl;
+        std::cout << "IMPORTANT!!!: ParcFileEntries info: " << std::endl;
+        std::cout << "ParcFileEntries.size() is: " << ParcFileEntries.size() << std::endl;
+        std::cout << "ParcFileEntries[0].len_ is: " << ParcFileEntries[0].len_ << std::endl;
+        std::cout << "ParcFileEntries[0].measId_ is: " << ParcFileEntries[0].measId_ << std::endl;
+        std::cout << "ParcFileEntries[0].patName_ is: " << ParcFileEntries[0].patName_ << std::endl;
+        std::cout << "ParcFileEntries.size() is: " << ParcFileEntries.size() << std::endl;
+        std::cout << "-----------------------------------------------------" << std::endl;
+
 
         //// use a slow method to find file end
         //uint32_t L_P;
@@ -174,7 +190,6 @@ int main(int argc, char** argv)
         return -1;
     }
 
-
     std::stringstream str;
     str << "/files";
     try {
@@ -222,7 +237,7 @@ int main(int argc, char** argv)
             buffers[b].bufName_.p = reinterpret_cast<void*>(new char[buffers[b].bufName_.len]);
             memcpy(buffers[b].bufName_.p, bufname_tmp, buffers[b].bufName_.len);
 
-            //std::cout << "Buffer name: " << bufname_tmp << std::endl;
+            std::cout << "Buffer name: " << bufname_tmp << std::endl;
 
             f.read(reinterpret_cast<char*>(&buffers[b].bufLen_),sizeof(uint32_t));
             buffers[b].buf_.len = buffers[b].bufLen_;
@@ -231,12 +246,34 @@ int main(int argc, char** argv)
             f.read(reinterpret_cast<char*>(buffers[b].buf_.p),buffers[b].buf_.len);
         }
 
+
+        std::cout << "-----------------------------------------------------" << std::endl;
+        std::cout << "IMPORTANT!!!: MeasurementHeader info: " << std::endl;
+        std::cout << "MeasurementHeader dma_length is: " << mhead.dma_length << std::endl;
+        std::cout << "MeasurementHeader nr_buffers is: " << mhead.nr_buffers << std::endl;
+        std::cout << "MeasurementHeader first buffer's type is: " << typeid(buffers[0]).name() << std::endl;
+        std::cout << "MeasurementHeader first buffer's len type is: " << typeid(buffers[0].bufLen_).name() << std::endl;
+        std::cout << "MeasurementHeader first buffer's len is: " << buffers[0].bufLen_ << std::endl;
+        std::cout << "MeasurementHeader first buffer's name type is: " << typeid(buffers[0].bufName_).name() << std::endl;
+        //std::cout << "MeasurementHeader first buffer's len is: " << buffers[0].bufLen_ << std::endl;
+        std::cout << "-----------------------------------------------------" << std::endl;
+
+
+
+
         try {
             //Let's write the buffers to the HDF5 file.
             std::vector<hsize_t> dims(1,1);
             DataSpace dspace( dims.size(), &dims[0], &dims[0]); //There will only be one of these
 
             str << "/MeasurementHeader";
+
+            std::cout << "-----------------------------------------------------" << std::endl;
+            std::cout << "IMPORTANT!!!: str type info: " << std::endl;
+            std::cout << "str: " << typeid(str).name() << std::endl;
+            std::cout << "-----------------------------------------------------" << std::endl;
+
+
             boost::shared_ptr<DataType> headtype = getSiemensHDF5Type<MeasurementHeader>();
             DataSet dataset = hdf5file.createDataSet( str.str(), *headtype, dspace);
             DataSpace mspace = dataset.getSpace();
@@ -319,6 +356,16 @@ int main(int argc, char** argv)
                 std::cout << " mdh.ulScanCounter = " <<  mdh.ulScanCounter << std::endl;
             }
 
+
+
+//            std::cout << "-----------------------------------------------------" << std::endl;
+//            std::cout << "IMPORTANT!!!: MeasurementData Scan Header info: " << std::endl;
+//            std::cout << "MeasurementData Scan Header scan number is: " << mdh.ulScanCounter << std::endl;
+//            std::cout << "-----------------------------------------------------" << std::endl;
+
+
+
+
             if (VBFILE) {
                 f.read(reinterpret_cast<char*>(&mdh)+sizeof(uint32_t), sizeof(sMDH)-sizeof(uint32_t));
                 scanhead.scanHeader.lMeasUID = mdh.lMeasUID;
@@ -380,6 +427,12 @@ int main(int argc, char** argv)
 
                         DSetCreatPropList sync_cparms;
                         sync_cparms.setChunk( sync_dims.size(), &sync_dims[0] );
+
+                        std::cout << "-----------------------------------------------------" << std::endl;
+                        std::cout << "IMPORTANT!!!: str type info: " << std::endl;
+                        std::cout << "str: " << typeid(str).name() << std::endl;
+                        std::cout << "-----------------------------------------------------" << std::endl;
+
 
                         str.clear();
                         str.str("");
@@ -532,6 +585,17 @@ int main(int argc, char** argv)
     }
 
     f.close();
+
+    std::cout << "-----------------------------------------------------" << std::endl;
+    std::cout << "IMPORTANT!!!: hdf5file info: " << std::endl;
+    std::cout << "hdf5file name: " << hdf5file.getFileName() << std::endl;
+    std::cout << "hdf5file size: " << hdf5file.getFileSize() << std::endl;
+    std::cout << "hdf5file counter: " << hdf5file.getCounter() << std::endl;
+    std::cout << "hdf5file object type: " << hdf5file.getHDFObjType() << std::endl;
+    std::cout << "hdf5file id: " << hdf5file.getId() << std::endl;
+    std::cout << "-----------------------------------------------------" << std::endl;
+
+
     hdf5file.close();
 
     std::cout << "Data conversion complete." << std::endl;
