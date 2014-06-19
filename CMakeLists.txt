@@ -2,6 +2,13 @@ cmake_minimum_required(VERSION 2.6)
 
 project(GT_SIEMENS_APPS)
 
+#Set the build type to Release if not specified                                                                                                                                                                                                                                         
+IF(NOT CMAKE_BUILD_TYPE)
+  SET(CMAKE_BUILD_TYPE Release CACHE STRING
+      "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
+      FORCE)
+ENDIF(NOT CMAKE_BUILD_TYPE)
+
 if (WIN32)
     ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
     ADD_DEFINITIONS(-DUNICODE -D_UNICODE)

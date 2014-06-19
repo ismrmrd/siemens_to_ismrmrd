@@ -37,7 +37,6 @@ set(schema_files parameter_maps/IsmrmrdParameterMap.xml
                parameter_maps/IsmrmrdParameterMap_Siemens.xml
                parameter_maps/IsmrmrdParameterMap_Siemens.xsl
                parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
-               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xml
                parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
                )
