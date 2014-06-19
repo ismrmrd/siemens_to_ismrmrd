@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.6)
 
-project(GT_SIEMENS_APPS)
+project(SIEMENS_TO_ISMRMRD)
 
 #Set the build type to Release if not specified                                                                                                                                                                                                                                         
 IF(NOT CMAKE_BUILD_TYPE)
@@ -36,15 +36,20 @@ endif(NOT GADGETRON_CMAKE_MODULES)
 set(CMAKE_MODULE_PATH ${GADGETRON_CMAKE_MODULES})
 ###############################################################
 
-find_package(Gadgetron REQUIRED)
 
 if(WIN32)
     set(Boost_NO_BOOST_CMAKE ON)
 endif(WIN32)
 
+find_package(Gadgetron REQUIRED)
 find_package(Boost COMPONENTS thread system program_options REQUIRED)
 find_package(ACE REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
+find_package(Ismrmrd REQUIRED)
+find_package(HDF5 1.8 COMPONENTS C CXX REQUIRED)
+find_package(XSD REQUIRED)
+find_package(XercesC REQUIRED)
+
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
 IF (NOT WIN32)
@@ -60,4 +65,99 @@ set(CMAKE_INSTALL_PREFIX ${GADGETRON_HOME})
 LINK_DIRECTORIES(${GADGETRON_LIB_DIR})
 
 add_subdirectory(dependencies)
-add_subdirectory(siemens_mriclient)
+
+# whether to compile toolboxes as static library
+OPTION(BUILD_TOOLBOX_STATIC "Build static library for toolboxes" Off)
+
+if ( BUILD_TOOLBOX_STATIC )
+    message("Use static toolbox libray ... ")
+    ADD_DEFINITIONS(-DBUILD_TOOLBOX_STATIC)
+else ( BUILD_TOOLBOX_STATIC )
+    message("Use dynamic toolbox libray ... ")
+endif ( BUILD_TOOLBOX_STATIC )
+
+if(WIN32)
+    link_directories(${Boost_LIBRARY_DIRS})
+endif(WIN32)
+
+INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
+                     ${ISMRMRD_SCHEMA_DIR} 
+                     ${HDF5_CXX_INCLUDE_DIR} 
+                     ${HDF5_C_INCLUDE_DIR} 
+                     ${XSD_INCLUDE_DIR} 
+                     ${CMAKE_SOURCE_DIR}/dependencies/tinyxml )
+
+#Process the XSD files
+SET(XSDS schema/IceGadgetron.xsd)
+SET(XSD_ARGS cxx-tree --generate-serialization)
+WRAP_XSD(XSDS_SOURCES XSD_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/schema ${XSDS} OPTIONS ${XSD_ARGS})
+INCLUDE_DIRECTORIES(${XSD_INCLUDES} ${XERCESC_INCLUDE_DIR})
+
+message("XSDS_SOURCES is " ${XSDS_SOURCES})
+
+set(schema_files parameter_maps/IsmrmrdParameterMap.xml
+               parameter_maps/IsmrmrdParameterMap.xsl
+               parameter_maps/IsmrmrdParameterMap_Siemens.xml
+               parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+               parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
+               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
+               parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
+               )
+
+add_executable(siemens_mriclient 
+               main.cpp 
+               siemensraw.cpp 
+               XNode.cpp 
+               XNodeParser.cpp 
+               vds.cpp
+	       defaults.cpp 
+               ${ISMRMRD_XSD_SOURCE} 
+               siemens_hdf5_datatypes.h 
+               siemensraw.h 
+               ${schema_files} 
+               )
+
+add_executable(siemens_to_HDF5 siemens_to_HDF5.cpp ${ISMRMRD_XSD_SOURCE})
+
+add_executable(siemens_IceGadgetron siemens_IceGadgetron.cpp IceGadgetronConfig.h ${XSDS_SOURCES} ${XSD_INCLUDES} schema/IceGadgetron.xsd)
+
+IF (WIN32)
+    target_link_libraries(siemens_mriclient optimized ${HDF5_hdf5_LIBRARY_RELEASE} ${HDF5_hdf5_cpp_LIBRARY_RELEASE})
+    target_link_libraries(siemens_mriclient debug ${HDF5_hdf5_LIBRARY_DEBUG} ${HDF5_hdf5_cpp_LIBRARY_DEBUG})
+
+    target_link_libraries(siemens_to_HDF5 optimized ${HDF5_hdf5_LIBRARY_RELEASE} ${HDF5_hdf5_cpp_LIBRARY_RELEASE})
+    target_link_libraries(siemens_to_HDF5 debug ${HDF5_hdf5_LIBRARY_DEBUG} ${HDF5_hdf5_cpp_LIBRARY_DEBUG})
+
+    set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
+ELSE(WIN32)
+    target_link_libraries(siemens_mriclient tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
+    target_link_libraries(siemens_to_HDF5 tinyxml ${HDF5_LIBRARIES})
+ENDIF(WIN32)
+
+target_link_libraries(siemens_mriclient
+              optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
+              optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
+              optimized gadgetron_mricore debug gadgetron_mricore${CMAKE_DEBUG_SUFFIX}
+              gtplus_io
+              tinyxml
+              ${ISMRMRD_LIBRARIES}
+              optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
+              ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} )
+
+target_link_libraries(siemens_to_HDF5 
+              optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
+              optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
+              optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
+              ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} 
+              )
+
+target_link_libraries(siemens_IceGadgetron 
+              tinyxml
+              optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
+              optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
+              ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} 
+              )
+
+install(TARGETS siemens_mriclient siemens_to_HDF5 siemens_IceGadgetron DESTINATION bin)
+install(FILES schema/IceGadgetron.xsd DESTINATION schema)
+install(FILES ${schema_files} DESTINATION schema)
