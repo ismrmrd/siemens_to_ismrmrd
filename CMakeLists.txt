@@ -21,59 +21,43 @@ if (WIN32)
 endif (WIN32)
 
 ###############################################################
-#Bootstrap search for libraries (We need to find cmake modules in Gadgetron)
+#Bootstrap search for libraries (We need to find cmake modules in ismrmrd)
 ###############################################################
-find_path(GADGETRON_CMAKE_MODULES FindGadgetron.cmake HINTS
-  $ENV{GADGETRON_HOME}/cmake
-  /usr/local/gadgetron/cmake)
+find_path(ISMRMRD_CMAKE_MODULES FindIsmrmrd.cmake HINTS
+  $ENV{ISMRMRD_HOME}/cmake
+  /usr/local/ismrmrd/cmake)
 
-if (NOT GADGETRON_CMAKE_MODULES)
+if (NOT ISMRMRD_CMAKE_MODULES)
    #TODO: Check if path found otherwise create error
-   MESSAGE(FATAL_ERROR "GADGETRON_CMAKE_MODULES cannot be found. 
-   Try to set GADGETRON_HOME environment variable.")
-endif(NOT GADGETRON_CMAKE_MODULES)
+   MESSAGE(FATAL_ERROR "ISMRMRD_CMAKE_MODULES cannot be found. 
+   Try to set ISMRMRD_HOME environment variable.")
+endif(NOT ISMRMRD_CMAKE_MODULES)
 
-set(CMAKE_MODULE_PATH ${GADGETRON_CMAKE_MODULES})
+set(CMAKE_MODULE_PATH ${ISMRMRD_CMAKE_MODULES})
 ###############################################################
-
 
 if(WIN32)
     set(Boost_NO_BOOST_CMAKE ON)
 endif(WIN32)
 
-find_package(Gadgetron REQUIRED)
 find_package(Boost COMPONENTS thread system program_options REQUIRED)
-find_package(ACE REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
 find_package(Ismrmrd REQUIRED)
 find_package(XSD REQUIRED)
 find_package(XercesC REQUIRED)
 
-
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
 IF (NOT WIN32)
     find_package(LibXml2 REQUIRED)
     find_package(LibXslt REQUIRED)
-    INCLUDE_DIRECTORIES(${GADGETRON_INCLUDE_DIR} ${ACE_INCLUDE_DIR} ${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
+    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
 ELSE(NOT WIN32)
-    INCLUDE_DIRECTORIES(${GADGETRON_INCLUDE_DIR} ${ACE_INCLUDE_DIR} ${Boost_INCLUDE_DIR})
+    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
 ENDIF(NOT WIN32)
 
-set(CMAKE_INSTALL_PREFIX ${GADGETRON_HOME})
- 
-LINK_DIRECTORIES(${GADGETRON_LIB_DIR})
+set(CMAKE_INSTALL_PREFIX ${ISMRMRD_HOME})
 
 add_subdirectory(dependencies)
-
-# whether to compile toolboxes as static library
-OPTION(BUILD_TOOLBOX_STATIC "Build static library for toolboxes" Off)
-
-if ( BUILD_TOOLBOX_STATIC )
-    message("Use static toolbox libray ... ")
-    ADD_DEFINITIONS(-DBUILD_TOOLBOX_STATIC)
-else ( BUILD_TOOLBOX_STATIC )
-    message("Use dynamic toolbox libray ... ")
-endif ( BUILD_TOOLBOX_STATIC )
 
 if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
@@ -118,13 +102,8 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 target_link_libraries(siemens_to_ismrmrd
-              optimized cpucore debug cpucore${CMAKE_DEBUG_SUFFIX}
-              optimized gadgettools debug gadgettools${CMAKE_DEBUG_SUFFIX}
-              optimized gadgetron_mricore debug gadgetron_mricore${CMAKE_DEBUG_SUFFIX}
-              gtplus_io
               tinyxml
               ${ISMRMRD_LIBRARIES}
-              optimized ${ACE_LIBRARIES} debug ${ACE_DEBUG_LIBRARY} 
               ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
