@@ -44,14 +44,15 @@ using namespace H5;
 #include <fstream>
 #include <sstream>
 #include <streambuf>
+#include <utility>
 
 
 #include <typeinfo>
 
-extern std::string global_xml_string;
+extern std::string global_xml_VB_string;
+extern std::string global_xml_VD_string;
 extern std::string global_xsl_string;
 extern std::string global_xsd_string;
-
 
 //BASE64 STUFF----------------------------------------------------
 static const std::string base64_chars =
@@ -103,8 +104,10 @@ std::string base64_decode(std::string const& encoded_string) {
   return ret;
 }
 
+std::pair <bool, H5File> hdf5_pair;
 
-H5File dat_to_HDF5(std::string infile, std::string tempfile)
+//H5File dat_to_HDF5(std::string infile, std::string tempfile)
+std::pair <bool, H5File> dat_to_HDF5(std::string infile, std::string tempfile)
 {
     std::cout << "Siemens MRI VD line converter:" << std::endl;
     std::cout << "  input file  :   " << infile << std::endl;
@@ -554,7 +557,12 @@ H5File dat_to_HDF5(std::string infile, std::string tempfile)
     //hdf5file.close();
 
     std::cout << "Data conversion complete." << std::endl;
-    return hdf5file;
+
+    std::pair <bool, H5File> H5Pair (VBFILE, hdf5file);
+
+    std::cout << "IS_VB (ozgore): " << VBFILE << std::endl;
+
+    return H5Pair;
 }
 
 
@@ -739,6 +747,14 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 }
 
 
+void clear_temp_files() {
+    remove("tempfile.h5");
+    remove("default_xml.xml");
+    remove("default_xsl.xsl");
+    remove("default_xsd.xsd");
+}
+
+
 /// compute noise dwell time in us for dependency and built-in noise in VD/VB lines
 double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isAdjustCoilSens, bool isVB)
 {
@@ -802,15 +818,51 @@ int main(int argc, char *argv[] )
 
 	if (vm.count("help")) {
 	    std::cout << desc << "\n";
+	    clear_temp_files();
 	    return 1;
 	}
 
-	if (parammap_file == "default") {
-		std::string parammap_file_content = base64_decode(global_xml_string);
+    std::string tempfile("tempfile.h5"); // tmpname
+
+    std::pair <bool, H5File> H5Pair;
+    H5File hdf5file;
+    bool is_VB;
+
+    try {
+    	//Get the HDF5 file.
+    	H5Pair = dat_to_HDF5(filename, tempfile);
+
+    	is_VB = H5Pair.first;
+    	std::cout << "IS_VB: " << is_VB << std::endl;
+    	hdf5file = H5Pair.second;
+    }
+    catch(const std::runtime_error &error) {
+    	std::cerr << error.what() << std::endl;
+    	clear_temp_files();
+    	exit(-1);
+    }
+
+    std::cout << "IS_VB: " << is_VB << std::endl;
+
+    //if it is a VB scan
+	if (parammap_file == "default" && is_VB) {
+		std::string parammap_file_content = base64_decode(global_xml_VB_string);
 		std::ofstream default_parammap_file("default_xml.xml", std::ofstream::out);
 		default_parammap_file << parammap_file_content;
 		default_parammap_file.close();
 		parammap_file = "./default_xml.xml";
+		std::cout << "IT IS A VB SCAN" << std::endl;
+	}
+
+	//if it is a VD scan
+	if (parammap_file == "default" && !is_VB) {
+		std::string parammap_file_content = base64_decode(global_xml_VD_string);
+		std::ofstream default_parammap_file("default_xml.xml", std::ofstream::out);
+		default_parammap_file << parammap_file_content;
+		default_parammap_file.close();
+		parammap_file = "./default_xml.xml";
+		std::cout << "IT IS A VD SCAN" << std::endl;
+
 	}
 
 	if (parammap_xsl == "default") {
@@ -819,7 +871,6 @@ int main(int argc, char *argv[] )
 		default_parammap_xsl << parammap_xsl_content;
 		default_parammap_xsl.close();
 		parammap_xsl = "./default_xsl.xsl";
-
 	}
 
 	if (schema_file_name == "default") {
@@ -830,8 +881,6 @@ int main(int argc, char *argv[] )
 		schema_file_name = "./default_xsd.xsd";
 	}
 
-
-	std::cout << "OUTPUT FILE IS: " << hdf5_file << std::endl;
 	std::cout << "003 parammap_file: " << parammap_file << std::endl;
     std::cout << "003 parammap_xsl: " << parammap_xsl << std::endl;
 
@@ -841,6 +890,7 @@ int main(int argc, char *argv[] )
     if (!file_1) {
     	std::cout << "Data file: " << filename << " does not exist." << std::endl;
         std::cout << desc << "\n";
+        clear_temp_files();
         return -1;
     }
     else {
@@ -852,6 +902,7 @@ int main(int argc, char *argv[] )
     if (!file_2) {
     	std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
     	std::cout << desc << "\n";
+    	clear_temp_files();
         return -1;
     }
     else {
@@ -863,6 +914,7 @@ int main(int argc, char *argv[] )
     if (!file_3) {
     	std::cout << "Parameter map XSLT stylesheet: " << parammap_xsl << " does not exist." << std::endl;
     	std::cout << desc << "\n";
+    	clear_temp_files();
         return -1;
     }
     else {
@@ -874,6 +926,7 @@ int main(int argc, char *argv[] )
     if (!file_4) {
         std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
         std::cout << desc << "\n";
+        clear_temp_files();
         return -1;
     }
     else {
@@ -890,19 +943,6 @@ int main(int argc, char *argv[] )
 
     if (write_to_file) {
     	ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
-    }
-
-    std::string tempfile("tempfile.h5"); // tmpname
-
-    H5File hdf5file;
-    try{
-    	//Get the HDF5 file.
-    	hdf5file = dat_to_HDF5(filename, tempfile);
-    }
-    catch(const std::runtime_error &error){
-    	std::cerr << error.what() << std::endl;
-    	remove(tempfile.c_str());
-    	exit(-1);
     }
 
     MeasurementHeader mhead;
@@ -923,6 +963,7 @@ int main(int argc, char *argv[] )
             if (!(dtype == *headtype))
             {
                 std::cout << "Wrong datatype for MeasurementHeader detected." << std::endl;
+                clear_temp_files();
                 return -1;
             }
 
@@ -931,6 +972,7 @@ int main(int argc, char *argv[] )
             std::cout << "mhead.nr_buffers = " << mhead.nr_buffers << std::endl;
         } catch (...) {
             std::cout << "Error opening HDF5 file and reading dataset header. Maybe the dataset number is out of range?" << std::endl;
+            clear_temp_files();
             return -1;
         }
     }
@@ -970,6 +1012,7 @@ int main(int argc, char *argv[] )
 
             if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0) {
             	std::cout << "Failed to parse XProtocol" << std::endl;
+            	clear_temp_files();
                 return -1;
             }
 
@@ -983,6 +1026,7 @@ int main(int argc, char *argv[] )
                 }
                 if (wip_long.size() == 0) {
                     std::cout << "Failed to find WIP long parameters" << std::endl;
+                    clear_temp_files();
                     return -1;
                 }
             }
@@ -997,6 +1041,7 @@ int main(int argc, char *argv[] )
                 }
                 if (wip_double.size() == 0) {
                     std::cout << "Failed to find WIP double parameters" << std::endl;
+                    clear_temp_files();
                     return -1;
                 }
             }
@@ -1012,6 +1057,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() == 0) {
                     std::cout << "Failed to find dwell times" << std::endl;
+                    clear_temp_files();
                     return -1;
                 } else {
                     dwell_time_0 = std::atoi(temp[0].c_str());
@@ -1029,6 +1075,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1) {
                     std::cout << "Failed to find appropriate trajectory array" << std::endl;
+                    clear_temp_files();
                     return -1;
                 } else {
                     trajectory = std::atoi(temp[0].c_str());
@@ -1049,6 +1096,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1) {
                     std::cout << "Failed to find YAPS.iMaxNoOfRxChannels array" << std::endl;
+                    clear_temp_files();
                     return -1;
                 } else {
                     max_channels = std::atoi(temp[0].c_str());
@@ -1067,6 +1115,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1) {
                     std::cout << "Failed to find MEAS.sKSpace.lPhaseEncodingLines array" << std::endl;
+                    clear_temp_files();
                     return -1;
                 } else {
                     lPhaseEncodingLines = std::atoi(temp[0].c_str());
@@ -1080,6 +1129,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1) {
                     std::cout << "Failed to find YAPS.iNoOfFourierLines array" << std::endl;
+                    clear_temp_files();
                     return -1;
                 } else {
                     iNoOfFourierLines = std::atoi(temp[0].c_str());
@@ -1110,6 +1160,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1) {
                     std::cout << "Failed to find MEAS.sKSpace.lPartitions array" << std::endl;
+                    clear_temp_files();
                     return -1;
                 } else {
                     lPartitions = std::atoi(temp[0].c_str());
@@ -1190,6 +1241,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1) {
                     std::cout << "Failed to find YAPS.MEAS.sKSpace.lRadialViews array" << std::endl;
+                    clear_temp_files();
                     return -1;
                 } else {
                     radial_views = std::atoi(temp[0].c_str());
@@ -1207,6 +1259,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1) {
                     std::cout << "Failed to find HEADER.tProtocolName" << std::endl;
+                    clear_temp_files();
                     return -1;
                 } else {
                     protocol_name = temp[0];
@@ -1304,6 +1357,7 @@ int main(int argc, char *argv[] )
 
     if (xslt_result < 0) {
         std::cout << "Failed to save converted doc to string" << std::endl;
+        clear_temp_files();
         return -1;
     }
 
@@ -1317,6 +1371,7 @@ int main(int argc, char *argv[] )
 
     if (xml_file_is_valid(xml_config,schema_file_name.c_str()) <= 0) {
         std::cout << "Generated XML is not valid according to the ISMRMRD schema" << schema_file_name << std::endl;
+        clear_temp_files();
         return -1;
     }
 
@@ -1373,6 +1428,7 @@ int main(int argc, char *argv[] )
         if ( xsltproc_res != 0 )
         {
             std::cerr << "Failed to generate XML header" << std::endl;
+            clear_temp_files();
             return -1;
         }
 
@@ -1391,12 +1447,14 @@ int main(int argc, char *argv[] )
 		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 		if (ismrmrd_dataset->writeHeader(xml_config) < 0 ) {
 			std::cerr << "Failed to write XML header to HDF file" << std::endl;
+			clear_temp_files();
 			return -1;
 		}
 
 		// a test
 		if (ismrmrd_dataset->writeHeader(xml_config) < 0 ) {
 			std::cerr << "Failed to write XML header to HDF file" << std::endl;
+			clear_temp_files();
 			return -1;
 		}
     }
@@ -1422,6 +1480,7 @@ int main(int argc, char *argv[] )
         DataType dtype = rawdataset.getDataType();
         if (!(dtype == *rawdatatype)) {
             std::cout << "Wrong datatype detected in HDF5 file" << std::endl;
+            clear_temp_files();
             return -1;
         }
 
@@ -1436,12 +1495,14 @@ int main(int argc, char *argv[] )
 
         if (rank != 2) {
             std::cout << "Wrong number of dimensions (" << rank << ") detected in dataset" << std::endl;
+            clear_temp_files();
             return -1;
         }
 
         acquisitions = (unsigned long)raw_dimensions[0];
     } catch ( ... ) {
         std::cout << "Error accessing data variable for raw dataset" << std::endl;
+        clear_temp_files();
         return -1;
     }
 
@@ -1655,21 +1716,14 @@ int main(int argc, char *argv[] )
      	    std::valarray<float> traj_data = traj.data_;
 	        std::vector<unsigned int> traj_dims = traj.dimensions_;
 
-	        std::cout << traj_data.size() << " " << traj_dims.size() << std::endl;
-
 			if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT)))) { //Only when this is not noise
 				 unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();
-				 std::cout << traj_samples_to_copy << std::endl;
 				 if (traj_dims[0] < traj_samples_to_copy) {
 					 traj_samples_to_copy = (unsigned long)traj_dims[0];
 					 ismrmrd_acq->setDiscardPost((uint16_t)(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy) );
 				 }
 				 ismrmrd_acq->setTrajectoryDimensions(2);
 				 float* t_ptr = reinterpret_cast<float*>(&traj_data[0] + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj_dims[0]));
-				 assert(&ismrmrd_acq->getTraj()[0] != NULL);
-				 assert(t_ptr != NULL);
-				 std::cout << ismrmrd_acq->getTraj().size() << std::endl;
-				 std::cout << sizeof(float) * traj_samples_to_copy * ismrmrd_acq->getTrajectoryDimensions() << std::endl;
 				 memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]), t_ptr, sizeof(float) * traj_samples_to_copy * ismrmrd_acq->getTrajectoryDimensions());
             }
         }
@@ -1684,6 +1738,7 @@ int main(int argc, char *argv[] )
 			ISMRMRD::HDF5Exclusive lock;
 			if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0) {
 				std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
+				clear_temp_files();
 				return -1;
 			}
         }
@@ -1697,6 +1752,9 @@ int main(int argc, char *argv[] )
             ClearsScanHeader_with_data(&scanhead);
         }
     }
+
+//    remove(tempfile.c_str());
+    clear_temp_files();
 
     return 0;
 }
