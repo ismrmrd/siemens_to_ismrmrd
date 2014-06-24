@@ -25,8 +25,6 @@
 #include "ismrmrd.h"
 #include "ismrmrd_hdf5.h"
 
-#include "base64.h"
-
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
@@ -749,16 +747,17 @@ void clear_all_temp_files() {
     remove("default_xsd.xsd");
 }
 
-void clear_temp_files(bool download_xml, bool download_xsl, bool download_xsd) {
+void clear_temp_files(bool download_xml, bool download_xsl, bool download_xml_raw, bool debug_xml) {
     remove("tempfile.h5");
+    remove("default_xsd.xsd");
 	if (!download_xml) {
 		remove("default_xml.xml");
 	}
 	if (!download_xsl) {
 		remove("default_xsl.xsl");
 	}
-	if (!download_xsd) {
-		remove("default_xsd.xsd");
+	if (!download_xml_raw && !debug_xml) {
+		remove("xml_raw.xml");
 	}
 }
 
@@ -805,7 +804,7 @@ int main(int argc, char *argv[] )
 
     bool download_xml = false;
     bool download_xsl = false;
-    bool download_xsd = false;
+    bool download_xml_raw = false;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
@@ -817,8 +816,8 @@ int main(int argc, char *argv[] )
 	    (",c",         					  po::value<std::string>(&schema_file_name)->default_value("default"), "<SCHEMA FILE NAME>")
 
 	    (",M",           				  po::value<bool>(&download_xml)->implicit_value(true), "<Download XML file>")
-	    (",S",           				  po::value<bool>(&download_xml)->implicit_value(true), "<Download XSL file>")
-	    (",D",           				  po::value<bool>(&download_xml)->implicit_value(true), "<Download XSD file>")
+	    (",S",           				  po::value<bool>(&download_xsl)->implicit_value(true), "<Download XSL file>")
+	    (",R",           				  po::value<bool>(&download_xml_raw)->implicit_value(true), "<Download intermediate XML file>")
 
 	    (",o",           				  po::value<std::string>(&hdf5_file)->default_value("dump.h5"), "<HDF5 dump file>")
 	    (",g",	          				  po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 dump group>")
@@ -1339,7 +1338,7 @@ int main(int argc, char *argv[] )
     }
     std::cout << "Baseline: " << baseLineString << std::endl;
 
-    if (debug_xml) {
+    if (debug_xml || download_xml_raw) {
         std::ofstream o("xml_raw.xml");
         o.write(xml_config.c_str(), xml_config.size());
         o.close();
@@ -1771,6 +1770,6 @@ int main(int argc, char *argv[] )
     }
 
 //    remove(tempfile.c_str());
-    clear_temp_files(download_xml, download_xsl, download_xsd);
+    clear_temp_files(download_xml, download_xsl, download_xml_raw, debug_xml);
     return 0;
 }

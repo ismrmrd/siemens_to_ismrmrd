@@ -70,8 +70,22 @@ INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
                      ${XSD_INCLUDE_DIR} 
                      ${CMAKE_SOURCE_DIR}/dependencies/tinyxml )
 
-set(schema_files parameter_maps/IsmrmrdParameterMap.xml
-               parameter_maps/IsmrmrdParameterMap.xsl
+add_executable(b64
+    base64.cpp
+    )
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/defaults.cpp
+    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/ismrmrd.xsd ${CMAKE_CURRENT_SOURCE_DIR}/defaults.cpp
+    VERBATIM
+    DEPENDS b64
+    	${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
+        ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml
+        ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/ismrmrd.xsd
+)
+
+set(schema_files parameter_maps/IsmrmrdParameterMap.xsl
                parameter_maps/IsmrmrdParameterMap_Siemens.xml
                parameter_maps/IsmrmrdParameterMap_Siemens.xsl
                parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
@@ -90,7 +104,7 @@ add_executable(siemens_to_ismrmrd
                ${ISMRMRD_XSD_SOURCE} 
                siemens_hdf5_datatypes.h 
                siemensraw.h 
-               ${schema_files} 
+               ${schema_files}
                )
 
 IF (WIN32)
