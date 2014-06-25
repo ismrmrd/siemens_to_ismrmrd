@@ -40,11 +40,12 @@ if(WIN32)
     set(Boost_NO_BOOST_CMAKE ON)
 endif(WIN32)
 
+# Added to try static linking!!!
+#set(Boost_USE_STATIC_LIBS ON)
+
 find_package(Boost COMPONENTS thread system program_options REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
 find_package(Ismrmrd REQUIRED)
-find_package(XSD REQUIRED)
-find_package(XercesC REQUIRED)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
 IF (NOT WIN32)
@@ -67,7 +68,6 @@ INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
                      ${ISMRMRD_SCHEMA_DIR} 
                      ${HDF5_CXX_INCLUDE_DIR} 
                      ${HDF5_C_INCLUDE_DIR} 
-                     ${XSD_INCLUDE_DIR} 
                      ${CMAKE_SOURCE_DIR}/dependencies/tinyxml )
 
 add_executable(b64
@@ -75,8 +75,8 @@ add_executable(b64
     )
 
 add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/defaults.cpp
-    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/ismrmrd.xsd ${CMAKE_CURRENT_SOURCE_DIR}/defaults.cpp
+    OUTPUT defaults.cpp
+    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/ismrmrd.xsd defaults.cpp
     VERBATIM
     DEPENDS b64
     	${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
@@ -100,8 +100,7 @@ add_executable(siemens_to_ismrmrd
                XNode.cpp 
                XNodeParser.cpp 
                vds.cpp
-	           defaults.cpp 
-               ${ISMRMRD_XSD_SOURCE} 
+	           defaults.cpp
                siemens_hdf5_datatypes.h 
                siemensraw.h 
                ${schema_files}
@@ -119,7 +118,7 @@ ENDIF(WIN32)
 target_link_libraries(siemens_to_ismrmrd
               tinyxml
               ${ISMRMRD_LIBRARIES}
-              ${Boost_LIBRARIES} ${ISMRMRD_LIBRARIES} ${XERCESC_LIBRARIES} )
+              ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
 install(FILES ${schema_files} DESTINATION schema)

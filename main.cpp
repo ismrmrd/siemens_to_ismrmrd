@@ -13,11 +13,9 @@
 #include <libxslt/xsltutils.h>
 #endif //WIN32
 
-#include <cassert>
-
 #include "siemensraw.h"
 
-#include "GadgetXml.h" //ACE is here!!! (Not anymore!!!)
+#include "GadgetXml.h"
 #include "XNode.h"
 
 #include "siemens_hdf5_datatypes.h"
@@ -44,7 +42,6 @@ using namespace H5;
 #include <streambuf>
 #include <utility>
 
-
 #include <typeinfo>
 
 extern std::string global_xml_VB_string;
@@ -52,7 +49,7 @@ extern std::string global_xml_VD_string;
 extern std::string global_xsl_string;
 extern std::string global_xsd_string;
 
-//BASE64 STUFF----------------------------------------------------
+
 static const std::string base64_chars =
              "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
              "abcdefghijklmnopqrstuvwxyz"
@@ -104,7 +101,6 @@ std::string base64_decode(std::string const& encoded_string) {
 
 std::pair <bool, H5File> hdf5_pair;
 
-//H5File dat_to_HDF5(std::string infile, std::string tempfile)
 std::pair <bool, H5File> dat_to_HDF5(std::string infile, std::string tempfile)
 {
     std::cout << "Siemens MRI VD line converter:" << std::endl;
@@ -212,11 +208,6 @@ std::pair <bool, H5File> dat_to_HDF5(std::string infile, std::string tempfile)
         try {
             hdf5file.createGroup(str.str());
         } catch ( FileIException& e) {
-            //std::cout << "Error creating group for file " << i
-            //        << " in HDF5 file."
-            //        << "(" << str.str() << ")" << std::endl;
-            //return -1;
-            //return hdf5errorfile;
             throw std::runtime_error("Error creating group for file");
 
         }
@@ -242,8 +233,6 @@ std::pair <bool, H5File> dat_to_HDF5(std::string infile, std::string tempfile)
             bufname_tmp[f.gcount()] = '\0';
             buffers[b].bufName_.p = reinterpret_cast<void*>(new char[buffers[b].bufName_.len]);
             memcpy(buffers[b].bufName_.p, bufname_tmp, buffers[b].bufName_.len);
-
-            std::cout << "Buffer name: " << bufname_tmp << std::endl;
 
             f.read(reinterpret_cast<char*>(&buffers[b].bufLen_),sizeof(uint32_t));
             buffers[b].buf_.len = buffers[b].bufLen_;
@@ -506,8 +495,6 @@ std::pair <bool, H5File> dat_to_HDF5(std::string infile, std::string tempfile)
                 std::cout << "ParcFileEntries[i].off_ = " << ParcFileEntries[i].off_ << std::endl;
                 std::cout << "ParcFileEntries[i].len_ = " << ParcFileEntries[i].len_ << std::endl;
                 std::cout << "f.tellg() = " << f.tellg() << std::endl;
-                //return -1;
-                //return hdf5errorfile;
                 throw std::runtime_error("Error caught while writing mystery bytes to HDF5 file.");
             }
 
@@ -658,7 +645,6 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 
     TiXmlDeclaration* decl = new TiXmlDeclaration( "1.0", "", "" );
     out_doc.LinkEndChild( decl );
-
 
     GadgetXMLNode out_n(&out_doc);
 
@@ -839,6 +825,18 @@ int main(int argc, char *argv[] )
 	    return 1;
 	}
 
+	std::ifstream file_1(filename);
+    if (!file_1) {
+    	std::cout << "Data file: " << filename << " does not exist." << std::endl;
+        std::cout << desc << "\n";
+        clear_all_temp_files();
+        return -1;
+    }
+    else {
+    		std::cout << "Data file is:                          " << filename << std::endl;
+    }
+    file_1.close();
+
     std::string tempfile("tempfile.h5"); // tmpname
 
     std::pair <bool, H5File> H5Pair;
@@ -857,8 +855,6 @@ int main(int argc, char *argv[] )
     	clear_all_temp_files();
     	exit(-1);
     }
-
-    std::cout << "IS_VB: " << is_VB << std::endl;
 
     //if it is a VB scan
 	if (parammap_file == "default" && is_VB) {
@@ -897,23 +893,6 @@ int main(int argc, char *argv[] )
 		schema_file_name = "./default_xsd.xsd";
 	}
 
-	std::cout << "003 parammap_file: " << parammap_file << std::endl;
-    std::cout << "003 parammap_xsl: " << parammap_xsl << std::endl;
-
-    std::cout << "Siemens MRI Client (for ISMRMRD format)" << std::endl;
-
-    std::ifstream file_1(filename);
-    if (!file_1) {
-    	std::cout << "Data file: " << filename << " does not exist." << std::endl;
-        std::cout << desc << "\n";
-        clear_all_temp_files();
-        return -1;
-    }
-    else {
-    		std::cout << "Data file is: " << filename << std::endl;
-    }
-    file_1.close();
-
     std::ifstream file_2(parammap_file);
     if (!file_2) {
     	std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
@@ -922,19 +901,19 @@ int main(int argc, char *argv[] )
         return -1;
     }
     else {
-        	std::cout << "Parameter map file is: " << parammap_file << std::endl;
+        	std::cout << "Parameter map file is:                 " << parammap_file << std::endl;
     }
     file_2.close();
 
     std::ifstream file_3(parammap_xsl);
     if (!file_3) {
-    	std::cout << "Parameter map XSLT stylesheet: " << parammap_xsl << " does not exist." << std::endl;
+    	std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
     	std::cout << desc << "\n";
     	clear_all_temp_files();
         return -1;
     }
     else {
-        	std::cout << "Parameter map XSLT stylesheet is: " << parammap_xsl << std::endl;
+        	std::cout << "Parameter XSL stylesheet is:           " << parammap_xsl << std::endl;
     }
     file_3.close();
 
@@ -946,14 +925,9 @@ int main(int argc, char *argv[] )
         return -1;
     }
     else {
-        	std::cout << "Schema file name is: " << schema_file_name << std::endl;
+        	std::cout << "Schema file name is:                   " << schema_file_name << std::endl;
     }
     file_4.close();
-
-    std::cout << "  -- data             :            " << filename << std::endl;
-    std::cout << "  -- parameter map    :            " << parammap_file << std::endl;
-    std::cout << "  -- parameter xsl    :            " << parammap_xsl << std::endl;
-    std::cout << "  -- schema file name :            " << schema_file_name << std::endl;
 
     boost::shared_ptr<ISMRMRD::IsmrmrdDataset>  ismrmrd_dataset;
 
@@ -1336,6 +1310,7 @@ int main(int argc, char *argv[] )
     {
         isVB = true;
     }
+
     std::cout << "Baseline: " << baseLineString << std::endl;
 
     if (debug_xml || download_xml_raw) {
