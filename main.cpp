@@ -825,7 +825,7 @@ int main(int argc, char *argv[] )
 	    return 1;
 	}
 
-	std::ifstream file_1(filename);
+	std::ifstream file_1(filename.c_str());
     if (!file_1) {
     	std::cout << "Data file: " << filename << " does not exist." << std::endl;
         std::cout << desc << "\n";
@@ -893,7 +893,7 @@ int main(int argc, char *argv[] )
 		schema_file_name = "./default_xsd.xsd";
 	}
 
-    std::ifstream file_2(parammap_file);
+	std::ifstream file_2(parammap_file.c_str());
     if (!file_2) {
     	std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
     	std::cout << desc << "\n";
@@ -905,7 +905,7 @@ int main(int argc, char *argv[] )
     }
     file_2.close();
 
-    std::ifstream file_3(parammap_xsl);
+    std::ifstream file_3(parammap_xsl.c_str());
     if (!file_3) {
     	std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
     	std::cout << desc << "\n";
@@ -917,7 +917,7 @@ int main(int argc, char *argv[] )
     }
     file_3.close();
 
-    std::ifstream file_4(schema_file_name);
+    std::ifstream file_4(schema_file_name.c_str());
     if (!file_4) {
         std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
         std::cout << desc << "\n";
@@ -1393,7 +1393,7 @@ int main(int argc, char *argv[] )
 
     xsltproc_res = system(syscmd.c_str());
 
-    std::ifstream t(xml_post);
+    std::ifstream t(xml_post.c_str());
     xml_config = std::string((std::istreambuf_iterator<char>(t)),
         std::istreambuf_iterator<char>());
 
@@ -1423,7 +1423,7 @@ int main(int argc, char *argv[] )
             return -1;
         }
 
-        std::ifstream t(xml_post);
+        std::ifstream t(xml_post.c_str());
         xml_config = std::string((std::istreambuf_iterator<char>(t)),
             std::istreambuf_iterator<char>());
     }
