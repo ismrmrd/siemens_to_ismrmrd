@@ -40,8 +40,9 @@ if(WIN32)
     set(Boost_NO_BOOST_CMAKE ON)
 endif(WIN32)
 
-# Added to try static linking!!!
-#set(Boost_USE_STATIC_LIBS ON)
+# Added for static linking!!!
+set(Boost_USE_STATIC_LIBS ON)
+set(HDF5_USE_STATIC_LIBRARIES ON)
 
 find_package(Boost COMPONENTS thread system program_options REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
@@ -51,6 +52,7 @@ find_package(Ismrmrd REQUIRED)
 IF (NOT WIN32)
     find_package(LibXml2 REQUIRED)
     find_package(LibXslt REQUIRED)
+    
     INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
 ELSE(NOT WIN32)
     INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
