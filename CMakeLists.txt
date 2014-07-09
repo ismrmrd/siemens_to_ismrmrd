@@ -42,7 +42,7 @@ endif(WIN32)
 
 # Added for static linking!!!
 set(Boost_USE_STATIC_LIBS ON)
-set(HDF5_USE_STATIC_LIBRARIES ON)
+# set(HDF5_USE_STATIC_LIBRARIES ON)
 
 find_package(Boost COMPONENTS thread system program_options REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
