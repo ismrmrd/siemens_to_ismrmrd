@@ -73,7 +73,7 @@ INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
                      ${CMAKE_SOURCE_DIR}/dependencies/tinyxml )
 
 add_executable(b64
-    base64.cpp
+    base64_encode.cpp
     )
 
 add_custom_command(
@@ -104,7 +104,9 @@ add_executable(siemens_to_ismrmrd
                vds.cpp
 	           defaults.cpp
                siemens_hdf5_datatypes.h 
-               siemensraw.h 
+               siemensraw.h
+               base64_decode.h
+               base64_decode.cpp
                ${schema_files}
                )
 
