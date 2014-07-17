@@ -60,7 +60,7 @@ ENDIF(NOT WIN32)
 
 set(CMAKE_INSTALL_PREFIX ${ISMRMRD_HOME})
 
-add_subdirectory(dependencies)
+#add_subdirectory(dependencies)
 
 if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
@@ -68,9 +68,8 @@ endif(WIN32)
 
 INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
                      ${ISMRMRD_SCHEMA_DIR} 
-                     ${HDF5_CXX_INCLUDE_DIR} 
-                     ${HDF5_C_INCLUDE_DIR} 
-                     ${CMAKE_SOURCE_DIR}/dependencies/tinyxml )
+                     ${HDF5_CXX_INCLUDE_DIR}
+                     ${HDF5_C_INCLUDE_DIR} )
 
 add_executable(b64
     base64_encode.cpp
@@ -107,6 +106,10 @@ add_executable(siemens_to_ismrmrd
                siemensraw.h
                base64_decode.h
                base64_decode.cpp
+               tinyxml.h
+               tinyxml.cpp
+               tinyxmlerror.cpp
+               tinyxmlparser.cpp
                ${schema_files}
                )
 
@@ -116,13 +119,12 @@ IF (WIN32)
 
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 ELSE(WIN32)
-    target_link_libraries(siemens_to_ismrmrd tinyxml ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
+    target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
 ENDIF(WIN32)
 
 target_link_libraries(siemens_to_ismrmrd
-              tinyxml
-              ${ISMRMRD_LIBRARIES}
-              ${Boost_LIBRARIES} )
+              		  ${ISMRMRD_LIBRARIES}
+              		  ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
 install(FILES ${schema_files} DESTINATION schema)

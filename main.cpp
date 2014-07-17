@@ -68,18 +68,13 @@ void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp
 
 
 #ifndef WIN32
-int xml_file_is_valid(std::string& xml, const char *schema_filename)
+int xml_file_is_valid(std::string& xml, std::string& schema_file)
 {
-
     xmlDocPtr doc;
-    doc = xmlParseMemory(xml.c_str(),xml.size());
+    doc = xmlParseMemory(xml.c_str(), xml.size());
+    xmlDocPtr schema_doc;
+    schema_doc = xmlParseMemory(schema_file.c_str(), schema_file.size());
 
-    xmlDocPtr schema_doc = xmlReadFile(schema_filename, NULL, XML_PARSE_NONET);
-    if (schema_doc == NULL)
-    {
-        /* the schema cannot be loaded or is not well-formed */
-        return -1;
-    }
     xmlSchemaParserCtxtPtr parser_ctxt = xmlSchemaNewDocParserCtxt(schema_doc);
     if (parser_ctxt == NULL)
     {
@@ -158,19 +153,19 @@ bool is_number(const std::string& s)
 }
 
 
-std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::string mapfilename)
+std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfile)
 {
-    TiXmlDocument out_doc;
+	TiXmlDocument out_doc;
 
-    TiXmlDeclaration* decl = new TiXmlDeclaration( "1.0", "", "" );
-    out_doc.LinkEndChild( decl );
+	TiXmlDeclaration* decl = new TiXmlDeclaration( "1.0", "", "" );
+	out_doc.LinkEndChild( decl );
 
-    GadgetXMLNode out_n(&out_doc);
+	GadgetXMLNode out_n(&out_doc);
 
-    //Input Document
-    TiXmlDocument doc(mapfilename.c_str());
-    doc.LoadFile();
-    TiXmlHandle docHandle(&doc);
+	//Input document
+	TiXmlDocument doc;
+	doc.Parse(mapfile);
+	TiXmlHandle docHandle(&doc);
 
     TiXmlElement* parameters = docHandle.FirstChildElement("gadgetron").FirstChildElement("parameters").ToElement();
     if (parameters)
@@ -264,33 +259,6 @@ std::string ProcessGadgetronParameterMap(const XProtocol::XNode& node, std::stri
 }
 
 
-void clear_all_temp_files()
-{
-    remove("tempfile.h5");
-    remove("default_xml.xml");
-    remove("default_xsl.xsl");
-    remove("default_xsd.xsd");
-}
-
-void clear_temp_files(bool download_xml, bool download_xsl, bool download_xml_raw, bool debug_xml)
-{
-    remove("tempfile.h5");
-    remove("default_xsd.xsd");
-	if (!download_xml)
-	{
-		remove("default_xml.xml");
-	}
-	if (!download_xsl)
-	{
-		remove("default_xsl.xsl");
-	}
-	if (!download_xml_raw && !debug_xml)
-	{
-		remove("xml_raw.xml");
-	}
-}
-
-
 /// compute noise dwell time in us for dependency and built-in noise in VD/VB lines
 double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isAdjustCoilSens, bool isVB)
 {
@@ -315,6 +283,7 @@ int main(int argc, char *argv[] )
 {
 	std::string filename;
 	unsigned int hdf5_dataset_no;
+	unsigned int measurement_number;
 
 	std::string parammap_file;
 	std::string parammap_xsl;
@@ -329,7 +298,6 @@ int main(int argc, char *argv[] )
 
 	bool debug_xml = false;
 	bool flash_pat_ref_scan = false;
-    bool write_to_file = true;
 
     bool download_xml = false;
     bool download_xsl = false;
@@ -337,12 +305,13 @@ int main(int argc, char *argv[] )
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
-	    ("help, h", "produce help message")
+	    ("help,h", "produce help message")
 	    (",f",                 			  po::value<std::string>(&filename)->default_value("./meas_MiniGadgetron_GRE.dat"), "<DAT FILE>")
 	    (",d",   	   					  po::value<unsigned int>(&hdf5_dataset_no)->default_value(0), "<HDF5 DATASET NUMBER>")
 	    (",m",       					  po::value<std::string>(&parammap_file)->default_value("default"), "<PARAMETER MAP FILE>")
 	    (",x", 							  po::value<std::string>(&parammap_xsl)->default_value("default"), "<PARAMETER MAP STYLESHEET>")
 	    (",c",         					  po::value<std::string>(&schema_file_name)->default_value("default"), "<SCHEMA FILE NAME>")
+	    (",z",							  po::value<unsigned int>(&measurement_number)->default_value(1), "<MEASUREMENT NUMBER>")
 
 	    (",M",           				  po::value<bool>(&download_xml)->implicit_value(true), "<Download XML file>")
 	    (",S",           				  po::value<bool>(&download_xsl)->implicit_value(true), "<Download XSL file>")
@@ -365,7 +334,6 @@ int main(int argc, char *argv[] )
 	if (vm.count("help"))
 	{
 	    std::cout << desc << "\n";
-	    clear_all_temp_files();
 	    return 1;
 	}
 
@@ -374,69 +342,74 @@ int main(int argc, char *argv[] )
     {
     	std::cout << "Data file: " << filename << " does not exist." << std::endl;
         std::cout << desc << "\n";
-        clear_all_temp_files();
         return -1;
     }
     else
     {
-    	std::cout << "Data file is:                          " << filename << std::endl;
+    	std::cout << "Data file is: " << filename << std::endl;
     }
     file_1.close();
 
-    std::string tempfile("tempfile.h5"); // tmpname
-
+    std::string parammap_xsl_content;
 	if (parammap_xsl == "default")
 	{
-		std::string parammap_xsl_content = base64_decode(global_xsl_string);
-		std::ofstream default_parammap_xsl("default_xsl.xsl", std::ofstream::out);
-		default_parammap_xsl << parammap_xsl_content;
-		default_parammap_xsl.close();
-		parammap_xsl = "./default_xsl.xsl";
+		parammap_xsl_content = base64_decode(global_xsl_string);
+
+		if (download_xsl)
+		{
+	    	std::ofstream o("default_xsl.xsl");
+	    	o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
+	    	o.close();
+		}
 	}
 
-    std::ifstream file_3(parammap_xsl.c_str());
-    if (!file_3)
-    {
-    	std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
-    	std::cout << desc << "\n";
-    	clear_all_temp_files();
-        return -1;
-    }
-    else
-    {
-        std::cout << "Parameter XSL stylesheet is:           " << parammap_xsl << std::endl;
-    }
-    file_3.close();
+	else
+	{
+		std::ifstream file_3(parammap_xsl.c_str());
+		if (!file_3)
+		{
+			std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
+			std::cout << desc << "\n";
+			return -1;
+		}
+		else
+		{
+			std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
+
+			std::string str_file_3((std::istreambuf_iterator<char>(file_3)), std::istreambuf_iterator<char>());
+			parammap_xsl_content = str_file_3;
+		}
+		file_3.close();
+	}
+
+	std::string schema_file_name_content;
 
 	if (schema_file_name == "default")
 	{
-		std::string schema_file_name_content = base64_decode(global_xsd_string);
-		std::ofstream default_schema_file_name("default_xsd.xsd", std::ofstream::out);
-		default_schema_file_name << schema_file_name_content;
-		default_schema_file_name.close();
-		schema_file_name = "./default_xsd.xsd";
+		schema_file_name_content = base64_decode(global_xsd_string);
 	}
 
-    std::ifstream file_4(schema_file_name.c_str());
-    if (!file_4)
-    {
-        std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
-        std::cout << desc << "\n";
-        clear_all_temp_files();
-        return -1;
-    }
-    else
-    {
-        std::cout << "Schema file name is:                   " << schema_file_name << std::endl;
-    }
-    file_4.close();
+	else
+	{
+		std::ifstream file_4(schema_file_name.c_str());
+		if (!file_4)
+		{
+			std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
+			std::cout << desc << "\n";
+			return -1;
+		}
+		else
+		{
+			std::cout << "Schema file name is: " << schema_file_name << std::endl;
+			std::string str_file_4((std::istreambuf_iterator<char>(file_4)), std::istreambuf_iterator<char>());
+			schema_file_name_content = str_file_4;
+		}
+		file_4.close();
+	}
 
     boost::shared_ptr<ISMRMRD::IsmrmrdDataset>  ismrmrd_dataset;
 
-    if (write_to_file)
-    {
-    	ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
-    }
+    ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
 
 	std::cout << " ----- " << std::endl;
 	std::cout << "Processing file: " << filename << std::endl;
@@ -473,49 +446,81 @@ int main(int argc, char *argv[] )
 	else if (ParcRaidHead.hdSize_ != 0)
 	{
 		//This is a VB line data file
-		throw std::runtime_error("Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported.");
+		std::cout << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported." << std::endl;
+    	std::cout << desc << "\n";
+    	f.close();
+        return -1;
+	}
+
+	if (!VBFILE && measurement_number > ParcRaidHead.count_)
+	{
+		std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements" << std::endl;
+		std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
+    	std::cout << desc << "\n";
+    	f.close();
+        return -1;
+
 	}
 
     //if it is a VB scan
+	if (VBFILE && measurement_number != 1)
+	{
+		std::cout << "The file you are trying to convert is a VB file and it has only one measurement: " << std::endl;
+		std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
+    	std::cout << desc << "\n";
+    	f.close();
+        return -1;
+	}
+
+	std::string parammap_file_content;
 	if (parammap_file == "default" && VBFILE)
 	{
-		std::string parammap_file_content = base64_decode(global_xml_VB_string);
-		std::ofstream default_parammap_file("default_xml.xml", std::ofstream::out);
-		default_parammap_file << parammap_file_content;
-		default_parammap_file.close();
-		parammap_file = "./default_xml.xml";
-		std::cout << "IT IS A VB SCAN" << std::endl;
+		parammap_file_content = base64_decode(global_xml_VB_string);
+
+	    if (download_xml)
+		{
+	    	std::ofstream o("default_VB_xml.xml");
+	    	o.write(parammap_file_content.c_str(), parammap_file_content.size());
+	    	o.close();
+		}
 	}
 
 	//if it is a VD scan
-	if (parammap_file == "default" && !VBFILE)
+	else if (parammap_file == "default" && !VBFILE)
 	{
-		std::string parammap_file_content = base64_decode(global_xml_VD_string);
-		std::ofstream default_parammap_file("default_xml.xml", std::ofstream::out);
-		default_parammap_file << parammap_file_content;
-		default_parammap_file.close();
-		parammap_file = "./default_xml.xml";
-		std::cout << "IT IS A VD SCAN" << std::endl;
+		parammap_file_content = base64_decode(global_xml_VD_string);
+
+	    if (download_xml)
+		{
+	    	std::ofstream o("default_VD_xml.xml");
+	    	o.write(parammap_file_content.c_str(), parammap_file_content.size());
+	    	o.close();
+		}
 	}
 
-	std::ifstream file_2(parammap_file.c_str());
-    if (!file_2)
-    {
-    	std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
-    	std::cout << desc << "\n";
-    	clear_all_temp_files();
-    	f.close();
-        return -1;
-    }
-    else
-    {
-        std::cout << "Parameter map file is:                 " << parammap_file << std::endl;
-    }
-    file_2.close();
+	else
+	{
+		std::ifstream file_2(parammap_file.c_str());
+		if (!file_2)
+		{
+	    	std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
+	    	std::cout << desc << "\n";
+	    	f.close();
+	        return -1;
+		}
+		else
+		{
+			std::cout << "Parameter map file is: " << parammap_file << std::endl;
+
+			std::string str_file_2((std::istreambuf_iterator<char>(file_2)), std::istreambuf_iterator<char>());
+			parammap_file_content = str_file_2;
+		}
+		file_2.close();
+	}
 
 	std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
 
-	MrParcRaidFileEntry ParcFileEntries[64];
+	std::vector<MrParcRaidFileEntry> ParcFileEntries(64);
 
     if (VBFILE)
     {
@@ -536,9 +541,7 @@ int main(int argc, char *argv[] )
         std::cout << "Meas id: " << ParcFileEntries[0].measId_ << std::endl; // 0
         std::cout << "Protocol name: " << ParcFileEntries[0].protName_ << std::endl; // blank
     	std::cout << "Patient Name: " << ParcFileEntries[0].patName_ << std::endl; // blank
-
     }
-
     else
     {
     	for (unsigned int i = 0; i < 64; i++)
@@ -558,12 +561,10 @@ int main(int argc, char *argv[] )
     }
 
     MysteryData mystery_data;
-
 	MeasurementHeader mhead;
 
-	// find the beggining of the first measurement
-	//TODO: Change this, so we find the measurement that user is asking for!
-	f.seekg(ParcFileEntries[0].off_, std::ios::beg);
+	// find the beggining of the desired measurement
+	f.seekg(ParcFileEntries[measurement_number-1].off_, std::ios::beg);
 
 	//MeasurementHeader mhead;
 	f.read((char*)(&mhead.dma_length), sizeof(uint32_t));
@@ -598,15 +599,13 @@ int main(int argc, char *argv[] )
 	}
 
 	//We need to be on a 32 byte boundary after reading the buffers
-	//TODO:
-	long long int position_in_meas = (long long int)(f.tellg()) - ParcFileEntries[0].off_;
+	long long int position_in_meas = (long long int)(f.tellg()) - ParcFileEntries[measurement_number-1].off_;
 	if (position_in_meas % 32)
 	{
 		f.seekg(32 - (position_in_meas % 32), std::ios::cur);
 	}
 
 	// Measurement header done!
-
     //Now we should have the measurement headers, so let's use the Meas header to create the gadgetron XML parameters
 
     std::string xml_config;
@@ -645,7 +644,6 @@ int main(int argc, char *argv[] )
             if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0)
             {
             	std::cout << "Failed to parse XProtocol" << std::endl;
-            	clear_all_temp_files();
                 return -1;
             }
 
@@ -663,7 +661,6 @@ int main(int argc, char *argv[] )
                 if (wip_long.size() == 0)
                 {
                     std::cout << "Failed to find WIP long parameters" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
             }
@@ -682,7 +679,6 @@ int main(int argc, char *argv[] )
                 if (wip_double.size() == 0)
                 {
                     std::cout << "Failed to find WIP double parameters" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
             }
@@ -702,7 +698,6 @@ int main(int argc, char *argv[] )
                 if (temp.size() == 0)
                 {
                     std::cout << "Failed to find dwell times" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
                 else
@@ -726,7 +721,6 @@ int main(int argc, char *argv[] )
                 if (temp.size() != 1)
                 {
                     std::cout << "Failed to find appropriate trajectory array" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
                 else
@@ -751,7 +745,6 @@ int main(int argc, char *argv[] )
                 if (temp.size() != 1)
                 {
                     std::cout << "Failed to find YAPS.iMaxNoOfRxChannels array" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
                 else
@@ -776,7 +769,6 @@ int main(int argc, char *argv[] )
                 if (temp.size() != 1)
                 {
                     std::cout << "Failed to find MEAS.sKSpace.lPhaseEncodingLines array" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
                 else
@@ -796,7 +788,6 @@ int main(int argc, char *argv[] )
                 if (temp.size() != 1)
                 {
                     std::cout << "Failed to find YAPS.iNoOfFourierLines array" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
                 else
@@ -839,7 +830,6 @@ int main(int argc, char *argv[] )
                 if (temp.size() != 1)
                 {
                     std::cout << "Failed to find MEAS.sKSpace.lPartitions array" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
                 else
@@ -935,7 +925,6 @@ int main(int argc, char *argv[] )
                 if (temp.size() != 1)
                 {
                     std::cout << "Failed to find YAPS.MEAS.sKSpace.lRadialViews array" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
                 else
@@ -959,7 +948,6 @@ int main(int argc, char *argv[] )
                 if (temp.size() != 1)
                 {
                     std::cout << "Failed to find HEADER.tProtocolName" << std::endl;
-                    clear_all_temp_files();
                     return -1;
                 }
                 else
@@ -1001,7 +989,9 @@ int main(int argc, char *argv[] )
                 std::cout << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString" << std::endl;
             }
 
-            xml_config = ProcessGadgetronParameterMap(n,parammap_file);
+            //xml_config = ProcessParameterMap(n, parammap_file);
+            xml_config = ProcessParameterMap(n, parammap_file_content.c_str());
+
             break;
         }
     }
@@ -1042,7 +1032,8 @@ int main(int argc, char *argv[] )
 
 #ifndef WIN32
     xsltStylesheetPtr cur = NULL;
-    xmlDocPtr doc, res;
+
+    xmlDocPtr doc, res, xml_doc;
 
     const char *params[16 + 1];
     int nbparams = 0;
@@ -1050,21 +1041,18 @@ int main(int argc, char *argv[] )
     xmlSubstituteEntitiesDefault(1);
     xmlLoadExtDtdDefaultValue = 1;
 
-    cur = xsltParseStylesheetFile((const xmlChar*)parammap_xsl.c_str());
-    doc = xmlParseMemory(xml_config.c_str(),xml_config.size());
+    xml_doc = xmlParseMemory(parammap_xsl_content.c_str(), parammap_xsl_content.size());
+    cur = xsltParseStylesheetDoc(xml_doc);
+    doc = xmlParseMemory(xml_config.c_str(), xml_config.size());
     res = xsltApplyStylesheet(cur, doc, params);
 
     xmlChar* out_ptr = NULL;
     int xslt_length = 0;
-    int xslt_result = xsltSaveResultToString(&out_ptr,
-        &xslt_length,
-        res,
-        cur);
+    int xslt_result = xsltSaveResultToString(&out_ptr, &xslt_length, res, cur);
 
     if (xslt_result < 0)
     {
         std::cout << "Failed to save converted doc to string" << std::endl;
-        clear_all_temp_files();
         return -1;
     }
 
@@ -1077,10 +1065,9 @@ int main(int argc, char *argv[] )
         o.close();
     }
 
-    if (xml_file_is_valid(xml_config,schema_file_name.c_str()) <= 0)
+    if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0)
     {
-        std::cout << "Generated XML is not valid according to the ISMRMRD schema" << schema_file_name << std::endl;
-        clear_all_temp_files();
+        std::cout << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
         return -1;
     }
 
@@ -1137,7 +1124,6 @@ int main(int argc, char *argv[] )
         if ( xsltproc_res != 0 )
         {
             std::cerr << "Failed to generate XML header" << std::endl;
-            clear_all_temp_files();
             return -1;
         }
 
@@ -1151,13 +1137,11 @@ int main(int argc, char *argv[] )
     memset(&acq_head_base, 0, sizeof(ISMRMRD::AcquisitionHeader) );
 
 
-    if (write_to_file)
     {
 		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
 		if (ismrmrd_dataset->writeHeader(xml_config) < 0 )
 		{
 			std::cerr << "Failed to write XML header to HDF file" << std::endl;
-			clear_all_temp_files();
 			return -1;
 		}
 
@@ -1165,7 +1149,6 @@ int main(int argc, char *argv[] )
 		if (ismrmrd_dataset->writeHeader(xml_config) < 0 )
 		{
 			std::cerr << "Failed to write XML header to HDF file" << std::endl;
-			clear_all_temp_files();
 			return -1;
 		}
     }
@@ -1236,8 +1219,7 @@ int main(int argc, char *argv[] )
      bool first_call = true;
 
      while (!(last_mask & 1) && //Last scan not encountered
-    		 //TODO:
-             (((ParcFileEntries[0].off_+ ParcFileEntries[0].len_)-f.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
+             (((ParcFileEntries[measurement_number-1].off_+ ParcFileEntries[measurement_number-1].len_)-f.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
      {
     	 size_t position_in_meas = f.tellg();
          sScanHeader_with_data scanhead;
@@ -1245,7 +1227,7 @@ int main(int argc, char *argv[] )
 
          //std::cout << " mdh.ulScanCounter === " <<  mdh.ulScanCounter << std::endl;
 
-         if ( mdh.ulScanCounter%1000 == 0 )
+         if (VBFILE && mdh.ulScanCounter%1000 == 0 )
          {
              std::cout << " mdh.ulScanCounter = " <<  mdh.ulScanCounter << std::endl;
          }
@@ -1296,7 +1278,7 @@ int main(int argc, char *argv[] )
          { //Check if this is synch data, if so, it must be handled differently.
              //This is synch data.
 
-        	 std::cout << "THIS IS SYNCH DATA!!!!" << std::endl;
+        	 //std::cout << "THIS IS SYNCH DATA!!!!" << std::endl;
 
              sScanHeader_with_syncdata synch_data;
              synch_data.scanHeader = scanhead.scanHeader;
@@ -1322,18 +1304,17 @@ int main(int argc, char *argv[] )
          //std::cout << "ParcFileEntries[i].measId_: " << ParcFileEntries[0].measId_ << std::endl;
 
          //This check only makes sense in VD line files.
-         //TODO:
-         if (!VBFILE && (scanhead.scanHeader.lMeasUID != ParcFileEntries[0].measId_))
+         if (!VBFILE && (scanhead.scanHeader.lMeasUID != ParcFileEntries[measurement_number-1].measId_))
          {
              //Something must have gone terribly wrong. Bail out.
              if ( first_call )
              {
-                 std::cout << "Corrupted or retro-recon dataset detected (scanhead.scanHeader.lMeasUID != ParcFileEntries[0].measId_)" << std::endl;
+                 std::cout << "Corrupted or retro-recon dataset detected (scanhead.scanHeader.lMeasUID != ParcFileEntries[" << measurement_number-1 << "].measId_)" << std::endl;
                  std::cout << "Fix the scanhead.scanHeader.lMeasUID ... " << std::endl;
                  first_call = false;
              }
 
-             scanhead.scanHeader.lMeasUID = ParcFileEntries[0].measId_;
+             scanhead.scanHeader.lMeasUID = ParcFileEntries[measurement_number-1].measId_;
          }
 
          //Allocate data for channels
@@ -1534,13 +1515,11 @@ int main(int argc, char *argv[] )
              memcpy(const_cast<float*>(&ismrmrd_acq->getData()[c*ismrmrd_acq->getNumberOfSamples()*2]), dptr, ismrmrd_acq->getNumberOfSamples()*sizeof(float)*2);
          }
 
-         if (write_to_file)
          {
         	ISMRMRD::HDF5Exclusive lock;
  			if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0)
  			{
  				std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
- 				clear_all_temp_files();
  				return -1;
  			}
          }
@@ -1561,7 +1540,7 @@ int main(int argc, char *argv[] )
      //We will store them in the HDF file in case we need them for creating a binary
      //identical dat file.
      //TODO:
-     unsigned int mystery_bytes = (ParcFileEntries[0].off_+ParcFileEntries[0].len_)-f.tellg();
+     unsigned int mystery_bytes = (ParcFileEntries[measurement_number-1].off_+ParcFileEntries[measurement_number-1].len_)-f.tellg();
 
      std::cout << "MYSTERY BITES: " << mystery_bytes << std::endl;
 
@@ -1570,8 +1549,8 @@ int main(int argc, char *argv[] )
          if (mystery_bytes != 160)
          {
              std::cout << "WARNING: An unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
-             std::cout << "ParcFileEntries[i].off_ = " << ParcFileEntries[0].off_ << std::endl;
-             std::cout << "ParcFileEntries[i].len_ = " << ParcFileEntries[0].len_ << std::endl;
+             std::cout << "ParcFileEntries[" << measurement_number-1 << "].off_ = " << ParcFileEntries[measurement_number-1].off_ << std::endl;
+             std::cout << "ParcFileEntries[" << measurement_number-1 << "].len_ = " << ParcFileEntries[measurement_number-1].len_ << std::endl;
              std::cout << "f.tellg() = " << f.tellg() << std::endl;
              throw std::runtime_error("Error caught while writing mystery bytes to HDF5 file.");
          }
@@ -1591,13 +1570,10 @@ int main(int argc, char *argv[] )
      if (end_position != eof_position)
      {
          size_t additional_bytes = eof_position-end_position;
-         std::cout << "WARNING: End of file was not reached during conversion. There are "
-                 << additional_bytes << " additional bytes at the end of file." << std::endl;
+         std::cout << "WARNING: End of file was not reached during conversion. There are " << additional_bytes << " additional bytes at the end of file." << std::endl;
+         std::cout << "The reason might be that you are not converting the last measurement from the file" << std::endl;
      }
 
      f.close();
-
-     //remove(tempfile.c_str());
-     clear_temp_files(download_xml, download_xsl, download_xml_raw, debug_xml);
      return 0;
 }
