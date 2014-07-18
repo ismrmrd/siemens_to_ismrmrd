@@ -349,7 +349,7 @@ int main(int argc, char *argv[] )
 
 		if (download_xsl)
 		{
-	    	std::ofstream o("default_xsl.xsl");
+	    	std::ofstream o("parameter_stylesheet.xsl");
 	    	o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
 	    	o.close();
 		}
@@ -471,7 +471,7 @@ int main(int argc, char *argv[] )
 
 	    if (download_xml)
 		{
-	    	std::ofstream o("default_VB_xml.xml");
+	    	std::ofstream o("VB_parameter_map.xml");
 	    	o.write(parammap_file_content.c_str(), parammap_file_content.size());
 	    	o.close();
 		}
@@ -484,7 +484,7 @@ int main(int argc, char *argv[] )
 
 	    if (download_xml)
 		{
-	    	std::ofstream o("default_VD_xml.xml");
+	    	std::ofstream o("VD_parameter_map.xml");
 	    	o.write(parammap_file_content.c_str(), parammap_file_content.size());
 	    	o.close();
 		}
