@@ -301,20 +301,20 @@ int main(int argc, char *argv[] )
 	po::options_description desc("Allowed options");
 	desc.add_options()
 	    ("help,h", "produce help message")
-	    (",f",                 			  		po::value<std::string>(&filename)->default_value("./meas_GRE.dat"), "<SIEMENS dat file>")
-	    (",z",							  		po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-	    (",m",       					  		po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map file>")
-	    (",x", 									po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter map stylesheet>")
-	    (",c",         					  		po::value<std::string>(&schema_file_name)->default_value("default"), "<Schema file name>")
+	    (",f",									po::value<std::string>(&filename)->default_value("./meas_GRE.dat"), "<SIEMENS dat file>")
+	    (",z",									po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
+	    (",m",									po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map file>")
+	    (",x",									po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter map stylesheet>")
+	    (",c",									po::value<std::string>(&schema_file_name)->default_value("default"), "<Schema file name>")
 
-	    (",M",           				  		po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
-	    (",S",           				  		po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
-	    (",R",           				  		po::value<bool>(&download_xml_raw)->implicit_value(true), "<Get generated XML config file>")
+	    (",M",									po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
+	    (",S",									po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
+	    (",R",									po::value<bool>(&download_xml_raw)->implicit_value(true), "<Get generated XML config file>")
 
-	    (",o",           				  		po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
-	    (",g",	          				  		po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
-	    (",X",           				  		po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
-	    (",F",       					  		po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
+	    (",o",									po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
+	    (",g",									po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
+	    (",X",									po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
+	    (",F",									po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
 	;
 
 	po::variables_map vm;
