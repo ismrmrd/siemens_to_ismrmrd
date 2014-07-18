@@ -290,9 +290,6 @@ int main(int argc, char *argv[] )
 
 	std::string hdf5_file;
 	std::string hdf5_group;
-	std::string hdf5_out_file;
-	std::string hdf5_out_group;
-	std::string out_format;
 	std::string date_time = get_date_time_string();
 
 	bool debug_xml = false;
@@ -305,7 +302,7 @@ int main(int argc, char *argv[] )
 	po::options_description desc("Allowed options");
 	desc.add_options()
 	    ("help,h", "produce help message")
-	    (",f",                 			  po::value<std::string>(&filename)->default_value("./meas_MiniGadgetron_GRE.dat"), "<SIEMENS DAT FILE>")
+	    (",f",                 			  po::value<std::string>(&filename)->default_value("./meas_GRE.dat"), "<SIEMENS DAT FILE>")
 	    (",d",   	   					  po::value<unsigned int>(&hdf5_dataset_no)->default_value(0), "<HDF5 DATASET NUMBER>")
 	    (",m",       					  po::value<std::string>(&parammap_file)->default_value("default"), "<PARAMETER MAP FILE>")
 	    (",x", 							  po::value<std::string>(&parammap_xsl)->default_value("default"), "<PARAMETER MAP STYLESHEET>")
@@ -313,16 +310,13 @@ int main(int argc, char *argv[] )
 	    (",z",							  po::value<unsigned int>(&measurement_number)->default_value(1), "<MEASUREMENT NUMBER>")
 
 	    (",M",           				  po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
-	    (",S",           				  po::value<bool>(&download_xsl)->implicit_value(true), "<Get Parameter XSL stylesheet file>")
+	    (",S",           				  po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
 	    (",R",           				  po::value<bool>(&download_xml_raw)->implicit_value(true), "<Get generated XML config file>")
 
 	    (",o",           				  po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
 	    (",g",	          				  po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
-	    (",r",         					  po::value<std::string>(&hdf5_out_file)->default_value("./result.h5"), "<HDF5 result file>")
-	    (",G",        					  po::value<std::string>(&hdf5_out_group)->default_value(date_time.c_str()), "<HDF5 result group>")
 	    (",X",           				  po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
 	    (",F",       					  po::value<bool>(&flash_pat_ref_scan)->implicit_value(false), "<FLASH PAT REF flag>")
-	    (",U", 							  po::value<std::string>(&out_format)->default_value("h5"), "<OUT FILE FORMAT, 'h5 or hdf5' or 'hdf or analyze' or 'nii or nifti'>")
 	;
 
 	po::variables_map vm;
