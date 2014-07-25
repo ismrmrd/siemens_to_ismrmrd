@@ -71,10 +71,14 @@ void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp
 int xml_file_is_valid(std::string& xml, std::string& schema_file)
 {
     xmlDocPtr doc;
+    //parse an XML in-memory block and build a tree.
     doc = xmlParseMemory(xml.c_str(), xml.size());
+
     xmlDocPtr schema_doc;
+    //parse an XML in-memory block and build a tree.
     schema_doc = xmlParseMemory(schema_file.c_str(), schema_file.size());
 
+    //Create an XML Schemas parse context for that document. NB. The document may be modified during the parsing process.
     xmlSchemaParserCtxtPtr parser_ctxt = xmlSchemaNewDocParserCtxt(schema_doc);
     if (parser_ctxt == NULL)
     {
@@ -82,6 +86,8 @@ int xml_file_is_valid(std::string& xml, std::string& schema_file)
         xmlFreeDoc(schema_doc);
         return -2;
     }
+
+    //parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances.
     xmlSchemaPtr schema = xmlSchemaParse(parser_ctxt);
     if (schema == NULL)
     {
@@ -90,6 +96,8 @@ int xml_file_is_valid(std::string& xml, std::string& schema_file)
         xmlFreeDoc(schema_doc);
         return -3;
     }
+
+    //Create an XML Schemas validation context based on the given schema.
     xmlSchemaValidCtxtPtr valid_ctxt = xmlSchemaNewValidCtxt(schema);
     if (valid_ctxt == NULL)
     {
@@ -100,6 +108,8 @@ int xml_file_is_valid(std::string& xml, std::string& schema_file)
         xmlFreeDoc(doc);
         return -4;
     }
+
+    //Validate a document tree in memory. Takes a schema validation context and a parsed document tree
     int is_valid = (xmlSchemaValidateDoc(valid_ctxt, doc) == 0);
     xmlSchemaFreeValidCtxt(valid_ctxt);
     xmlSchemaFree(schema);
@@ -296,35 +306,86 @@ int main(int argc, char *argv[] )
 
     bool download_xml = false;
     bool download_xsl = false;
-    bool download_xml_raw = false;
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
-	    ("help,h", "produce help message")
-	    (",f",									po::value<std::string>(&filename)->default_value("./meas_GRE.dat"), "<SIEMENS dat file>")
-	    (",z",									po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-	    (",m",									po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map file>")
-	    (",x",									po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter map stylesheet>")
-	    (",c",									po::value<std::string>(&schema_file_name)->default_value("default"), "<Schema file name>")
-
-	    (",M",									po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
-	    (",S",									po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
-	    (",R",									po::value<bool>(&download_xml_raw)->implicit_value(true), "<Get generated XML config file>")
-
-	    (",o",									po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
-	    (",g",									po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
-	    (",X",									po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
-	    (",F",									po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
+	    ("help,h", 					"produce help message")
+	    ("file,f",					"<SIEMENS dat file>")
+	    ("measNum,z",				"<Measurement number>")
+	    ("pMapFile,m",				"<Parameter map file>")
+	    ("pMapStyle,x",				"<Parameter map stylesheet>")
+	    ("schemaFile,c",			"<Schema file name>")
+	    ("getXML,M",				"<Get parameter map XML file>")
+	    ("getXSL,S",				"<Get parameter stylesheet XSL file>")
+	    ("output,o",				"<HDF5 output file>")
+	    ("outputGroup,g",			"<HDF5 output group>")
+	    ("debug,X",					"<Debug XML flag>")
+	    ("flashPatRef,F",			"<FLASH PAT REF flag>")
 	;
 
 	po::variables_map vm;
 	po::store(po::parse_command_line(argc, argv, desc), vm);
 	po::notify(vm);
 
-	if (vm.count("help"))
+	if (vm.count("h"))
 	{
 	    std::cout << desc << "\n";
 	    return 1;
+	}
+
+	if (vm.count("f"))
+	{
+		po::value<std::string>(&filename)->default_value("./meas_GRE.dat");
+	}
+
+	if (vm.count("z"))
+	{
+		po::value<unsigned int>(&measurement_number)->default_value(1);
+	}
+
+	if (vm.count("m"))
+	{
+		po::value<std::string>(&parammap_file)->default_value("default");
+	}
+
+	if (vm.count("x"))
+	{
+		po::value<std::string>(&parammap_xsl)->default_value("default");
+	}
+
+	if (vm.count("c"))
+	{
+		po::value<std::string>(&schema_file_name)->default_value("default");
+	}
+
+	if (vm.count("M"))
+	{
+		po::value<bool>(&download_xml)->implicit_value(true);
+	}
+
+	if (vm.count("S"))
+	{
+		po::value<bool>(&download_xsl)->implicit_value(true);
+	}
+
+	if (vm.count("o"))
+	{
+		po::value<std::string>(&hdf5_file)->default_value("output.h5");
+	}
+
+	if (vm.count("g"))
+	{
+		po::value<std::string>(&hdf5_group)->default_value("dataset");
+	}
+
+	if (vm.count("X"))
+	{
+		po::value<bool>(&debug_xml)->implicit_value(true);
+	}
+
+	if (vm.count("F"))
+	{
+		po::value<bool>(&flash_pat_ref_scan)->implicit_value(true);
 	}
 
 	std::ifstream file_1(filename.c_str());
@@ -1007,7 +1068,7 @@ int main(int argc, char *argv[] )
 
     std::cout << "Baseline: " << baseLineString << std::endl;
 
-    if (debug_xml || download_xml_raw)
+    if (debug_xml)
     {
         std::ofstream o("xml_raw.xml");
         o.write(xml_config.c_str(), xml_config.size());
