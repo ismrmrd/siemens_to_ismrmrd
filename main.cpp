@@ -310,6 +310,22 @@ int main(int argc, char *argv[] )
 	po::options_description desc("Allowed options");
 	desc.add_options()
 	    ("help,h", 					"produce help message")
+	    ("file,f",					po::value<std::string>(&filename), "<SIEMENS dat file>")
+	    ("measNum,z",				po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
+	    ("pMapFile,m",				po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map file>")
+	    ("pMapStyle,x",				po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter map stylesheet>")
+	    ("schemaFile,c",			po::value<std::string>(&schema_file_name)->default_value("default"), "<Schema file name>")
+	    ("getXML,M",				po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
+	    ("getXSL,S",				po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
+	    ("output,o",				po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
+	    ("outputGroup,g",			po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
+	    ("debug,X",					po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
+	    ("flashPatRef,F",			po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
+	;
+
+	po::options_description display_options("Allowed options");
+	display_options.add_options()
+	    ("help,h", 					"produce help message")
 	    ("file,f",					"<SIEMENS dat file>")
 	    ("measNum,z",				"<Measurement number>")
 	    ("pMapFile,m",				"<Parameter map file>")
@@ -324,75 +340,31 @@ int main(int argc, char *argv[] )
 	;
 
 	po::variables_map vm;
-	po::store(po::parse_command_line(argc, argv, desc), vm);
-	po::notify(vm);
 
-	if (vm.count("h"))
+	try
 	{
-	    std::cout << desc << "\n";
-	    return 1;
+		po::store(po::parse_command_line(argc, argv, desc), vm);
+		po::notify(vm);
+
+		if (vm.count("help"))
+		{
+			std::cout << display_options << "\n";
+			return 1;
+		}
 	}
 
-	if (vm.count("f"))
-	{
-		po::value<std::string>(&filename)->default_value("./meas_GRE.dat");
-	}
-
-	if (vm.count("z"))
-	{
-		po::value<unsigned int>(&measurement_number)->default_value(1);
-	}
-
-	if (vm.count("m"))
-	{
-		po::value<std::string>(&parammap_file)->default_value("default");
-	}
-
-	if (vm.count("x"))
-	{
-		po::value<std::string>(&parammap_xsl)->default_value("default");
-	}
-
-	if (vm.count("c"))
-	{
-		po::value<std::string>(&schema_file_name)->default_value("default");
-	}
-
-	if (vm.count("M"))
-	{
-		po::value<bool>(&download_xml)->implicit_value(true);
-	}
-
-	if (vm.count("S"))
-	{
-		po::value<bool>(&download_xsl)->implicit_value(true);
-	}
-
-	if (vm.count("o"))
-	{
-		po::value<std::string>(&hdf5_file)->default_value("output.h5");
-	}
-
-	if (vm.count("g"))
-	{
-		po::value<std::string>(&hdf5_group)->default_value("dataset");
-	}
-
-	if (vm.count("X"))
-	{
-		po::value<bool>(&debug_xml)->implicit_value(true);
-	}
-
-	if (vm.count("F"))
-	{
-		po::value<bool>(&flash_pat_ref_scan)->implicit_value(true);
-	}
+    catch(po::error& e)
+    {
+      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+      std::cerr << display_options << std::endl;
+      return 1;
+    }
 
 	std::ifstream file_1(filename.c_str());
     if (!file_1)
     {
-    	std::cout << "Data file: " << filename << " does not exist." << std::endl;
-        std::cout << desc << "\n";
+    	std::cout << "Dat file is not set or does not exist." << std::endl;
+        std::cout << display_options << "\n";
         return -1;
     }
     else
@@ -420,7 +392,7 @@ int main(int argc, char *argv[] )
 		if (!file_3)
 		{
 			std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
-			std::cout << desc << "\n";
+			std::cout << display_options << "\n";
 			return -1;
 		}
 		else
@@ -446,7 +418,7 @@ int main(int argc, char *argv[] )
 		if (!file_4)
 		{
 			std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
-			std::cout << desc << "\n";
+			std::cout << display_options << "\n";
 			return -1;
 		}
 		else
@@ -498,7 +470,7 @@ int main(int argc, char *argv[] )
 	{
 		//This is a VB line data file
 		std::cout << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported." << std::endl;
-    	std::cout << desc << "\n";
+    	std::cout << display_options << "\n";
     	f.close();
         return -1;
 	}
@@ -507,7 +479,7 @@ int main(int argc, char *argv[] )
 	{
 		std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements" << std::endl;
 		std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
-    	std::cout << desc << "\n";
+    	std::cout << display_options << "\n";
     	f.close();
         return -1;
 
@@ -518,7 +490,7 @@ int main(int argc, char *argv[] )
 	{
 		std::cout << "The file you are trying to convert is a VB file and it has only one measurement: " << std::endl;
 		std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
-    	std::cout << desc << "\n";
+    	std::cout << display_options << "\n";
     	f.close();
         return -1;
 	}
@@ -555,7 +527,7 @@ int main(int argc, char *argv[] )
 		if (!file_2)
 		{
 	    	std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
-	    	std::cout << desc << "\n";
+	    	std::cout << display_options << "\n";
 	    	f.close();
 	        return -1;
 		}
