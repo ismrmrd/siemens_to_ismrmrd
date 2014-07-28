@@ -14,7 +14,7 @@
 #endif //WIN32
 
 #include "siemensraw.h"
-#include "base64_decode.h"
+#include "base64.h"
 
 #include "GadgetXml.h"
 #include "XNode.h"
@@ -1590,7 +1590,7 @@ int main(int argc, char *argv[] )
      size_t end_position = f.tellg();
      f.seekg(0,std::ios::end);
      size_t eof_position = f.tellg();
-     if (end_position != eof_position)
+     if (end_position != eof_position && ParcRaidHead.count_ == measurement_number)
      {
          size_t additional_bytes = eof_position-end_position;
          std::cout << "WARNING: End of file was not reached during conversion. There are " << additional_bytes << " additional bytes at the end of file." << std::endl;
