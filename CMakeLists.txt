@@ -60,8 +60,6 @@ ENDIF(NOT WIN32)
 
 set(CMAKE_INSTALL_PREFIX ${ISMRMRD_HOME})
 
-#add_subdirectory(dependencies)
-
 if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
 endif(WIN32)

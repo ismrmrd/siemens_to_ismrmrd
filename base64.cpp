@@ -110,4 +110,3 @@ void splitBigString(std::ofstream &resFile, std::string bigString, int parts)
 		pre = at;
     }
 }
-
