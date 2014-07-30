@@ -1058,7 +1058,7 @@ int main(int argc, char *argv[] )
 
     if (xml_doc == NULL)
     {
-    	std::cout << "Error when parsing xsl parameter stylesheet..." << std:endl;
+    	std::cout << "Error when parsing xsl parameter stylesheet..." << std::endl;
     	return -1;
     }
 
