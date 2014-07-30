@@ -50,7 +50,6 @@ extern std::string global_xml_VD_string;
 extern std::string global_xsl_string;
 extern std::string global_xsd_string;
 
-
 struct MysteryData
 {
 	char mysteryData[160];
@@ -363,13 +362,13 @@ int main(int argc, char *argv[] )
 	std::ifstream file_1(filename.c_str());
     if (!file_1)
     {
-    	std::cout << "Dat file is not set or does not exist." << std::endl;
+    	std::cout << "Siemens file is not provided or does not exist." << std::endl;
         std::cout << display_options << "\n";
         return -1;
     }
     else
     {
-    	std::cout << "Data file is: " << filename << std::endl;
+    	std::cout << "Siemens file is: " << filename << std::endl;
     }
     file_1.close();
 
@@ -434,17 +433,11 @@ int main(int argc, char *argv[] )
 
     ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
 
-	std::cout << " ----- " << std::endl;
-	std::cout << "Processing file: " << filename << std::endl;
-
 	std::ifstream f(filename.c_str(), std::ios::binary);
 
 	MrParcRaidFileHeader ParcRaidHead;
 
 	f.read((char*)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
-
-	std::cout << "MrParcRaidFileHeader size: " << ParcRaidHead.hdSize_ << std::endl;
-	std::cout << "MrParcRaidFileHeader count: " << ParcRaidHead.count_ << std::endl;
 
     bool VBFILE = false;
 
@@ -461,9 +454,6 @@ int main(int argc, char *argv[] )
 
         ParcRaidHead.hdSize_ = ParcRaidHead.count_;
         ParcRaidHead.count_ = 1;
-
-        std::cout << "NEW ParcRaidHead.hdSize_ is: " << ParcRaidHead.hdSize_ << std::endl;
-        std::cout << "NEW ParcRaidHead.count_ is: " << ParcRaidHead.count_ << std::endl;
 	}
 
 	else if (ParcRaidHead.hdSize_ != 0)
@@ -594,11 +584,9 @@ int main(int argc, char *argv[] )
 	f.read((char*)(&mhead.nr_buffers),sizeof(uint32_t));
 
 	std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
-	std::cout << "Measurement header number of buffers: " << mhead.nr_buffers << std::endl;
 
 	//Now allocate dynamic memory for the buffers
 	mhead.buffers.len = mhead.nr_buffers;
-	std::cout << "Measurement header number of buffers (again): " << mhead.buffers.len << std::endl;
 
 	MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[mhead.nr_buffers];
 	mhead.buffers.p = (void*)(buffers);
@@ -1019,8 +1007,6 @@ int main(int argc, char *argv[] )
         }
     }
 
-    std::cout << "Protocol Name: " << protocol_name << std::endl;
-
     // whether this scan is a adjustment scan
     bool isAdjustCoilSens = false;
     if ( protocol_name == "AdjCoilSens" )
@@ -1059,12 +1045,23 @@ int main(int argc, char *argv[] )
     xmlDocPtr doc, res, xml_doc;
 
     const char *params[16 + 1];
+
     int nbparams = 0;
+
     params[nbparams] = NULL;
+
     xmlSubstituteEntitiesDefault(1);
+
     xmlLoadExtDtdDefaultValue = 1;
 
     xml_doc = xmlParseMemory(parammap_xsl_content.c_str(), parammap_xsl_content.size());
+
+    if (xml_doc == NULL)
+    {
+    	std::cout << "Error when parsing xsl parameter stylesheet..." << std:endl;
+    	return -1;
+    }
+
     cur = xsltParseStylesheetDoc(xml_doc);
     doc = xmlParseMemory(xml_config.c_str(), xml_config.size());
     res = xsltApplyStylesheet(cur, doc, params);
