@@ -18,6 +18,9 @@ if (WIN32)
     SET (CMAKE_SHARED_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     SET (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     SET (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
+
+    ADD_DEFINITIONS(-D__BUILD_GADGETRON_TINYXML__)
+
 endif (WIN32)
 
 ###############################################################
