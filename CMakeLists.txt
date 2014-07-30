@@ -63,8 +63,6 @@ ENDIF(NOT WIN32)
 
 set(CMAKE_INSTALL_PREFIX ${ISMRMRD_HOME})
 
-#add_subdirectory(dependencies)
-
 if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
 endif(WIN32)
@@ -75,8 +73,9 @@ INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
                      ${HDF5_C_INCLUDE_DIR} )
 
 add_executable(b64
-    base64_encode.cpp
-    )
+    base64.h
+    base64.cpp
+    b64-main.cpp)
 
 add_custom_command(
     OUTPUT defaults.cpp
@@ -107,8 +106,8 @@ add_executable(siemens_to_ismrmrd
 	           defaults.cpp
                siemens_hdf5_datatypes.h 
                siemensraw.h
-               base64_decode.h
-               base64_decode.cpp
+               base64.h
+               base64.cpp
                tinyxml.h
                tinyxml.cpp
                tinyxmlerror.cpp

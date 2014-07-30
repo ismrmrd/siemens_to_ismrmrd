@@ -14,7 +14,7 @@
 #endif //WIN32
 
 #include "siemensraw.h"
-#include "base64_decode.h"
+#include "base64.h"
 
 #include "GadgetXml.h"
 #include "XNode.h"
@@ -49,7 +49,6 @@ extern std::string global_xml_VB_string;
 extern std::string global_xml_VD_string;
 extern std::string global_xsl_string;
 extern std::string global_xsd_string;
-
 
 struct MysteryData
 {
@@ -309,12 +308,12 @@ int main(int argc, char *argv[] )
 
 	po::options_description desc("Allowed options");
 	desc.add_options()
-	    ("help,h", 					"produce help message")
+	    ("help,h", 					"Produce HELP message")
 	    ("file,f",					po::value<std::string>(&filename), "<SIEMENS dat file>")
 	    ("measNum,z",				po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-	    ("pMapFile,m",				po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map file>")
-	    ("pMapStyle,x",				po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter map stylesheet>")
-	    ("schemaFile,c",			po::value<std::string>(&schema_file_name)->default_value("default"), "<Schema file name>")
+	    ("pMapFile,m",				po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map XML file>")
+	    ("pMapStyle,x",				po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter stylesheet XSL file>")
+	    ("schemaFile,c",			po::value<std::string>(&schema_file_name)->default_value("default"), "<ISMRMRD schema XSD file>")
 	    ("getXML,M",				po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
 	    ("getXSL,S",				po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
 	    ("output,o",				po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
@@ -325,12 +324,12 @@ int main(int argc, char *argv[] )
 
 	po::options_description display_options("Allowed options");
 	display_options.add_options()
-	    ("help,h", 					"produce help message")
+	    ("help,h", 					"Produce HELP message")
 	    ("file,f",					"<SIEMENS dat file>")
 	    ("measNum,z",				"<Measurement number>")
-	    ("pMapFile,m",				"<Parameter map file>")
-	    ("pMapStyle,x",				"<Parameter map stylesheet>")
-	    ("schemaFile,c",			"<Schema file name>")
+	    ("pMapFile,m",				"<Parameter map XML file>")
+	    ("pMapStyle,x",				"<Parameter stylesheet XSL file>")
+	    ("schemaFile,c",			"<ISMRMRD schema XSD file>")
 	    ("getXML,M",				"<Get parameter map XML file>")
 	    ("getXSL,S",				"<Get parameter stylesheet XSL file>")
 	    ("output,o",				"<HDF5 output file>")
@@ -357,19 +356,19 @@ int main(int argc, char *argv[] )
     {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cerr << display_options << std::endl;
-      return 1;
+      return -1;
     }
 
 	std::ifstream file_1(filename.c_str());
     if (!file_1)
     {
-    	std::cout << "Dat file is not set or does not exist." << std::endl;
+    	std::cout << "Siemens file is not provided or does not exist." << std::endl;
         std::cout << display_options << "\n";
         return -1;
     }
     else
     {
-    	std::cout << "Data file is: " << filename << std::endl;
+    	std::cout << "Siemens file is: " << filename << std::endl;
     }
     file_1.close();
 
@@ -434,17 +433,11 @@ int main(int argc, char *argv[] )
 
     ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
 
-	std::cout << " ----- " << std::endl;
-	std::cout << "Processing file: " << filename << std::endl;
-
 	std::ifstream f(filename.c_str(), std::ios::binary);
 
 	MrParcRaidFileHeader ParcRaidHead;
 
 	f.read((char*)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
-
-	std::cout << "MrParcRaidFileHeader size: " << ParcRaidHead.hdSize_ << std::endl;
-	std::cout << "MrParcRaidFileHeader count: " << ParcRaidHead.count_ << std::endl;
 
     bool VBFILE = false;
 
@@ -461,9 +454,6 @@ int main(int argc, char *argv[] )
 
         ParcRaidHead.hdSize_ = ParcRaidHead.count_;
         ParcRaidHead.count_ = 1;
-
-        std::cout << "NEW ParcRaidHead.hdSize_ is: " << ParcRaidHead.hdSize_ << std::endl;
-        std::cout << "NEW ParcRaidHead.count_ is: " << ParcRaidHead.count_ << std::endl;
 	}
 
 	else if (ParcRaidHead.hdSize_ != 0)
@@ -594,11 +584,9 @@ int main(int argc, char *argv[] )
 	f.read((char*)(&mhead.nr_buffers),sizeof(uint32_t));
 
 	std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
-	std::cout << "Measurement header number of buffers: " << mhead.nr_buffers << std::endl;
 
 	//Now allocate dynamic memory for the buffers
 	mhead.buffers.len = mhead.nr_buffers;
-	std::cout << "Measurement header number of buffers (again): " << mhead.buffers.len << std::endl;
 
 	MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[mhead.nr_buffers];
 	mhead.buffers.p = (void*)(buffers);
@@ -1019,8 +1007,6 @@ int main(int argc, char *argv[] )
         }
     }
 
-    std::cout << "Protocol Name: " << protocol_name << std::endl;
-
     // whether this scan is a adjustment scan
     bool isAdjustCoilSens = false;
     if ( protocol_name == "AdjCoilSens" )
@@ -1059,12 +1045,23 @@ int main(int argc, char *argv[] )
     xmlDocPtr doc, res, xml_doc;
 
     const char *params[16 + 1];
+
     int nbparams = 0;
+
     params[nbparams] = NULL;
+
     xmlSubstituteEntitiesDefault(1);
+
     xmlLoadExtDtdDefaultValue = 1;
 
     xml_doc = xmlParseMemory(parammap_xsl_content.c_str(), parammap_xsl_content.size());
+
+    if (xml_doc == NULL)
+    {
+    	std::cout << "Error when parsing xsl parameter stylesheet..." << std::endl;
+    	return -1;
+    }
+
     cur = xsltParseStylesheetDoc(xml_doc);
     doc = xmlParseMemory(xml_config.c_str(), xml_config.size());
     res = xsltApplyStylesheet(cur, doc, params);
@@ -1158,7 +1155,6 @@ int main(int argc, char *argv[] )
 
     ISMRMRD::AcquisitionHeader acq_head_base;
     memset(&acq_head_base, 0, sizeof(ISMRMRD::AcquisitionHeader) );
-
 
     {
 		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
@@ -1299,10 +1295,6 @@ int main(int argc, char *argv[] )
 
          if (scanhead.scanHeader.aulEvalInfoMask[0] & ( 1 << 5))
          { //Check if this is synch data, if so, it must be handled differently.
-             //This is synch data.
-
-        	 //std::cout << "THIS IS SYNCH DATA!!!!" << std::endl;
-
              sScanHeader_with_syncdata synch_data;
              synch_data.scanHeader = scanhead.scanHeader;
              synch_data.last_scan_counter = acquisitions-1;
@@ -1323,9 +1315,6 @@ int main(int argc, char *argv[] )
              continue;
          }
 
-         //std::cout << "scanhead.scanHeader.lMeasUID: " << scanhead.scanHeader.lMeasUID << std::endl;
-         //std::cout << "ParcFileEntries[i].measId_: " << ParcFileEntries[0].measId_ << std::endl;
-
          //This check only makes sense in VD line files.
          if (!VBFILE && (scanhead.scanHeader.lMeasUID != ParcFileEntries[measurement_number-1].measId_))
          {
@@ -1336,7 +1325,6 @@ int main(int argc, char *argv[] )
                  std::cout << "Fix the scanhead.scanHeader.lMeasUID ... " << std::endl;
                  first_call = false;
              }
-
              scanhead.scanHeader.lMeasUID = ParcFileEntries[measurement_number-1].measId_;
          }
 
@@ -1590,11 +1578,10 @@ int main(int argc, char *argv[] )
      size_t end_position = f.tellg();
      f.seekg(0,std::ios::end);
      size_t eof_position = f.tellg();
-     if (end_position != eof_position)
+     if (end_position != eof_position && ParcRaidHead.count_ == measurement_number)
      {
          size_t additional_bytes = eof_position-end_position;
          std::cout << "WARNING: End of file was not reached during conversion. There are " << additional_bytes << " additional bytes at the end of file." << std::endl;
-         std::cout << "The reason might be that you are not converting the last measurement from the file" << std::endl;
      }
 
      f.close();
