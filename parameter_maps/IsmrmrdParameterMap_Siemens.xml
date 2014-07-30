@@ -19,7 +19,6 @@
         <p><s>MEAS.sPat.lRefLinesPE</s>                             <d>siemens.MEAS.sPat.lRefLinesPE</d></p>
         <p><s>MEAS.sPat.lRefLines3D</s>                             <d>siemens.MEAS.sPat.lRefLines3D</d></p>
         <p><s>MEAS.sSliceArray.lSize</s>                            <d>siemens.MEAS.sSliceArray.lSize</d></p>
-        <p><s>MEAS.sDiffusion.alBValue</s>                          <d>siemens.MEAS.sDiffusion.alBValue</d></p>
         <p><s>MEAS.sRXSPEC.alDwellTime</s>                          <d>siemens.MEAS.sRXSPEC.alDwellTime</d></p>
         <p><s>MEAS.alTR</s>                                         <d>siemens.MEAS.alTR</d></p>
         <p><s>MEAS.alTE</s>                                         <d>siemens.MEAS.alTE</d></p>
@@ -29,6 +28,9 @@
         <p><s>MEAS.sSliceArray.asSlice.0.dPhaseFOV</s>              <d>siemens.MEAS.sSliceArray.asSlice.s0.dPhaseFOV</d></p>
         <p><s>MEAS.sSliceArray.asSlice.0.dThickness</s>             <d>siemens.MEAS.sSliceArray.asSlice.s0.dThickness</d></p>
         <p><s>MEAS.sAngio.sFlowArray.lSize</s>                      <d>siemens.MEAS.sAngio.sFlowArray.lSize</d></p>
+        <p><s>MEAS.sAngio.sFlowArray.asElm.0.nVelocity</s>          <d>siemens.MEAS.sAngio.sFlowArray.asElm.s0.nVelocity</d></p>
+        <p><s>YAPS.aflMaxwellCoefficients</s>                       <d>siemens.YAPS.aflMaxwellCoefficients</d></p>
+        <p><s>MEAS.sPhysioImaging.lRetroGatedImages</s>             <d>siemens.MEAS.sPhysioImaging.lRetroGatedImages</d></p>
         <p><s>MEAS.sFastImaging.lShots</s>                          <d>siemens.MEAS.sFastImaging.lSegments</d></p>
         <p><s>MEAS.sPhysioImaging.lPhases</s>                       <d>siemens.MEAS.sPhysioImaging.lPhases</d></p>
         <p><s>MEAS.lRepetitions</s>                                 <d>siemens.MEAS.lRepetitions</d></p>
@@ -93,6 +95,10 @@
 
         <p><s>YAPS.lFirstFourierLine</s>                            <d>siemens.YAPS.lFirstFourierLine</d></p>
         <p><s>YAPS.lFirstFourierPartition</s>                       <d>siemens.YAPS.lFirstFourierPartition</d></p>
+
+        <!-- diffusion weighted imaging parameter -->
+        <p><s>MEAS.sDiffusion.lDiffDirections</s>                   <d>siemens.MEAS.sDiffusion.lDiffDirections</d></p>
+        <p><s>MEAS.sDiffusion.alBValue</s>                          <d>siemens.MEAS.sDiffusion.alBValue</d></p>
 
         <!-- user defined parameter -->
         <p><s>MEAS.sProtConsistencyInfo.tBaselineString</s> <d>siemens.MEAS.sProtConsistencyInfo.tBaselineString</d></p>
