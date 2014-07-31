@@ -79,23 +79,33 @@ add_executable(b64
 
 add_custom_command(
     OUTPUT defaults.cpp
-    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/ismrmrd.xsd defaults.cpp
+    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/ismrmrd.xsd 
+                defaults.cpp
     VERBATIM
     DEPENDS b64
-    	${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
+        ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
         ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml
         ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
+        ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
         ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/ismrmrd.xsd
 )
 
-set(schema_files parameter_maps/IsmrmrdParameterMap.xsl
-               parameter_maps/IsmrmrdParameterMap_Siemens.xml
-               parameter_maps/IsmrmrdParameterMap_Siemens.xsl
-               parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
-               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
-               parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-               parameter_maps/ismrmrd.xsd
-               )
+#set(schema_files parameter_maps/IsmrmrdParameterMap.xsl
+#               parameter_maps/IsmrmrdParameterMap_Siemens.xml
+#               parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+#               parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
+#               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
+#               parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
+#               parameter_maps/ismrmrd.xsd
+#               )
 
 add_executable(siemens_to_ismrmrd 
                main.cpp 
@@ -103,7 +113,7 @@ add_executable(siemens_to_ismrmrd
                XNode.cpp 
                XNodeParser.cpp 
                vds.cpp
-	           defaults.cpp
+               defaults.cpp
                siemens_hdf5_datatypes.h 
                siemensraw.h
                base64.h
@@ -125,8 +135,8 @@ ELSE(WIN32)
 ENDIF(WIN32)
 
 target_link_libraries(siemens_to_ismrmrd
-              		  ${ISMRMRD_LIBRARIES}
-              		  ${Boost_LIBRARIES} )
+                        ${ISMRMRD_LIBRARIES}
+                        ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
-install(FILES ${schema_files} DESTINATION schema)
+#install(FILES ${schema_files} DESTINATION schema)
