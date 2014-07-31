@@ -432,6 +432,13 @@ int main(int argc, char *argv[] )
         std::cout << "IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl file downloaded" << std::endl;
     }
 
+    if (measurement_number < 1)
+    {
+        std::cout << "The measurement number must be positive number higher than 0" << std::endl;
+        std::cout << display_options << "\n";
+        return -1;
+    }
+
     //If Siemens file is not provided, terminate the execution
     if (filename == "default")
     {
@@ -521,10 +528,6 @@ int main(int argc, char *argv[] )
     {
         VBFILE = true;
 
-        std::cout << "VB line file detected." << std::endl;
-        std::cout << "We have no raid file header" << std::endl;
-        std::cout << "ParcRaidHead.count_ is: " << ParcRaidHead.count_ << std::endl;
-
         //Rewind, we have no raid file header.
         f.seekg(0, std::ios::beg);
 
@@ -541,17 +544,9 @@ int main(int argc, char *argv[] )
         return -1;
     }
 
-    if (measurement_number < 1)
-    {
-        std::cout << "The measurement number must be positive number higher than 0" << std::endl;
-        std::cout << display_options << "\n";
-        f.close();
-        return -1;
-    }
-
     if (!VBFILE && measurement_number > ParcRaidHead.count_)
     {
-        std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements" << std::endl;
+        std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements." << std::endl;
         std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
         std::cout << display_options << "\n";
         f.close();
@@ -561,7 +556,7 @@ int main(int argc, char *argv[] )
     //if it is a VB scan
     if (VBFILE && measurement_number != 1)
     {
-        std::cout << "The file you are trying to convert is a VB file and it has only one measurement: " << std::endl;
+        std::cout << "The file you are trying to convert is a VB file and it has only one measurement." << std::endl;
         std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
         std::cout << display_options << "\n";
         f.close();
@@ -606,6 +601,7 @@ int main(int argc, char *argv[] )
 
     if (VBFILE)
     {
+        std::cout << "VB line file detected." << std::endl;
         //In case of VB file, we are just going to fill these with zeros. It doesn't exist.
         for (unsigned int i = 0; i < 64; i++)
         {
@@ -626,6 +622,7 @@ int main(int argc, char *argv[] )
     }
     else
     {
+        std::cout << "VD line file detected." << std::endl;
         for (unsigned int i = 0; i < 64; i++)
         {
             f.read((char*)(&ParcFileEntries[i]), sizeof(MrParcRaidFileEntry));
@@ -1295,13 +1292,6 @@ int main(int argc, char *argv[] )
          size_t position_in_meas = f.tellg();
          sScanHeader_with_data scanhead;
          f.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
-
-         //std::cout << " mdh.ulScanCounter === " <<  mdh.ulScanCounter << std::endl;
-
-         if (VBFILE && mdh.ulScanCounter%1000 == 0 )
-         {
-             std::cout << " mdh.ulScanCounter = " <<  mdh.ulScanCounter << std::endl;
-         }
 
          if (VBFILE)
          {
