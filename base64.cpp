@@ -101,7 +101,7 @@ void splitBigString(std::ofstream &resFile, std::string bigString, int parts)
         at = (len + len*i)/parts;
         if (parts-i == 1)
         {
-            resFile << "\""<< bigString.substr(pre, at-pre) << "\");" << std::endl;
+            resFile << "\""<< bigString.substr(pre, at-pre) << "\";" << std::endl;
         }
         else
         {

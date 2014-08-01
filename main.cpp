@@ -45,13 +45,10 @@ using namespace H5;
 
 #include <typeinfo>
 
-extern std::string global_xml_VB_string;
-extern std::string global_xml_VD_string;
-extern std::string global_xsl_string_1;
-extern std::string global_xsl_string_2;
-extern std::string global_xsl_string_3;
-extern std::string global_xsl_string_4;
-extern std::string global_xsd_string;
+// defined in generated defaults.cpp
+extern void initializeEmbeddedFiles(void);
+extern std::map<std::string, std::string> global_embedded_files;
+
 
 struct MysteryData
 {
@@ -183,7 +180,7 @@ std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfil
     if (parameters)
     {
         TiXmlNode* p = 0;
-        while( p = parameters->IterateChildren( "p",  p ) )
+        while((p = parameters->IterateChildren( "p",  p )))
         {
             TiXmlHandle ph(p);
 
@@ -289,6 +286,19 @@ double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isA
     return 5.0;
 }
 
+std::string load_embedded(std::string name)
+{
+    std::string contents;
+    std::map<std::string, std::string>::iterator it = global_embedded_files.find(name);
+    if (it != global_embedded_files.end()) {
+        std::string encoded = it->second;
+        contents = base64_decode(encoded);
+    } else {
+        std::cerr << "ERROR: File " << name << " is not embedded!" << std::endl;
+        exit(1);
+    }
+    return contents;
+}
 
 int main(int argc, char *argv[] )
 {
@@ -297,6 +307,8 @@ int main(int argc, char *argv[] )
 
     std::string parammap_file;
     std::string parammap_xsl;
+    std::string usermap_file;
+    std::string usermap_xsl;
     std::string schema_file_name;
 
     std::string hdf5_file;
@@ -306,33 +318,25 @@ int main(int argc, char *argv[] )
     bool debug_xml = false;
     bool flash_pat_ref_scan = false;
 
-    bool see_xsl = false;
-
-    bool download_xml_VB = false;
-    bool download_xml_VD = false;
-    bool download_xsl_1 = false;
-    bool download_xsl_2 = false;
-    bool download_xsl_3 = false;
-    bool download_xsl_4 = false;
+    bool list = false;
+    std::string to_download;
 
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help,h",                  "Produce HELP message")
-        ("file,f",                  po::value<std::string>(&filename)->default_value("default"), "<SIEMENS dat file>")
+        ("file,f",                  po::value<std::string>(&filename), "<SIEMENS dat file>")
         ("measNum,z",               po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-        ("pMapFile,m",              po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map XML file>")
-        ("pMapStyle,x",             po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter stylesheet XSL file>")
+        ("pMap,m",                  po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map XML file>")
+        ("pMapStyle,x",             po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
+        ("user-map",                po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
+        ("user-stylesheet",         po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
         ("schemaFile,c",            po::value<std::string>(&schema_file_name)->default_value("default"), "<ISMRMRD schema XSD file>")
         ("output,o",                po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
         ("outputGroup,g",           po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
+        ("list,l",                  po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
+        ("download,d",              po::value<std::string>(&to_download), "<Download embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
-        ("getXML_VB,B",             po::value<bool>(&download_xml_VB)->implicit_value(true), "<Get default VB parameter map XML file>")
-        ("getXML_VD,D",             po::value<bool>(&download_xml_VD)->implicit_value(true), "<Get default VD parameter map XML file>")
-        ("getXSL_1,1",              po::value<bool>(&download_xsl_1)->implicit_value(true), "<Get default XSL file: IsmrmrdParameterMap_Siemens.xsl>")
-        ("getXSL_2,2",              po::value<bool>(&download_xsl_2)->implicit_value(true), "<Get IsmrmrdParameterMap.xsl file>")
-        ("getXSL_3,3",              po::value<bool>(&download_xsl_3)->implicit_value(true), "<Get IsmrmrdParameterMap_Siemens_EPI.xsl file>")
-        ("getXSL_4,4",              po::value<bool>(&download_xsl_4)->implicit_value(true), "<Get IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl file>")
         ;
 
     po::options_description display_options("Allowed options");
@@ -340,19 +344,17 @@ int main(int argc, char *argv[] )
         ("help,h",                  "Produce HELP message")
         ("file,f",                  "<SIEMENS dat file>")
         ("measNum,z",               "<Measurement number>")
-        ("pMapFile,m",              "<Parameter map XML file>")
-        ("pMapStyle,x",             "<Parameter stylesheet XSL file>")
+        ("pMap,m",                  "<Parameter map XML>")
+        ("pMapStyle,x",             "<Parameter stylesheet XSL>")
+        ("user-map",                "<Provide a parameter map XML file>")
+        ("user-stylesheet",         "<Provide a parameter stylesheet XSL file>")
         ("schemaFile,c",            "<ISMRMRD schema XSD file>")
         ("output,o",                "<HDF5 output file>")
         ("outputGroup,g",           "<HDF5 output group>")
+        ("list,l",                  "<List embedded files>")
+        ("download,d",              "<Download embedded file>")
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
-        ("getXML_VB,B",             "<Get default VB parameter map XML file>")
-        ("getXML_VD,D",             "<Get default VD parameter map XML file>")
-        ("getXSL_1,1",              "<Get default XSL file: IsmrmrdParameterMap_Siemens.xsl>")
-        ("getXSL_2,2",              "<Get IsmrmrdParameterMap.xsl file>")
-        ("getXSL_3,3",              "<Get IsmrmrdParameterMap_Siemens_EPI.xsl file>")
-        ("getXSL_4,4",              "<Get IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl file>")
         ;
 
     po::variables_map vm;
@@ -376,61 +378,25 @@ int main(int argc, char *argv[] )
         return -1;
     }
 
-    //Check if the user wants to download some xml or xsl files
-    if (download_xml_VB)
-    {
-        std::string parammap_file_content_VB;
-        parammap_file_content_VB = base64_decode(global_xml_VB_string);
-        std::ofstream o_VB("VB_parameter_map.xml");
-        o_VB.write(parammap_file_content_VB.c_str(), parammap_file_content_VB.size());
-        o_VB.close();
-        std::cout << "VB parameter map XML file downloaded" << std::endl;
+    // Add all embedded files to the global_embedded_files map
+    initializeEmbeddedFiles();
+
+    if (list) {
+        std::map<std::string, std::string>::iterator iter;
+        std::cout << "Embedded Files:" << std::endl;
+        for (iter = global_embedded_files.begin(); iter != global_embedded_files.end(); ++iter) {
+            std::cout << "    " << iter->first << std::endl;
+        }
+        return 0;
+    } else if (to_download.length() > 0) {
+        std::string contents = load_embedded(to_download);
+        std::ofstream outfile(to_download);
+        outfile.write(contents.c_str(), contents.size());
+        outfile.close();
+        std::cout << to_download << " successfully downloaded." << std::endl;
+        return 0;
     }
-    if (download_xml_VD)
-    {
-        std::string parammap_file_content_VD;
-        parammap_file_content_VD = base64_decode(global_xml_VD_string);
-        std::ofstream o_VD("VD_parameter_map.xml");
-        o_VD.write(parammap_file_content_VD.c_str(), parammap_file_content_VD.size());
-        o_VD.close();
-        std::cout << "VD parameter map XML file downloaded" << std::endl;
-    }
-    if (download_xsl_1)
-    {
-        std::string parammap_xsl_content;
-        parammap_xsl_content = base64_decode(global_xsl_string_1);
-        std::ofstream o("IsmrmrdParameterMap_Siemens.xsl");
-        o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
-        o.close();
-        std::cout << "IsmrmrdParameterMap_Siemens.xsl file downloaded" << std::endl;
-    }
-    if (download_xsl_2)
-    {
-        std::string parammap_xsl_content;
-        parammap_xsl_content = base64_decode(global_xsl_string_2);
-        std::ofstream o("IsmrmrdParameterMap.xsl");
-        o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
-        o.close();
-        std::cout << "IsmrmrdParameterMap.xsl file downloaded" << std::endl;
-    }
-    if (download_xsl_3)
-    {
-        std::string parammap_xsl_content;
-        parammap_xsl_content = base64_decode(global_xsl_string_3);
-        std::ofstream o("IsmrmrdParameterMap_Siemens_EPI.xsl");
-        o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
-        o.close();
-        std::cout << "IsmrmrdParameterMap_Siemens_EPI.xsl file downloaded" << std::endl;
-    }
-    if (download_xsl_4)
-    {
-        std::string parammap_xsl_content;
-        parammap_xsl_content = base64_decode(global_xsl_string_4);
-        std::ofstream o("IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl");
-        o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
-        o.close();
-        std::cout << "IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl file downloaded" << std::endl;
-    }
+
 
     if (measurement_number < 1)
     {
@@ -440,14 +406,11 @@ int main(int argc, char *argv[] )
     }
 
     //If Siemens file is not provided, terminate the execution
-    if (filename == "default")
+    if (filename.length() == 0)
     {
         std::cout << display_options << "\n";
         return -1;
-    }
-
-    if (filename != "default")
-    {
+    } else {
         std::ifstream file_1(filename.c_str());
         if (!file_1)
         {
@@ -463,35 +426,53 @@ int main(int argc, char *argv[] )
     }
 
     std::string parammap_xsl_content;
-    if (parammap_xsl == "default")
+    if (parammap_xsl.length() == 0)
     {
-        parammap_xsl_content = base64_decode(global_xsl_string_1);
-    }
-
-    else
-    {
-        std::ifstream file_3(parammap_xsl.c_str());
-        if (!file_3)
+        // If the user did not specify any stylesheet
+        if (usermap_xsl.length() == 0)
         {
-            std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
-            std::cout << display_options << "\n";
-            return -1;
+            parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
         }
+        // If the user specified only a user-supplied stylesheet
         else
         {
-            std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
+            std::ifstream f(usermap_xsl.c_str());
+            if (!f)
+            {
+                std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
+                std::cerr << display_options << "\n";
+                return -1;
+            }
+            else
+            {
+                std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
 
-            std::string str_file_3((std::istreambuf_iterator<char>(file_3)), std::istreambuf_iterator<char>());
-            parammap_xsl_content = str_file_3;
+                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                parammap_xsl_content = str_f;
+            }
+            f.close();
         }
-        file_3.close();
+    }
+    else
+    {
+        // If the user specified both an embedded and user-supplied stylesheet
+        if (usermap_xsl.length() > 0)
+        {
+            std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND and embedded stylesheet" << std::endl;
+            return -1;
+        }
+        // If the user specified an embedded stylesheet only
+        else
+        {
+            parammap_xsl_content = load_embedded(parammap_xsl);
+        }
     }
 
     std::string schema_file_name_content;
 
     if (schema_file_name == "default")
     {
-        schema_file_name_content = base64_decode(global_xsd_string);
+        schema_file_name_content = load_embedded("ismrmrd.xsd");
     }
 
     else
@@ -566,13 +547,13 @@ int main(int argc, char *argv[] )
     std::string parammap_file_content;
     if (parammap_file == "default" && VBFILE)
     {
-        parammap_file_content = base64_decode(global_xml_VB_string);
+        parammap_file_content = load_embedded("IsmrmrdParameterMap_Siemens_VB17.xml");
     }
 
     //if it is a VD scan
     else if (parammap_file == "default" && !VBFILE)
     {
-        parammap_file_content = base64_decode(global_xml_VD_string);
+        parammap_file_content = base64_decode("IsmrmrdParameterMap_Siemens.xml");
     }
 
     else

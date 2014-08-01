@@ -47,7 +47,7 @@ endif(WIN32)
 set(Boost_USE_STATIC_LIBS ON)
 # set(HDF5_USE_STATIC_LIBRARIES ON)
 
-find_package(Boost COMPONENTS thread system program_options REQUIRED)
+find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
 find_package(HDF5 1.8 REQUIRED C CXX)
 find_package(Ismrmrd REQUIRED)
 
@@ -75,7 +75,9 @@ INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
 add_executable(b64
     base64.h
     base64.cpp
-    b64-main.cpp)
+    embed.cpp)
+
+target_link_libraries(b64 ${Boost_LIBRARIES})
 
 add_custom_command(
     OUTPUT defaults.cpp
