@@ -52,7 +52,7 @@ extern std::string global_xsd_string;
 
 struct MysteryData
 {
-	char mysteryData[160];
+    char mysteryData[160];
 };
 
 
@@ -164,17 +164,17 @@ bool is_number(const std::string& s)
 
 std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfile)
 {
-	TiXmlDocument out_doc;
+    TiXmlDocument out_doc;
 
-	TiXmlDeclaration* decl = new TiXmlDeclaration( "1.0", "", "" );
-	out_doc.LinkEndChild( decl );
+    TiXmlDeclaration* decl = new TiXmlDeclaration( "1.0", "", "" );
+    out_doc.LinkEndChild( decl );
 
-	GadgetXMLNode out_n(&out_doc);
+    GadgetXMLNode out_n(&out_doc);
 
-	//Input document
-	TiXmlDocument doc;
-	doc.Parse(mapfile);
-	TiXmlHandle docHandle(&doc);
+    //Input document
+    TiXmlDocument doc;
+    doc.Parse(mapfile);
+    TiXmlHandle docHandle(&doc);
 
     TiXmlElement* parameters = docHandle.FirstChildElement("gadgetron").FirstChildElement("parameters").ToElement();
     if (parameters)
@@ -289,68 +289,76 @@ double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isA
 
 int main(int argc, char *argv[] )
 {
-	std::string filename;
-	unsigned int measurement_number;
+    std::string filename;
+    unsigned int measurement_number;
 
-	std::string parammap_file;
-	std::string parammap_xsl;
-	std::string schema_file_name;
+    std::string parammap_file;
+    std::string parammap_xsl;
+    std::string schema_file_name;
 
-	std::string hdf5_file;
-	std::string hdf5_group;
-	std::string date_time = get_date_time_string();
+    std::string hdf5_file;
+    std::string hdf5_group;
+    std::string date_time = get_date_time_string();
 
-	bool debug_xml = false;
-	bool flash_pat_ref_scan = false;
+    bool debug_xml = false;
+    bool flash_pat_ref_scan = false;
 
     bool download_xml = false;
     bool download_xsl = false;
 
-	po::options_description desc("Allowed options");
-	desc.add_options()
-	    ("help,h", 					"Produce HELP message")
-	    ("file,f",					po::value<std::string>(&filename), "<SIEMENS dat file>")
-	    ("measNum,z",				po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-	    ("pMapFile,m",				po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map XML file>")
-	    ("pMapStyle,x",				po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter stylesheet XSL file>")
-	    ("schemaFile,c",			po::value<std::string>(&schema_file_name)->default_value("default"), "<ISMRMRD schema XSD file>")
-	    ("getXML,M",				po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
-	    ("getXSL,S",				po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
-	    ("output,o",				po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
-	    ("outputGroup,g",			po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
-	    ("debug,X",					po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
-	    ("flashPatRef,F",			po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
-	;
+    std::string xslt_home;
 
-	po::options_description display_options("Allowed options");
-	display_options.add_options()
-	    ("help,h", 					"Produce HELP message")
-	    ("file,f",					"<SIEMENS dat file>")
-	    ("measNum,z",				"<Measurement number>")
-	    ("pMapFile,m",				"<Parameter map XML file>")
-	    ("pMapStyle,x",				"<Parameter stylesheet XSL file>")
-	    ("schemaFile,c",			"<ISMRMRD schema XSD file>")
-	    ("getXML,M",				"<Get parameter map XML file>")
-	    ("getXSL,S",				"<Get parameter stylesheet XSL file>")
-	    ("output,o",				"<HDF5 output file>")
-	    ("outputGroup,g",			"<HDF5 output group>")
-	    ("debug,X",					"<Debug XML flag>")
-	    ("flashPatRef,F",			"<FLASH PAT REF flag>")
-	;
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help,h",                  "Produce HELP message")
+        ("file,f",                  po::value<std::string>(&filename), "<SIEMENS dat file>")
+        ("measNum,z",               po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
+        ("pMapFile,m",              po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map XML file>")
+        ("pMapStyle,x",             po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter stylesheet XSL file>")
+        ("schemaFile,c",            po::value<std::string>(&schema_file_name)->default_value("default"), "<ISMRMRD schema XSD file>")
+        ("getXML,M",                po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
+        ("getXSL,S",                po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
+        ("output,o",                po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
+        ("outputGroup,g",           po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
+        ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
+        ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
+#ifdef WIN32
+        ("xslthome,H",              po::value<std::string>(&xslt_home)->default_value(std::string()), "<XSLT Home>")
+#endif // WIN32
+    ;
 
-	po::variables_map vm;
+    po::options_description display_options("Allowed options");
+    display_options.add_options()
+        ("help,h",                  "Produce HELP message")
+        ("file,f",                  "<SIEMENS dat file>")
+        ("measNum,z",               "<Measurement number>")
+        ("pMapFile,m",              "<Parameter map XML file>")
+        ("pMapStyle,x",             "<Parameter stylesheet XSL file>")
+        ("schemaFile,c",            "<ISMRMRD schema XSD file>")
+        ("getXML,M",                "<Get parameter map XML file>")
+        ("getXSL,S",                "<Get parameter stylesheet XSL file>")
+        ("output,o",                "<HDF5 output file>")
+        ("outputGroup,g",           "<HDF5 output group>")
+        ("debug,X",                 "<Debug XML flag>")
+        ("flashPatRef,F",           "<FLASH PAT REF flag>")
+#ifdef WIN32
+        ("xslthome,H",              "<XSLT Home>")
+#endif // WIN32
+    ;
 
-	try
-	{
-		po::store(po::parse_command_line(argc, argv, desc), vm);
-		po::notify(vm);
+    po::variables_map vm;
 
-		if (vm.count("help"))
-		{
-			std::cout << display_options << "\n";
-			return 1;
-		}
-	}
+    try
+    {
+        po::store(po::parse_command_line(argc, argv, desc), vm);
+        po::notify(vm);
+
+        if (vm.count("help"))
+        {
+            std::cout << display_options << "\n";
+            return 1;
+        }
+    }
 
     catch(po::error& e)
     {
@@ -359,91 +367,91 @@ int main(int argc, char *argv[] )
       return -1;
     }
 
-	std::ifstream file_1(filename.c_str());
+    std::ifstream file_1(filename.c_str());
     if (!file_1)
     {
-    	std::cout << "Siemens file is not provided or does not exist." << std::endl;
+        std::cout << "Siemens file is not provided or does not exist." << std::endl;
         std::cout << display_options << "\n";
         return -1;
     }
     else
     {
-    	std::cout << "Siemens file is: " << filename << std::endl;
+        std::cout << "Siemens file is: " << filename << std::endl;
     }
     file_1.close();
 
     std::string parammap_xsl_content;
-	if (parammap_xsl == "default")
-	{
-		parammap_xsl_content = base64_decode(global_xsl_string);
+    if (parammap_xsl == "default")
+    {
+        parammap_xsl_content = base64_decode(global_xsl_string);
 
-		if (download_xsl)
-		{
-	    	std::ofstream o("parameter_stylesheet.xsl");
-	    	o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
-	    	o.close();
-		}
-	}
+        if (download_xsl)
+        {
+            std::ofstream o("parameter_stylesheet.xsl");
+            o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
+            o.close();
+        }
+    }
 
-	else
-	{
-		std::ifstream file_3(parammap_xsl.c_str());
-		if (!file_3)
-		{
-			std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
-			std::cout << display_options << "\n";
-			return -1;
-		}
-		else
-		{
-			std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
+    else
+    {
+        std::ifstream file_3(parammap_xsl.c_str());
+        if (!file_3)
+        {
+            std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
+            std::cout << display_options << "\n";
+            return -1;
+        }
+        else
+        {
+            std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
 
-			std::string str_file_3((std::istreambuf_iterator<char>(file_3)), std::istreambuf_iterator<char>());
-			parammap_xsl_content = str_file_3;
-		}
-		file_3.close();
-	}
+            std::string str_file_3((std::istreambuf_iterator<char>(file_3)), std::istreambuf_iterator<char>());
+            parammap_xsl_content = str_file_3;
+        }
+        file_3.close();
+    }
 
-	std::string schema_file_name_content;
+    std::string schema_file_name_content;
 
-	if (schema_file_name == "default")
-	{
-		schema_file_name_content = base64_decode(global_xsd_string);
-	}
+    if (schema_file_name == "default")
+    {
+        schema_file_name_content = base64_decode(global_xsd_string);
+    }
 
-	else
-	{
-		std::ifstream file_4(schema_file_name.c_str());
-		if (!file_4)
-		{
-			std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
-			std::cout << display_options << "\n";
-			return -1;
-		}
-		else
-		{
-			std::cout << "Schema file name is: " << schema_file_name << std::endl;
-			std::string str_file_4((std::istreambuf_iterator<char>(file_4)), std::istreambuf_iterator<char>());
-			schema_file_name_content = str_file_4;
-		}
-		file_4.close();
-	}
+    else
+    {
+        std::ifstream file_4(schema_file_name.c_str());
+        if (!file_4)
+        {
+            std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
+            std::cout << display_options << "\n";
+            return -1;
+        }
+        else
+        {
+            std::cout << "Schema file name is: " << schema_file_name << std::endl;
+            std::string str_file_4((std::istreambuf_iterator<char>(file_4)), std::istreambuf_iterator<char>());
+            schema_file_name_content = str_file_4;
+        }
+        file_4.close();
+    }
 
     boost::shared_ptr<ISMRMRD::IsmrmrdDataset>  ismrmrd_dataset;
 
     ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
 
-	std::ifstream f(filename.c_str(), std::ios::binary);
+    std::ifstream f(filename.c_str(), std::ios::binary);
 
-	MrParcRaidFileHeader ParcRaidHead;
+    MrParcRaidFileHeader ParcRaidHead;
 
-	f.read((char*)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
+    f.read((char*)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
 
     bool VBFILE = false;
 
-	if (ParcRaidHead.hdSize_ > 32)
-	{
-	    VBFILE = true;
+    if (ParcRaidHead.hdSize_ > 32)
+    {
+        VBFILE = true;
 
         std::cout << "VB line file detected." << std::endl;
         std::cout << "We have no raid file header" << std::endl;
@@ -454,169 +462,169 @@ int main(int argc, char *argv[] )
 
         ParcRaidHead.hdSize_ = ParcRaidHead.count_;
         ParcRaidHead.count_ = 1;
-	}
+    }
 
-	else if (ParcRaidHead.hdSize_ != 0)
-	{
-		//This is a VB line data file
-		std::cout << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported." << std::endl;
-    	std::cout << display_options << "\n";
-    	f.close();
+    else if (ParcRaidHead.hdSize_ != 0)
+    {
+        //This is a VB line data file
+        std::cout << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported." << std::endl;
+        std::cout << display_options << "\n";
+        f.close();
         return -1;
-	}
+    }
 
-	if (!VBFILE && measurement_number > ParcRaidHead.count_)
-	{
-		std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements" << std::endl;
-		std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
-    	std::cout << display_options << "\n";
-    	f.close();
+    if (!VBFILE && measurement_number > ParcRaidHead.count_)
+    {
+        std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements" << std::endl;
+        std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
+        std::cout << display_options << "\n";
+        f.close();
         return -1;
 
-	}
+    }
 
     //if it is a VB scan
-	if (VBFILE && measurement_number != 1)
-	{
-		std::cout << "The file you are trying to convert is a VB file and it has only one measurement: " << std::endl;
-		std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
-    	std::cout << display_options << "\n";
-    	f.close();
+    if (VBFILE && measurement_number != 1)
+    {
+        std::cout << "The file you are trying to convert is a VB file and it has only one measurement: " << std::endl;
+        std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
+        std::cout << display_options << "\n";
+        f.close();
         return -1;
-	}
+    }
 
-	std::string parammap_file_content;
-	if (parammap_file == "default" && VBFILE)
-	{
-		parammap_file_content = base64_decode(global_xml_VB_string);
+    std::string parammap_file_content;
+    if (parammap_file == "default" && VBFILE)
+    {
+        parammap_file_content = base64_decode(global_xml_VB_string);
 
-	    if (download_xml)
-		{
-	    	std::ofstream o("VB_parameter_map.xml");
-	    	o.write(parammap_file_content.c_str(), parammap_file_content.size());
-	    	o.close();
-		}
-	}
+        if (download_xml)
+        {
+            std::ofstream o("VB_parameter_map.xml");
+            o.write(parammap_file_content.c_str(), parammap_file_content.size());
+            o.close();
+        }
+    }
 
-	//if it is a VD scan
-	else if (parammap_file == "default" && !VBFILE)
-	{
-		parammap_file_content = base64_decode(global_xml_VD_string);
+    //if it is a VD scan
+    else if (parammap_file == "default" && !VBFILE)
+    {
+        parammap_file_content = base64_decode(global_xml_VD_string);
 
-	    if (download_xml)
-		{
-	    	std::ofstream o("VD_parameter_map.xml");
-	    	o.write(parammap_file_content.c_str(), parammap_file_content.size());
-	    	o.close();
-		}
-	}
+        if (download_xml)
+        {
+            std::ofstream o("VD_parameter_map.xml");
+            o.write(parammap_file_content.c_str(), parammap_file_content.size());
+            o.close();
+        }
+    }
 
-	else
-	{
-		std::ifstream file_2(parammap_file.c_str());
-		if (!file_2)
-		{
-	    	std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
-	    	std::cout << display_options << "\n";
-	    	f.close();
-	        return -1;
-		}
-		else
-		{
-			std::cout << "Parameter map file is: " << parammap_file << std::endl;
+    else
+    {
+        std::ifstream file_2(parammap_file.c_str());
+        if (!file_2)
+        {
+            std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
+            std::cout << display_options << "\n";
+            f.close();
+            return -1;
+        }
+        else
+        {
+            std::cout << "Parameter map file is: " << parammap_file << std::endl;
 
-			std::string str_file_2((std::istreambuf_iterator<char>(file_2)), std::istreambuf_iterator<char>());
-			parammap_file_content = str_file_2;
-		}
-		file_2.close();
-	}
+            std::string str_file_2((std::istreambuf_iterator<char>(file_2)), std::istreambuf_iterator<char>());
+            parammap_file_content = str_file_2;
+        }
+        file_2.close();
+    }
 
-	std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
+    std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
 
-	std::vector<MrParcRaidFileEntry> ParcFileEntries(64);
+    std::vector<MrParcRaidFileEntry> ParcFileEntries(64);
 
     if (VBFILE)
     {
-    	//In case of VB file, we are just going to fill these with zeros. It doesn't exist.
-		for (unsigned int i = 0; i < 64; i++)
-		{
-			memset(&ParcFileEntries[i], 0, sizeof(MrParcRaidFileEntry));
-		}
+        //In case of VB file, we are just going to fill these with zeros. It doesn't exist.
+        for (unsigned int i = 0; i < 64; i++)
+        {
+            memset(&ParcFileEntries[i], 0, sizeof(MrParcRaidFileEntry));
+        }
 
         ParcFileEntries[0].off_ = 0;
         f.seekg(0,std::ios::end); //Rewind a bit, we have no raid file header.
         ParcFileEntries[0].len_ = f.tellg(); //This is the whole size of the dat file
         f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
 
-    	std::cout << "ParcFileEntries[0].off_ = " << ParcFileEntries[0].off_ << std::endl;
-    	std::cout << "ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
+        std::cout << "ParcFileEntries[0].off_ = " << ParcFileEntries[0].off_ << std::endl;
+        std::cout << "ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
         std::cout << "File id: " << ParcFileEntries[0].fileId_ << std::endl; // 0
         std::cout << "Meas id: " << ParcFileEntries[0].measId_ << std::endl; // 0
         std::cout << "Protocol name: " << ParcFileEntries[0].protName_ << std::endl; // blank
-    	std::cout << "Patient Name: " << ParcFileEntries[0].patName_ << std::endl; // blank
+        std::cout << "Patient Name: " << ParcFileEntries[0].patName_ << std::endl; // blank
     }
     else
     {
-    	for (unsigned int i = 0; i < 64; i++)
-    	{
-    		f.read((char*)(&ParcFileEntries[i]), sizeof(MrParcRaidFileEntry));
+        for (unsigned int i = 0; i < 64; i++)
+        {
+            f.read((char*)(&ParcFileEntries[i]), sizeof(MrParcRaidFileEntry));
 
             if (i < ParcRaidHead.count_)
             {
                 std::cout << "File id: " << ParcFileEntries[i].fileId_ << std::endl;
                 std::cout << "Meas id: " << ParcFileEntries[i].measId_ << std::endl;
                 std::cout << "Protocol name: " << ParcFileEntries[i].protName_ << std::endl;
-            	std::cout << "Offset: " << ParcFileEntries[i].off_ << std::endl;
-            	std::cout << "Length: " << ParcFileEntries[i].len_ << std::endl;
-            	std::cout << "Patient Name: " << ParcFileEntries[i].patName_ << std::endl;
+                std::cout << "Offset: " << ParcFileEntries[i].off_ << std::endl;
+                std::cout << "Length: " << ParcFileEntries[i].len_ << std::endl;
+                std::cout << "Patient Name: " << ParcFileEntries[i].patName_ << std::endl;
             }
-    	}
+        }
     }
 
     MysteryData mystery_data;
-	MeasurementHeader mhead;
+    MeasurementHeader mhead;
 
-	// find the beggining of the desired measurement
-	f.seekg(ParcFileEntries[measurement_number-1].off_, std::ios::beg);
+    // find the beggining of the desired measurement
+    f.seekg(ParcFileEntries[measurement_number-1].off_, std::ios::beg);
 
-	//MeasurementHeader mhead;
-	f.read((char*)(&mhead.dma_length), sizeof(uint32_t));
-	f.read((char*)(&mhead.nr_buffers),sizeof(uint32_t));
+    //MeasurementHeader mhead;
+    f.read((char*)(&mhead.dma_length), sizeof(uint32_t));
+    f.read((char*)(&mhead.nr_buffers),sizeof(uint32_t));
 
-	std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
+    std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
 
-	//Now allocate dynamic memory for the buffers
-	mhead.buffers.len = mhead.nr_buffers;
+    //Now allocate dynamic memory for the buffers
+    mhead.buffers.len = mhead.nr_buffers;
 
-	MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[mhead.nr_buffers];
-	mhead.buffers.p = (void*)(buffers);
+    MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[mhead.nr_buffers];
+    mhead.buffers.p = (void*)(buffers);
 
-	std::cout << "Number of parameter buffers: " << mhead.nr_buffers << std::endl;
+    std::cout << "Number of parameter buffers: " << mhead.nr_buffers << std::endl;
 
-	char bufname_tmp[32];
-	for (int b = 0; b < mhead.nr_buffers; b++)
-	{
-		f.getline(bufname_tmp, 32, '\0');
-		std::cout << "Buffer Name: " << bufname_tmp << std::endl;
-		buffers[b].bufName_.len = f.gcount() + 1;
-		bufname_tmp[f.gcount()] = '\0';
-		buffers[b].bufName_.p = (void*)(new char[buffers[b].bufName_.len]);
-		memcpy(buffers[b].bufName_.p, bufname_tmp, buffers[b].bufName_.len);
+    char bufname_tmp[32];
+    for (int b = 0; b < mhead.nr_buffers; b++)
+    {
+        f.getline(bufname_tmp, 32, '\0');
+        std::cout << "Buffer Name: " << bufname_tmp << std::endl;
+        buffers[b].bufName_.len = f.gcount() + 1;
+        bufname_tmp[f.gcount()] = '\0';
+        buffers[b].bufName_.p = (void*)(new char[buffers[b].bufName_.len]);
+        memcpy(buffers[b].bufName_.p, bufname_tmp, buffers[b].bufName_.len);
 
-		f.read((char*)(&buffers[b].bufLen_), sizeof(uint32_t));
-		buffers[b].buf_.len = buffers[b].bufLen_;
-		buffers[b].buf_.p = (void*)(new char[buffers[b].buf_.len]);
-		f.read((char*)(buffers[b].buf_.p), buffers[b].buf_.len);
-	}
+        f.read((char*)(&buffers[b].bufLen_), sizeof(uint32_t));
+        buffers[b].buf_.len = buffers[b].bufLen_;
+        buffers[b].buf_.p = (void*)(new char[buffers[b].buf_.len]);
+        f.read((char*)(buffers[b].buf_.p), buffers[b].buf_.len);
+    }
 
-	//We need to be on a 32 byte boundary after reading the buffers
-	long long int position_in_meas = (long long int)(f.tellg()) - ParcFileEntries[measurement_number-1].off_;
-	if (position_in_meas % 32)
-	{
-		f.seekg(32 - (position_in_meas % 32), std::ios::cur);
-	}
+    //We need to be on a 32 byte boundary after reading the buffers
+    long long int position_in_meas = (long long int)(f.tellg()) - ParcFileEntries[measurement_number-1].off_;
+    if (position_in_meas % 32)
+    {
+        f.seekg(32 - (position_in_meas % 32), std::ios::cur);
+    }
 
-	// Measurement header done!
+    // Measurement header done!
     //Now we should have the measurement headers, so let's use the Meas header to create the gadgetron XML parameters
 
     std::string xml_config;
@@ -654,7 +662,7 @@ int main(int argc, char *argv[] )
 
             if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0)
             {
-            	std::cout << "Failed to parse XProtocol" << std::endl;
+                std::cout << "Failed to parse XProtocol" << std::endl;
                 return -1;
             }
 
@@ -1058,8 +1066,8 @@ int main(int argc, char *argv[] )
 
     if (xml_doc == NULL)
     {
-    	std::cout << "Error when parsing xsl parameter stylesheet..." << std::endl;
-    	return -1;
+        std::cout << "Error when parsing xsl parameter stylesheet..." << std::endl;
+        return -1;
     }
 
     cur = xsltParseStylesheetDoc(xml_doc);
@@ -1102,14 +1110,21 @@ int main(int argc, char *argv[] )
     int xsltproc_res(0);
 
     std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
-    syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+    if ( xslt_home.empty() )
+    {
+        syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+    }
+    else
+    {
+        syscmd = xslt_home + std::string("/xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+    }
 
-    //if ( !gadgetron_home_from_env )
+    //if ( !xslt_home_from_env )
     //{
-    //    xml_post = gadgetron_home + std::string("/xml_post.xml");
-    //    xml_pre = gadgetron_home + std::string("/xml_pre.xml");
+    //    xml_post = xslt_home + std::string("/xml_post.xml");
+    //    xml_pre = xslt_home + std::string("/xml_pre.xml");
 
-    //    syscmd = gadgetron_home + std::string("/xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
+    //    syscmd = xslt_home + std::string("/xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
     //}
 
     std::ofstream o(xml_pre);
@@ -1127,7 +1142,7 @@ int main(int argc, char *argv[] )
         std::cerr << "Failed to call up xsltproc : \t" << syscmd << std::endl;
 
         // try again
-        //if ( !gadgetron_home_from_env )
+        //if ( !xslt_home_from_env )
         //{
         //    xml_post = std::string("/xml_post.xml");
         //    xml_pre = std::string("/xml_pre.xml");
@@ -1157,79 +1172,79 @@ int main(int argc, char *argv[] )
     memset(&acq_head_base, 0, sizeof(ISMRMRD::AcquisitionHeader) );
 
     {
-		ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
-		if (ismrmrd_dataset->writeHeader(xml_config) < 0 )
-		{
-			std::cerr << "Failed to write XML header to HDF file" << std::endl;
-			return -1;
-		}
+        ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
+        if (ismrmrd_dataset->writeHeader(xml_config) < 0 )
+        {
+            std::cerr << "Failed to write XML header to HDF file" << std::endl;
+            return -1;
+        }
 
-		// a test
-		if (ismrmrd_dataset->writeHeader(xml_config) < 0 )
-		{
-			std::cerr << "Failed to write XML header to HDF file" << std::endl;
-			return -1;
-		}
+        // a test
+        if (ismrmrd_dataset->writeHeader(xml_config) < 0 )
+        {
+            std::cerr << "Failed to write XML header to HDF file" << std::endl;
+            return -1;
+        }
     }
 
     //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
-	 ISMRMRD::NDArrayContainer<float> traj;
-	 if (trajectory == 4)
-	 {
-		 int     nfov   = 1;         /*  number of fov coefficients.             */
-		 int     ngmax  = (int)1e5;  /*  maximum number of gradient samples      */
-		 double  *xgrad;             /*  x-component of gradient.                */
-		 double  *ygrad;             /*  y-component of gradient.                */
-		 double  *x_trajectory;
-		 double  *y_trajectory;
-		 double  *weighting;
-		 int     ngrad;
+     ISMRMRD::NDArrayContainer<float> traj;
+     if (trajectory == 4)
+     {
+         int     nfov   = 1;         /*  number of fov coefficients.             */
+         int     ngmax  = (int)1e5;  /*  maximum number of gradient samples      */
+         double  *xgrad;             /*  x-component of gradient.                */
+         double  *ygrad;             /*  y-component of gradient.                */
+         double  *x_trajectory;
+         double  *y_trajectory;
+         double  *weighting;
+         int     ngrad;
 
-		 double sample_time = (1.0*dwell_time_0) * 1e-9;
-		 double smax = std::atof(wip_double[7].c_str());
-		 double gmax = std::atof(wip_double[6].c_str());
-		 double fov = std::atof(wip_double[9].c_str());
-		 double krmax = std::atof(wip_double[8].c_str());
-		 long interleaves = radial_views;
+         double sample_time = (1.0*dwell_time_0) * 1e-9;
+         double smax = std::atof(wip_double[7].c_str());
+         double gmax = std::atof(wip_double[6].c_str());
+         double fov = std::atof(wip_double[9].c_str());
+         double krmax = std::atof(wip_double[8].c_str());
+         long interleaves = radial_views;
 
-		 /*    call c-function here to calculate gradients */
-		 calc_vds(smax, gmax, sample_time, sample_time, interleaves, &fov, nfov, krmax, ngmax, &xgrad, &ygrad, &ngrad);
+         /*    call c-function here to calculate gradients */
+         calc_vds(smax, gmax, sample_time, sample_time, interleaves, &fov, nfov, krmax, ngmax, &xgrad, &ygrad, &ngrad);
 
-		 /*
-		 std::cout << "Calculated trajectory for spiral: " << std::endl
-		 << "sample_time: " << sample_time << std::endl
-		 << "smax: " << smax << std::endl
-		 << "gmax: " << gmax << std::endl
-		 << "fov: " << fov << std::endl
-		 << "krmax: " << krmax << std::endl
-		 << "interleaves: " << interleaves << std::endl
-		 << "ngrad: " << ngrad << std::endl;
-		 */
+         /*
+         std::cout << "Calculated trajectory for spiral: " << std::endl
+         << "sample_time: " << sample_time << std::endl
+         << "smax: " << smax << std::endl
+         << "gmax: " << gmax << std::endl
+         << "fov: " << fov << std::endl
+         << "krmax: " << krmax << std::endl
+         << "interleaves: " << interleaves << std::endl
+         << "ngrad: " << ngrad << std::endl;
+         */
 
-		 /* Calcualte the trajectory and weights*/
-		 calc_traj(xgrad, ygrad, ngrad, interleaves, sample_time, krmax, &x_trajectory, &y_trajectory, &weighting);
+         /* Calcualte the trajectory and weights*/
+         calc_traj(xgrad, ygrad, ngrad, interleaves, sample_time, krmax, &x_trajectory, &y_trajectory, &weighting);
 
-		 std::vector<unsigned int> trajectory_dimensions;
-		 trajectory_dimensions.push_back(ngrad);
-		 trajectory_dimensions.push_back(interleaves);
+         std::vector<unsigned int> trajectory_dimensions;
+         trajectory_dimensions.push_back(ngrad);
+         trajectory_dimensions.push_back(interleaves);
 
-		 traj = ISMRMRD::NDArrayContainer<float>(trajectory_dimensions);
+         traj = ISMRMRD::NDArrayContainer<float>(trajectory_dimensions);
 
-		 // 2 * number of points for each X and Y
-		 traj.resize(2 * ngrad * interleaves);
+         // 2 * number of points for each X and Y
+         traj.resize(2 * ngrad * interleaves);
 
-		 for (int i = 0; i < (ngrad*interleaves); i++)
-		 {
-			 traj[i * 2]     = (float)(-x_trajectory[i]/2);
-			 traj[i * 2 + 1] = (float)(-y_trajectory[i]/2);
-		 }
+         for (int i = 0; i < (ngrad*interleaves); i++)
+         {
+             traj[i * 2]     = (float)(-x_trajectory[i]/2);
+             traj[i * 2 + 1] = (float)(-y_trajectory[i]/2);
+         }
 
-		 delete [] xgrad;
-		 delete [] ygrad;
-		 delete [] x_trajectory;
-		 delete [] y_trajectory;
-		 delete [] weighting;
-	 }
+         delete [] xgrad;
+         delete [] ygrad;
+         delete [] x_trajectory;
+         delete [] y_trajectory;
+         delete [] weighting;
+     }
 
      uint32_t last_mask = 0;
      unsigned long int acquisitions = 1;
@@ -1240,7 +1255,7 @@ int main(int argc, char *argv[] )
      while (!(last_mask & 1) && //Last scan not encountered
              (((ParcFileEntries[measurement_number-1].off_+ ParcFileEntries[measurement_number-1].len_)-f.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
      {
-    	 size_t position_in_meas = f.tellg();
+         size_t position_in_meas = f.tellg();
          sScanHeader_with_data scanhead;
          f.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
 
@@ -1412,10 +1427,10 @@ int main(int argc, char *argv[] )
          quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
          quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
          quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
-         ISMRMRD::quaternion_to_directions(	quat,
-                                         	ismrmrd_acq_head.phase_dir,
-                                         	ismrmrd_acq_head.read_dir,
-                                         	ismrmrd_acq_head.slice_dir);
+         ISMRMRD::quaternion_to_directions( quat,
+                                            ismrmrd_acq_head.phase_dir,
+                                            ismrmrd_acq_head.read_dir,
+                                            ismrmrd_acq_head.slice_dir);
 
          ismrmrd_acq_head.patient_table_position[0]  = (float)scanhead.scanHeader.lPTABPosX;
          ismrmrd_acq_head.patient_table_position[1]  = (float)scanhead.scanHeader.lPTABPosY;
@@ -1497,25 +1512,25 @@ int main(int argc, char *argv[] )
              // e.g. EPI scans with FLASH PAT Reference
              // enabled by command line option
              // TODO: it is likely that the dwell time is not set properly for this type of acquisition
-        	 ismrmrd_acq->setEncodingSpaceRef(1);
+             ismrmrd_acq->setEncodingSpaceRef(1);
          }
 
          if (trajectory == 4)
          { //Spiral, we will add the trajectory to the data
-      	    std::valarray<float> traj_data = traj.data_;
- 	        std::vector<unsigned int> traj_dims = traj.dimensions_;
+            std::valarray<float> traj_data = traj.data_;
+            std::vector<unsigned int> traj_dims = traj.dimensions_;
 
- 			if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT))))
- 			{ //Only when this is not noise
- 				 unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();
- 				 if (traj_dims[0] < traj_samples_to_copy)
- 				 {
- 					 traj_samples_to_copy = (unsigned long)traj_dims[0];
- 					 ismrmrd_acq->setDiscardPost((uint16_t)(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy) );
- 				 }
- 				 ismrmrd_acq->setTrajectoryDimensions(2);
- 				 float* t_ptr = reinterpret_cast<float*>(&traj_data[0] + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj_dims[0]));
- 				 memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]), t_ptr, sizeof(float) * traj_samples_to_copy * ismrmrd_acq->getTrajectoryDimensions());
+            if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT))))
+            { //Only when this is not noise
+                 unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();
+                 if (traj_dims[0] < traj_samples_to_copy)
+                 {
+                     traj_samples_to_copy = (unsigned long)traj_dims[0];
+                     ismrmrd_acq->setDiscardPost((uint16_t)(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy) );
+                 }
+                 ismrmrd_acq->setTrajectoryDimensions(2);
+                 float* t_ptr = reinterpret_cast<float*>(&traj_data[0] + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj_dims[0]));
+                 memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]), t_ptr, sizeof(float) * traj_samples_to_copy * ismrmrd_acq->getTrajectoryDimensions());
              }
          }
 
@@ -1527,12 +1542,12 @@ int main(int argc, char *argv[] )
          }
 
          {
-        	ISMRMRD::HDF5Exclusive lock;
- 			if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0)
- 			{
- 				std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
- 				return -1;
- 			}
+            ISMRMRD::HDF5Exclusive lock;
+            if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0)
+            {
+                std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
+                return -1;
+            }
          }
 
          if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 ) {
