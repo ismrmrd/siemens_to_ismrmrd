@@ -45,10 +45,10 @@ using namespace H5;
 
 #include <typeinfo>
 
-extern std::string global_xml_VB_string;
-extern std::string global_xml_VD_string;
-extern std::string global_xsl_string;
-extern std::string global_xsd_string;
+// defined in generated defaults.cpp
+extern void initializeEmbeddedFiles(void);
+extern std::map<std::string, std::string> global_embedded_files;
+
 
 struct MysteryData
 {
@@ -180,7 +180,7 @@ std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfil
     if (parameters)
     {
         TiXmlNode* p = 0;
-        while( p = parameters->IterateChildren( "p",  p ) )
+        while((p = parameters->IterateChildren( "p",  p )))
         {
             TiXmlHandle ph(p);
 
@@ -286,6 +286,19 @@ double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isA
     return 5.0;
 }
 
+std::string load_embedded(std::string name)
+{
+    std::string contents;
+    std::map<std::string, std::string>::iterator it = global_embedded_files.find(name);
+    if (it != global_embedded_files.end()) {
+        std::string encoded = it->second;
+        contents = base64_decode(encoded);
+    } else {
+        std::cerr << "ERROR: File " << name << " is not embedded!" << std::endl;
+        exit(1);
+    }
+    return contents;
+}
 
 int main(int argc, char *argv[] )
 {
@@ -294,6 +307,10 @@ int main(int argc, char *argv[] )
 
     std::string parammap_file;
     std::string parammap_xsl;
+
+    std::string usermap_file;
+    std::string usermap_xsl;
+
     std::string schema_file_name;
 
     std::string hdf5_file;
@@ -303,8 +320,8 @@ int main(int argc, char *argv[] )
     bool debug_xml = false;
     bool flash_pat_ref_scan = false;
 
-    bool download_xml = false;
-    bool download_xsl = false;
+    bool list = false;
+    std::string to_download;
 
     std::string xslt_home;
 
@@ -313,38 +330,42 @@ int main(int argc, char *argv[] )
         ("help,h",                  "Produce HELP message")
         ("file,f",                  po::value<std::string>(&filename), "<SIEMENS dat file>")
         ("measNum,z",               po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-        ("pMapFile,m",              po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map XML file>")
-        ("pMapStyle,x",             po::value<std::string>(&parammap_xsl)->default_value("default"), "<Parameter stylesheet XSL file>")
+        ("pMap,m",                  po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map XML file>")
+        ("pMapStyle,x",             po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
+        ("user-map",                po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
+        ("user-stylesheet",         po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
         ("schemaFile,c",            po::value<std::string>(&schema_file_name)->default_value("default"), "<ISMRMRD schema XSD file>")
-        ("getXML,M",                po::value<bool>(&download_xml)->implicit_value(true), "<Get parameter map XML file>")
-        ("getXSL,S",                po::value<bool>(&download_xsl)->implicit_value(true), "<Get parameter stylesheet XSL file>")
         ("output,o",                po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
         ("outputGroup,g",           po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
+        ("list,l",                  po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
+        ("download,d",              po::value<std::string>(&to_download), "<Download embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
 #ifdef WIN32
         ("xslthome,H",              po::value<std::string>(&xslt_home)->default_value(std::string()), "<XSLT Home>")
 #endif // WIN32
-    ;
+        ;
 
     po::options_description display_options("Allowed options");
     display_options.add_options()
         ("help,h",                  "Produce HELP message")
         ("file,f",                  "<SIEMENS dat file>")
         ("measNum,z",               "<Measurement number>")
-        ("pMapFile,m",              "<Parameter map XML file>")
-        ("pMapStyle,x",             "<Parameter stylesheet XSL file>")
+        ("pMap,m",                  "<Parameter map XML>")
+        ("pMapStyle,x",             "<Parameter stylesheet XSL>")
+        ("user-map",                "<Provide a parameter map XML file>")
+        ("user-stylesheet",         "<Provide a parameter stylesheet XSL file>")
         ("schemaFile,c",            "<ISMRMRD schema XSD file>")
-        ("getXML,M",                "<Get parameter map XML file>")
-        ("getXSL,S",                "<Get parameter stylesheet XSL file>")
         ("output,o",                "<HDF5 output file>")
         ("outputGroup,g",           "<HDF5 output group>")
+        ("list,l",                  "<List embedded files>")
+        ("download,d",              "<Download embedded file>")
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
 #ifdef WIN32
         ("xslthome,H",              "<XSLT Home>")
-#endif // WIN32
-    ;
+#endif // WIN3
+        ;
 
     po::variables_map vm;
 
@@ -362,61 +383,105 @@ int main(int argc, char *argv[] )
 
     catch(po::error& e)
     {
-      std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
-      std::cerr << display_options << std::endl;
-      return -1;
+        std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
+        std::cerr << display_options << std::endl;
+        return -1;
     }
 
-    std::ifstream file_1(filename.c_str());
-    if (!file_1)
+    // Add all embedded files to the global_embedded_files map
+    initializeEmbeddedFiles();
+
+    if (list) {
+        std::map<std::string, std::string>::iterator iter;
+        std::cout << "Embedded Files:" << std::endl;
+        for (iter = global_embedded_files.begin(); iter != global_embedded_files.end(); ++iter) {
+            std::cout << "    " << iter->first << std::endl;
+        }
+        return 0;
+    } else if (to_download.length() > 0) {
+        std::string contents = load_embedded(to_download);
+        std::ofstream outfile(to_download);
+        outfile.write(contents.c_str(), contents.size());
+        outfile.close();
+        std::cout << to_download << " successfully downloaded." << std::endl;
+        return 0;
+    }
+
+    if (measurement_number < 1)
     {
-        std::cout << "Siemens file is not provided or does not exist." << std::endl;
+        std::cout << "The measurement number must be positive number higher than 0" << std::endl;
         std::cout << display_options << "\n";
         return -1;
     }
-    else
-    {
-        std::cout << "Siemens file is: " << filename << std::endl;
-    }
-    file_1.close();
 
-    std::string parammap_xsl_content;
-    if (parammap_xsl == "default")
+    //If Siemens file is not provided, terminate the execution
+    if (filename.length() == 0)
     {
-        parammap_xsl_content = base64_decode(global_xsl_string);
-
-        if (download_xsl)
+        std::cout << display_options << "\n";
+        return -1;
+    } else {
+        std::ifstream file_1(filename.c_str());
+        if (!file_1)
         {
-            std::ofstream o("parameter_stylesheet.xsl");
-            o.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
-            o.close();
-        }
-    }
-
-    else
-    {
-        std::ifstream file_3(parammap_xsl.c_str());
-        if (!file_3)
-        {
-            std::cout << "Parameter XSL stylesheet: " << parammap_xsl << " does not exist." << std::endl;
+            std::cout << "Provided Siemens file can not be open or does not exist." << std::endl;
             std::cout << display_options << "\n";
             return -1;
         }
         else
         {
-            std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
-
-            std::string str_file_3((std::istreambuf_iterator<char>(file_3)), std::istreambuf_iterator<char>());
-            parammap_xsl_content = str_file_3;
+            std::cout << "Siemens file is: " << filename << std::endl;
         }
-        file_3.close();
+        file_1.close();
+    }
+
+    std::string parammap_xsl_content;
+    if (parammap_xsl.length() == 0)
+    {
+        // If the user did not specify any stylesheet
+        if (usermap_xsl.length() == 0)
+        {
+            parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
+        }
+        // If the user specified only a user-supplied stylesheet
+        else
+        {
+            std::ifstream f(usermap_xsl.c_str());
+            if (!f)
+            {
+                std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
+                std::cerr << display_options << "\n";
+                return -1;
+            }
+            else
+            {
+                std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
+
+                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                parammap_xsl_content = str_f;
+            }
+            f.close();
+        }
+    }
+    else
+    {
+        // If the user specified both an embedded and user-supplied stylesheet
+        if (usermap_xsl.length() > 0)
+        {
+            std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND and embedded stylesheet" << std::endl;
+            return -1;
+        }
+        // If the user specified an embedded stylesheet only
+        else
+        {
+            parammap_xsl_content = load_embedded(parammap_xsl);
+        }
     }
 
     std::string schema_file_name_content;
 
     if (schema_file_name == "default")
     {
-        schema_file_name_content = base64_decode(global_xsd_string);
+        schema_file_name_content = load_embedded("ismrmrd.xsd");
     }
 
     else
@@ -453,10 +518,6 @@ int main(int argc, char *argv[] )
     {
         VBFILE = true;
 
-        std::cout << "VB line file detected." << std::endl;
-        std::cout << "We have no raid file header" << std::endl;
-        std::cout << "ParcRaidHead.count_ is: " << ParcRaidHead.count_ << std::endl;
-
         //Rewind, we have no raid file header.
         f.seekg(0, std::ios::beg);
 
@@ -475,18 +536,17 @@ int main(int argc, char *argv[] )
 
     if (!VBFILE && measurement_number > ParcRaidHead.count_)
     {
-        std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements" << std::endl;
+        std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements." << std::endl;
         std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
         std::cout << display_options << "\n";
         f.close();
         return -1;
-
     }
 
     //if it is a VB scan
     if (VBFILE && measurement_number != 1)
     {
-        std::cout << "The file you are trying to convert is a VB file and it has only one measurement: " << std::endl;
+        std::cout << "The file you are trying to convert is a VB file and it has only one measurement." << std::endl;
         std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
         std::cout << display_options << "\n";
         f.close();
@@ -496,27 +556,13 @@ int main(int argc, char *argv[] )
     std::string parammap_file_content;
     if (parammap_file == "default" && VBFILE)
     {
-        parammap_file_content = base64_decode(global_xml_VB_string);
-
-        if (download_xml)
-        {
-            std::ofstream o("VB_parameter_map.xml");
-            o.write(parammap_file_content.c_str(), parammap_file_content.size());
-            o.close();
-        }
+        parammap_file_content = load_embedded("IsmrmrdParameterMap_Siemens_VB17.xml");
     }
 
     //if it is a VD scan
     else if (parammap_file == "default" && !VBFILE)
     {
-        parammap_file_content = base64_decode(global_xml_VD_string);
-
-        if (download_xml)
-        {
-            std::ofstream o("VD_parameter_map.xml");
-            o.write(parammap_file_content.c_str(), parammap_file_content.size());
-            o.close();
-        }
+        parammap_file_content = base64_decode("IsmrmrdParameterMap_Siemens.xml");
     }
 
     else
@@ -545,6 +591,7 @@ int main(int argc, char *argv[] )
 
     if (VBFILE)
     {
+        std::cout << "VB line file detected." << std::endl;
         //In case of VB file, we are just going to fill these with zeros. It doesn't exist.
         for (unsigned int i = 0; i < 64; i++)
         {
@@ -556,27 +603,28 @@ int main(int argc, char *argv[] )
         ParcFileEntries[0].len_ = f.tellg(); //This is the whole size of the dat file
         f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
 
-        std::cout << "ParcFileEntries[0].off_ = " << ParcFileEntries[0].off_ << std::endl;
-        std::cout << "ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
-        std::cout << "File id: " << ParcFileEntries[0].fileId_ << std::endl; // 0
-        std::cout << "Meas id: " << ParcFileEntries[0].measId_ << std::endl; // 0
+        //std::cout << "ParcFileEntries[0].off_ = " << ParcFileEntries[0].off_ << std::endl;
+        //std::cout << "ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
+        //std::cout << "File id: " << ParcFileEntries[0].fileId_ << std::endl; // 0
+        //std::cout << "Meas id: " << ParcFileEntries[0].measId_ << std::endl; // 0
         std::cout << "Protocol name: " << ParcFileEntries[0].protName_ << std::endl; // blank
-        std::cout << "Patient Name: " << ParcFileEntries[0].patName_ << std::endl; // blank
+        //std::cout << "Patient Name: " << ParcFileEntries[0].patName_ << std::endl; // blank
     }
     else
     {
+        std::cout << "VD line file detected." << std::endl;
         for (unsigned int i = 0; i < 64; i++)
         {
             f.read((char*)(&ParcFileEntries[i]), sizeof(MrParcRaidFileEntry));
 
             if (i < ParcRaidHead.count_)
             {
-                std::cout << "File id: " << ParcFileEntries[i].fileId_ << std::endl;
-                std::cout << "Meas id: " << ParcFileEntries[i].measId_ << std::endl;
+                //std::cout << "File id: " << ParcFileEntries[i].fileId_ << std::endl;
+                //std::cout << "Meas id: " << ParcFileEntries[i].measId_ << std::endl;
                 std::cout << "Protocol name: " << ParcFileEntries[i].protName_ << std::endl;
-                std::cout << "Offset: " << ParcFileEntries[i].off_ << std::endl;
-                std::cout << "Length: " << ParcFileEntries[i].len_ << std::endl;
-                std::cout << "Patient Name: " << ParcFileEntries[i].patName_ << std::endl;
+                //std::cout << "Offset: " << ParcFileEntries[i].off_ << std::endl;
+                //std::cout << "Length: " << ParcFileEntries[i].len_ << std::endl;
+                //std::cout << "Patient Name: " << ParcFileEntries[i].patName_ << std::endl;
             }
         }
     }
@@ -591,7 +639,7 @@ int main(int argc, char *argv[] )
     f.read((char*)(&mhead.dma_length), sizeof(uint32_t));
     f.read((char*)(&mhead.nr_buffers),sizeof(uint32_t));
 
-    std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
+    //std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
 
     //Now allocate dynamic memory for the buffers
     mhead.buffers.len = mhead.nr_buffers;
@@ -1119,14 +1167,6 @@ int main(int argc, char *argv[] )
         syscmd = xslt_home + std::string("/xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
     }
 
-    //if ( !xslt_home_from_env )
-    //{
-    //    xml_post = xslt_home + std::string("/xml_post.xml");
-    //    xml_pre = xslt_home + std::string("/xml_pre.xml");
-
-    //    syscmd = xslt_home + std::string("/xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
-    //}
-
     std::ofstream o(xml_pre);
     o.write(xml_config.c_str(), xml_config.size());
     o.close();
@@ -1140,15 +1180,6 @@ int main(int argc, char *argv[] )
     if ( xsltproc_res != 0 )
     {
         std::cerr << "Failed to call up xsltproc : \t" << syscmd << std::endl;
-
-        // try again
-        //if ( !xslt_home_from_env )
-        //{
-        //    xml_post = std::string("/xml_post.xml");
-        //    xml_pre = std::string("/xml_pre.xml");
-
-        //    syscmd = std::string("xsltproc.exe --output ") + xml_post + std::string(" \"") + std::string(parammap_xsl) + std::string("\" ") + xml_pre;
-        //}
 
         std::ofstream o(xml_pre);
         o.write(xml_config.c_str(), xml_config.size());
@@ -1258,13 +1289,6 @@ int main(int argc, char *argv[] )
          size_t position_in_meas = f.tellg();
          sScanHeader_with_data scanhead;
          f.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
-
-         //std::cout << " mdh.ulScanCounter === " <<  mdh.ulScanCounter << std::endl;
-
-         if (VBFILE && mdh.ulScanCounter%1000 == 0 )
-         {
-             std::cout << " mdh.ulScanCounter = " <<  mdh.ulScanCounter << std::endl;
-         }
 
          if (VBFILE)
          {
@@ -1427,10 +1451,10 @@ int main(int argc, char *argv[] )
          quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
          quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
          quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
-         ISMRMRD::quaternion_to_directions( quat,
-                                            ismrmrd_acq_head.phase_dir,
-                                            ismrmrd_acq_head.read_dir,
-                                            ismrmrd_acq_head.slice_dir);
+         ISMRMRD::quaternion_to_directions(    quat,
+                                             ismrmrd_acq_head.phase_dir,
+                                             ismrmrd_acq_head.read_dir,
+                                             ismrmrd_acq_head.slice_dir);
 
          ismrmrd_acq_head.patient_table_position[0]  = (float)scanhead.scanHeader.lPTABPosX;
          ismrmrd_acq_head.patient_table_position[1]  = (float)scanhead.scanHeader.lPTABPosY;
@@ -1517,20 +1541,21 @@ int main(int argc, char *argv[] )
 
          if (trajectory == 4)
          { //Spiral, we will add the trajectory to the data
-            std::valarray<float> traj_data = traj.data_;
-            std::vector<unsigned int> traj_dims = traj.dimensions_;
 
-            if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT))))
-            { //Only when this is not noise
-                 unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();
-                 if (traj_dims[0] < traj_samples_to_copy)
-                 {
-                     traj_samples_to_copy = (unsigned long)traj_dims[0];
-                     ismrmrd_acq->setDiscardPost((uint16_t)(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy) );
-                 }
-                 ismrmrd_acq->setTrajectoryDimensions(2);
-                 float* t_ptr = reinterpret_cast<float*>(&traj_data[0] + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj_dims[0]));
-                 memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]), t_ptr, sizeof(float) * traj_samples_to_copy * ismrmrd_acq->getTrajectoryDimensions());
+             std::valarray<float> traj_data = traj.data_;
+             std::vector<unsigned int> traj_dims = traj.dimensions_;
+
+             if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT))))
+             { //Only when this is not noise
+                  unsigned long traj_samples_to_copy = ismrmrd_acq->getNumberOfSamples();
+                  if (traj_dims[0] < traj_samples_to_copy)
+                  {
+                      traj_samples_to_copy = (unsigned long)traj_dims[0];
+                      ismrmrd_acq->setDiscardPost((uint16_t)(ismrmrd_acq->getNumberOfSamples()-traj_samples_to_copy) );
+                  }
+                  ismrmrd_acq->setTrajectoryDimensions(2);
+                  float* t_ptr = reinterpret_cast<float*>(&traj_data[0] + (ismrmrd_acq->getIdx().kspace_encode_step_1 * traj_dims[0]));
+                  memcpy(const_cast<float*>(&ismrmrd_acq->getTraj()[0]), t_ptr, sizeof(float) * traj_samples_to_copy * ismrmrd_acq->getTrajectoryDimensions());
              }
          }
 
@@ -1543,11 +1568,11 @@ int main(int argc, char *argv[] )
 
          {
             ISMRMRD::HDF5Exclusive lock;
-            if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0)
-            {
-                std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
-                return -1;
-            }
+             if (ismrmrd_dataset->appendAcquisition(ismrmrd_acq) < 0)
+             {
+                 std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
+                 return -1;
+             }
          }
 
          if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 ) {
@@ -1565,10 +1590,7 @@ int main(int argc, char *argv[] )
      //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
      //We will store them in the HDF file in case we need them for creating a binary
      //identical dat file.
-     //TODO:
      unsigned int mystery_bytes = (ParcFileEntries[measurement_number-1].off_+ParcFileEntries[measurement_number-1].len_)-f.tellg();
-
-     std::cout << "MYSTERY BITES: " << mystery_bytes << std::endl;
 
      if (mystery_bytes > 0)
      {
