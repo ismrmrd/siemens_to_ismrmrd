@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<gadgetron>
+
+<parameters>
+<p><s>MEAS.sKSpace.lBaseResolution</s>					<d>gadgetron.encoding.kspace.base_resolution.value</d></p>
+<p><s>YAPS.iNoOfFourierColumns</s>							<d>gadgetron.encoding.kspace.readout_length.value</d></p>
+<p><s>MEAS.sKSpace.lPhaseEncodingLines</s>			<d>gadgetron.encoding.kspace.phase_encoding_lines.value</d></p>
+<p><s>MEAS.sKSpace.lPartitions</s>							<d>gadgetron.encoding.kspace.partitions.value</d></p>
+<p><s>MEAS.sKSpace.dPhaseResolution</s>					<d>gadgetron.encoding.kspace.phase_resolution.value</d></p>
+<p><s>MEAS.sKSpace.dSliceResolution</s>					<d>gadgetron.encoding.kspace.slice_resolution.value</d></p>
+<p><s>MEAS.sKSpace.ucTrajectory</s>	 						<d>gadgetron.encoding.trajectory.value</d></p>
+
+<p><s>MEAS.sSliceArray.lSize</s>							  <d>gadgetron.encoding.slices.value</d></p>
+<p><s>MEAS.sDiffusion.alBValue</s>							<d>gadgetron.diffusion.bvalue.value</d></p>
+<p><s>MEAS.sRXSPEC.alDwellTime</s>							<d>gadgetron.encoding.acquisition_dwell_time_ns.value</d></p>
+<p><s>MEAS.alTR</s>											        <d>gadgetron.timing.TR.value</d></p>
+<p><s>MEAS.alTE</s>											        <d>gadgetron.timing.TE.value</d></p>
+<p><s>YAPS.iMaxNoOfRxChannels</s>							  <d>gadgetron.encoding.channels.value</d></p>
+<p><s>MEAS.sKSpace.lBaseResolution</s>					<d>gadgetron.encoding.kspace.matrix_size.value</d></p>
+<p><s>MEAS.sKSpace.lBaseResolution</s>				  <d>gadgetron.encoding.kspace.matrix_size.value</d></p>
+<p><s>YAPS.iNoOfFourierPartitions</s>						<d>gadgetron.encoding.kspace.matrix_size.value</d></p>
+</parameters>
+
+</gadgetron>

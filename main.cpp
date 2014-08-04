@@ -398,7 +398,7 @@ int main(int argc, char *argv[] )
         if (to_download.length() > 0)
         {
             std::string contents = load_embedded(to_download);
-            std::ofstream outfile(to_download);
+            std::ofstream outfile(to_download.c_str());
             outfile.write(contents.c_str(), contents.size());
             outfile.close();
             std::cout << to_download << " successfully downloaded." << std::endl;
@@ -1226,7 +1226,7 @@ int main(int argc, char *argv[] )
     std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
     syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
 
-    std::ofstream o(xml_pre);
+    std::ofstream o(xml_pre.c_str());
     o.write(xml_config.c_str(), xml_config.size());
     o.close();
 
@@ -1240,7 +1240,7 @@ int main(int argc, char *argv[] )
     {
         std::cerr << "Failed to call up xsltproc : \t" << syscmd << std::endl;
 
-        std::ofstream o(xml_pre);
+        std::ofstream o(xml_pre.c_str());
         o.write(xml_config.c_str(), xml_config.size());
         o.close();
 
