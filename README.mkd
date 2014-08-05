@@ -1,0 +1,107 @@
+# siemens_to_ismrmrd convertor
+***
+The convertor is used to convert data from Siemens raw data format to ISMRMRD raw data format. 
+
+***
+## Dependancies:
+
+
+- HDF5 (version 1.8 or higher) libraries (http://www.hdfgroup.org/downloads/index.html)
+- Boost (http://www.boost.org/)
+- CodeSynthesis XSD (http://www.codesynthesis.com/products/xsd/)
+- TinyXML (http://sourceforge.net/projects/tinyxml/)
+- Libxslt (http://xmlsoft.org/libxslt/)
+- Libxml2 (http://xmlsoft.org/)
+- Xerces-C XML parser library (http://xerces.apache.org/xerces-c/)
+- Git (http://git-scm.com/)
+- Cmake build tool (http://www.cmake.org/)
+
+***
+## Linux instalation:
+
+***
+### Installing dependancies:
+
+
+The dependencies mentioned above should be included in most linux distributions. On Ubuntu you can install all required dependencies with:
+```sh
+sudo apt-get install g++ cmake git
+sudo apt-get install libboost-all-dev xsdcxx libxerces-c-dev libhdf5-serial-dev h5utils hdf5-tools libtinyxml-dev libxml2-dev libxslt1-dev
+```
+
+***
+### Installing ISMRMRD:
+
+#### Clone ISMRMRD
+```sh
+git clone git://git.code.sf.net/p/ismrmrd/code ismrmrd
+git checkout development
+```
+#### Install ISMRMRD
+```sh
+cd ismrmrd
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+```
+#### Set the ismrmrd environmental variable:
+```sh
+echo "export ISMRMRD_HOME=/usr/local/ismrmrd" >> $HOME/.bash_profile
+source $HOME/.bash_profile
+```
+***
+### Installing siemens_to_ismrmrd:
+
+```sh
+git clone https://github.com/nih-fmrif/siemens_to_ismrmrd
+cd siemens_to_ismrmrd
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+```
+***
+## Short manual:
+
+***
+siemens_to_ismrmrd convertor is used to convert data from the Siemens raw data format to ISMRMRD raw data format. 
+
+Running the executable with no command line parameters (or using -h for help) will result in listing all allowed options:
+
+```sh
+Allowed options:
+  -h [ --help ]         Produce HELP message
+  -f [ --file ]         <SIEMENS dat file>
+  -z [ --measNum ]      <Measurement number>
+  -m [ --pMap ]         <Parameter map XML>
+  -x [ --pMapStyle ]    <Parameter stylesheet XSL>
+  --user-map            <Provide a parameter map XML file>
+  --user-stylesheet     <Provide a parameter stylesheet XSL file>
+  -o [ --output ]       <HDF5 output file>
+  -g [ --outputGroup ]  <HDF5 output group>
+  -l [ --list ]         <List embedded files>
+  -e [ --extract ]      <Extract embedded file>
+  -X [ --debug ]        <Debug XML flag>
+  -F [ --flashPatRef ]  <FLASH PAT REF flag>
+```
+
+There are three different files that can be specified by the user in the process of conversion:
+ - Siemens dat file
+ - Parameter map XML file
+ - Parameter stylesheet XSL file
+
+The user should always provide the dat file. Providing XML and XSL files is optional:  
+
+1. The user can choose not to provide XML and XSL files, but to use the default files.  
+Default XML file for the VB scan is: **IsmrmrdParameterMap_Siemens_VB17.xml**.  
+Default XML file for the VD scan is: **IsmrmrdParameterMap_Siemens.xml**.  
+Default XSL file is: **IsmrmrdParameterMap_Siemens.xsl**.
+
+2. The user can choose to use one of the XML and XSL files that are embedded into binary (options **-m** and **-x**). The list of available files can be viewed using **-l** option.
+
+3. The user can choose to extract embedded file (option **-e**), to modify it and to supply modified file (options **--user-map** and **--user-stylesheet**)
+
+If conversion is successfull, resulting file is saved as output.h5. Different name can be specified using option **-o**
