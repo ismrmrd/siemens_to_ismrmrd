@@ -1,10 +1,9 @@
 # siemens_to_ismrmrd convertor
 ***
-The convertor is used to convert data from Siemens raw data format to ISMRMRD raw data format. 
+The siemens_to_ismrmrd convertor is used to convert data from Siemens raw data format into ISMRMRD raw data format. 
 
 ***
 ## Dependancies:
-
 
 - HDF5 (version 1.8 or higher) libraries (http://www.hdfgroup.org/downloads/index.html)
 - Boost (http://www.boost.org/)
@@ -19,9 +18,7 @@ The convertor is used to convert data from Siemens raw data format to ISMRMRD ra
 ***
 ## Linux instalation:
 
-***
 ### Installing dependancies:
-
 
 The dependencies mentioned above should be included in most linux distributions. On Ubuntu you can install all required dependencies with:
 ```sh
@@ -29,7 +26,6 @@ sudo apt-get install g++ cmake git
 sudo apt-get install libboost-all-dev xsdcxx libxerces-c-dev libhdf5-serial-dev h5utils hdf5-tools libtinyxml-dev libxml2-dev libxslt1-dev
 ```
 
-***
 ### Installing ISMRMRD:
 
 #### Clone ISMRMRD
@@ -46,12 +42,12 @@ cmake ..
 make
 sudo make install
 ```
-#### Set the ismrmrd environmental variable:
+#### Set the ISMRMRD environmental variable:
 ```sh
 echo "export ISMRMRD_HOME=/usr/local/ismrmrd" >> $HOME/.bash_profile
 source $HOME/.bash_profile
 ```
-***
+
 ### Installing siemens_to_ismrmrd:
 
 ```sh
@@ -66,7 +62,6 @@ sudo make install
 ***
 ## Short manual:
 
-***
 siemens_to_ismrmrd convertor is used to convert data from the Siemens raw data format to ISMRMRD raw data format. 
 
 Running the executable with no command line parameters (or using -h for help) will result in listing all allowed options:
@@ -88,20 +83,20 @@ Allowed options:
   -F [ --flashPatRef ]  <FLASH PAT REF flag>
 ```
 
-There are three different files that can be specified by the user in the process of conversion:
+There are three different files that should be specified by the user in the process of conversion:
  - Siemens dat file
  - Parameter map XML file
  - Parameter stylesheet XSL file
 
-The user should always provide the dat file. Providing XML and XSL files is optional:  
+The user should provide the dat file using **-f** option. There are three different ways of providing XML and XSL files:  
 
-1. The user can choose not to provide XML and XSL files, but to use the default files.  
+1. The user can choose not to provide XML and XSL files explicitly, but to use the default files that are embedded in convertor.  
 Default XML file for the VB scan is: **IsmrmrdParameterMap_Siemens_VB17.xml**.  
 Default XML file for the VD scan is: **IsmrmrdParameterMap_Siemens.xml**.  
 Default XSL file is: **IsmrmrdParameterMap_Siemens.xsl**.
 
-2. The user can choose to use one of the XML and XSL files that are embedded into binary (options **-m** and **-x**). The list of available files can be viewed using **-l** option.
+2. The user can choose to use XML and XSL files from the list of embedded files. The list of available files can be viewed using **-l** option. The files should be supplied using options **-m** and **-x**.
 
-3. The user can choose to extract embedded file (option **-e**), to modify it and to supply modified file (options **--user-map** and **--user-stylesheet**)
+3. The user can choose to extract embedded file from the convertor (option **-e**), to modify it and to supply modified file (options **--user-map** and **--user-stylesheet**)
 
 If conversion is successfull, resulting file is saved as output.h5. Different name can be specified using option **-o**
