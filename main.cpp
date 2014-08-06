@@ -384,7 +384,7 @@ int main(int argc, char *argv[] )
     if (list)
     {
         std::map<std::string, std::string>::iterator iter;
-        std::cout << "Embedded Files:" << std::endl;
+        std::cout << "Embedded Files: " << std::endl;
         for (iter = global_embedded_files.begin(); iter != global_embedded_files.end(); ++iter)
         {
             if (iter->first != "ismrmrd.xsd")
