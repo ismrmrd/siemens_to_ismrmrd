@@ -311,6 +311,8 @@ int main(int argc, char *argv[] )
     std::string usermap_xsl;
     std::string schema_file_name;
 
+    std::cout << "TEST" << std::endl;
+
     std::string hdf5_file;
     std::string hdf5_group;
     std::string date_time = get_date_time_string();
