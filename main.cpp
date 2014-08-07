@@ -290,10 +290,13 @@ std::string load_embedded(std::string name)
 {
     std::string contents;
     std::map<std::string, std::string>::iterator it = global_embedded_files.find(name);
-    if (it != global_embedded_files.end()) {
+    if (it != global_embedded_files.end())
+    {
         std::string encoded = it->second;
         contents = base64_decode(encoded);
-    } else {
+    }
+    else
+    {
         std::cerr << "ERROR: File " << name << " is not embedded!" << std::endl;
         exit(1);
     }
