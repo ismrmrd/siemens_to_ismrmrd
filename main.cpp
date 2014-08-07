@@ -401,7 +401,7 @@ int main(int argc, char *argv[] )
             std::ofstream outfile(to_extract.c_str());
             outfile.write(contents.c_str(), contents.size());
             outfile.close();
-            std::cout << to_extract << " successfully extracted." << std::endl;
+            std::cout << to_extract << " successfully extracted. " << std::endl;
             return 0;
         }
 
