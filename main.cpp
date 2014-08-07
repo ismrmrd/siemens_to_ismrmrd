@@ -301,7 +301,7 @@ std::string load_embedded(std::string name)
 }
 
 int main(int argc, char *argv[] )
-
+{
     std::string filename;
     unsigned int measurement_number;
 
