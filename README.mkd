@@ -73,9 +73,20 @@ $ sudo make install
 ***
 ## Short manual:
 
-siemens_to_ismrmrd convertor is used to convert data from the Siemens raw data format to the ISMRMRD raw data format. 
+siemens_to_ismrmrd convertor is used to convert data from the Siemens raw data format to the ISMRMRD raw data format.
 
-Running the convertor with no command line parameters (or using -h for help)
+### Using the convertor (basic case)
+
+To use the convertor in the quick and simple way, the user only have to provide the Siemens dat file (option **-f**). Converted file will, by default, be stored in the *output.h5* file.
+
+Example of converting *meas_MID00832.dat* file:
+
+```sh
+$ siemens_to_ismrmrd -f meas_MID00832.dat
+```
+### Using the convertor (advanced case)
+
+There are multiple options that can be set in order to run the convertor in the more specific way. Running the convertor with no command line parameters (or using -h for help)
 
 ```sh
 $ siemens_to_ismrmrd -h
@@ -102,7 +113,7 @@ Allowed options:
 ### Important files
 There are three different types of files that have important role in the process of conversion, and that the user should specify:
 
-- **Siemens dat file**
+- **Siemens dat file**:
     
     This is the file that is being converted. The user should supply it using the option **-f**. Siemens dat file can be a VB file of a VD file. In case of VD file that contains multiple measurements, the user can specify which measurement to convert by using the option **-z**. The default value for the option **z** is 1. 
     
@@ -120,7 +131,7 @@ There are three different types of files that have important role in the process
     $ siemens_to_ismrmrd -f meas_MID00832.dat -o resulting_file.h5 -X
     ```
 
-- **Parameter stylesheet XSL file**
+- **Parameter stylesheet XSL file**:
 
     This is a stylesheet file that defines parameters that are usefull for the ISMRMRD header. It is applied on the *xml_raw.xml* file. After the stylesheet is applied, resulting XML file (*processed.xml*) is used to create ISMRMRD header. File *processed.xml* can also be extracted if using the convertor in the debug mode.
     
