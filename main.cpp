@@ -290,10 +290,13 @@ std::string load_embedded(std::string name)
 {
     std::string contents;
     std::map<std::string, std::string>::iterator it = global_embedded_files.find(name);
-    if (it != global_embedded_files.end()) {
+    if (it != global_embedded_files.end())
+    {
         std::string encoded = it->second;
         contents = base64_decode(encoded);
-    } else {
+    }
+    else
+    {
         std::cerr << "ERROR: File " << name << " is not embedded!" << std::endl;
         exit(1);
     }
@@ -319,22 +322,22 @@ int main(int argc, char *argv[] )
     bool flash_pat_ref_scan = false;
 
     bool list = false;
-    std::string to_download;
+    std::string to_extract;
 
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help,h",                  "Produce HELP message")
         ("file,f",                  po::value<std::string>(&filename), "<SIEMENS dat file>")
         ("measNum,z",               po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-        ("pMap,m",                  po::value<std::string>(&parammap_file)->default_value("default"), "<Parameter map XML file>")
+        ("pMap,m",                  po::value<std::string>(&parammap_file), "<Parameter map XML file>")
         ("pMapStyle,x",             po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
         ("user-map",                po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
         ("user-stylesheet",         po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
-        ("schemaFile,c",            po::value<std::string>(&schema_file_name)->default_value("default"), "<ISMRMRD schema XSD file>")
+        //("schemaFile,c",            po::value<std::string>(&schema_file_name), "<ISMRMRD schema XSD file>")
         ("output,o",                po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
         ("outputGroup,g",           po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
         ("list,l",                  po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
-        ("download,d",              po::value<std::string>(&to_download), "<Download embedded file>")
+        ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
         ;
@@ -348,11 +351,11 @@ int main(int argc, char *argv[] )
         ("pMapStyle,x",             "<Parameter stylesheet XSL>")
         ("user-map",                "<Provide a parameter map XML file>")
         ("user-stylesheet",         "<Provide a parameter stylesheet XSL file>")
-        ("schemaFile,c",            "<ISMRMRD schema XSD file>")
+        //("schemaFile,c",            "<ISMRMRD schema XSD file>")
         ("output,o",                "<HDF5 output file>")
         ("outputGroup,g",           "<HDF5 output group>")
         ("list,l",                  "<List embedded files>")
-        ("download,d",              "<Download embedded file>")
+        ("extract,e",               "<Extract embedded file>")
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
         ;
@@ -381,22 +384,29 @@ int main(int argc, char *argv[] )
     // Add all embedded files to the global_embedded_files map
     initializeEmbeddedFiles();
 
-    if (list) {
+    if (list)
+    {
         std::map<std::string, std::string>::iterator iter;
-        std::cout << "Embedded Files:" << std::endl;
-        for (iter = global_embedded_files.begin(); iter != global_embedded_files.end(); ++iter) {
-            std::cout << "    " << iter->first << std::endl;
+        std::cout << "Embedded Files: " << std::endl;
+        for (iter = global_embedded_files.begin(); iter != global_embedded_files.end(); ++iter)
+        {
+            if (iter->first != "ismrmrd.xsd")
+            {
+                std::cout << "    " << iter->first << std::endl;
+            }
         }
         return 0;
-    } else if (to_download.length() > 0) {
-        std::string contents = load_embedded(to_download);
-        std::ofstream outfile(to_download);
-        outfile.write(contents.c_str(), contents.size());
-        outfile.close();
-        std::cout << to_download << " successfully downloaded." << std::endl;
-        return 0;
     }
-
+    else
+        if (to_extract.length() > 0)
+        {
+            std::string contents = load_embedded(to_extract);
+            std::ofstream outfile(to_extract.c_str());
+            outfile.write(contents.c_str(), contents.size());
+            outfile.close();
+            std::cout << to_extract << " successfully extracted. " << std::endl;
+            return 0;
+        }
 
     if (measurement_number < 1)
     {
@@ -410,7 +420,9 @@ int main(int argc, char *argv[] )
     {
         std::cout << display_options << "\n";
         return -1;
-    } else {
+    }
+    else
+    {
         std::ifstream file_1(filename.c_str());
         if (!file_1)
         {
@@ -432,6 +444,7 @@ int main(int argc, char *argv[] )
         if (usermap_xsl.length() == 0)
         {
             parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
+            std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens.xsl" << std::endl;
         }
         // If the user specified only a user-supplied stylesheet
         else
@@ -458,19 +471,21 @@ int main(int argc, char *argv[] )
         // If the user specified both an embedded and user-supplied stylesheet
         if (usermap_xsl.length() > 0)
         {
-            std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND and embedded stylesheet" << std::endl;
+            std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet" << std::endl;
             return -1;
         }
         // If the user specified an embedded stylesheet only
         else
         {
             parammap_xsl_content = load_embedded(parammap_xsl);
+            std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
         }
     }
 
-    std::string schema_file_name_content;
 
-    if (schema_file_name == "default")
+    std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
+/*
+    if (schema_file_name.length() == 0)
     {
         schema_file_name_content = load_embedded("ismrmrd.xsd");
     }
@@ -492,7 +507,7 @@ int main(int argc, char *argv[] )
         }
         file_4.close();
     }
-
+*/
     boost::shared_ptr<ISMRMRD::IsmrmrdDataset>  ismrmrd_dataset;
 
     ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
@@ -545,35 +560,99 @@ int main(int argc, char *argv[] )
     }
 
     std::string parammap_file_content;
-    if (parammap_file == "default" && VBFILE)
-    {
-        parammap_file_content = load_embedded("IsmrmrdParameterMap_Siemens_VB17.xml");
-    }
 
-    //if it is a VD scan
-    else if (parammap_file == "default" && !VBFILE)
+    if (VBFILE)
     {
-        parammap_file_content = base64_decode("IsmrmrdParameterMap_Siemens.xml");
-    }
-
-    else
-    {
-        std::ifstream file_2(parammap_file.c_str());
-        if (!file_2)
+        if (parammap_file.length() == 0)
         {
-            std::cout << "Parameter map file: " << parammap_file << " does not exist." << std::endl;
-            std::cout << display_options << "\n";
-            f.close();
-            return -1;
+            // If the user did not specify any parameter map file
+            if (usermap_file.length() == 0)
+            {
+                parammap_file_content = load_embedded("IsmrmrdParameterMap_Siemens_VB17.xml");
+                std::cout << "Parameter map file is: IsmrmrdParameterMap_Siemens_VB17.xml" << std::endl;
+            }
+            // If the user specified only a user-supplied parameter map file
+            else
+            {
+                std::ifstream f(usermap_file.c_str());
+                if (!f)
+                {
+                    std::cerr << "Parameter map file: " << usermap_file << " does not exist." << std::endl;
+                    std::cerr << display_options << "\n";
+                    return -1;
+                }
+                else
+                {
+                    std::cout << "Parameter map file is: " << usermap_file << std::endl;
+
+                    std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                    parammap_file_content = str_f;
+                }
+                f.close();
+            }
         }
         else
         {
-            std::cout << "Parameter map file is: " << parammap_file << std::endl;
-
-            std::string str_file_2((std::istreambuf_iterator<char>(file_2)), std::istreambuf_iterator<char>());
-            parammap_file_content = str_file_2;
+            // If the user specified both an embedded and user-supplied parameter map file
+            if (usermap_file.length() > 0)
+            {
+                std::cerr << "Cannot specify a user-supplied parameter map XML file AND embedded XML file" << std::endl;
+                return -1;
+            }
+            // If the user specified an embedded parameter map file only
+            else
+            {
+                parammap_file_content = load_embedded(parammap_file);
+                std::cout << "Parameter map file is: " << parammap_file << std::endl;
+            }
         }
-        file_2.close();
+    }
+
+    if (!VBFILE)
+    {
+        if (parammap_file.length() == 0)
+        {
+            // If the user did not specify any parameter map file
+            if (usermap_file.length() == 0)
+            {
+                parammap_file_content = load_embedded("IsmrmrdParameterMap_Siemens.xml");
+                std::cout << "Parameter map file is: IsmrmrdParameterMap_Siemens.xml" << std::endl;
+            }
+            // If the user specified only a user-supplied parameter map file
+            else
+            {
+                std::ifstream f(usermap_file.c_str());
+                if (!f)
+                {
+                    std::cerr << "Parameter map file: " << usermap_file << " does not exist." << std::endl;
+                    std::cerr << display_options << "\n";
+                    return -1;
+                }
+                else
+                {
+                    std::cout << "Parameter map file is: " << usermap_file << std::endl;
+
+                    std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                    parammap_file_content = str_f;
+                }
+                f.close();
+            }
+        }
+        else
+        {
+            // If the user specified both an embedded and user-supplied parameter map file
+            if (usermap_file.length() > 0)
+            {
+                std::cerr << "Cannot specify a user-supplied parameter map XML file AND embedded XML file" << std::endl;
+                return -1;
+            }
+            // If the user specified an embedded parameter map file only
+            else
+            {
+                parammap_file_content = load_embedded(parammap_file);
+                std::cout << "Parameter map file is: " << parammap_file << std::endl;
+            }
+        }
     }
 
     std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
@@ -1151,7 +1230,7 @@ int main(int argc, char *argv[] )
     std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
     syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
 
-    std::ofstream o(xml_pre);
+    std::ofstream o(xml_pre.c_str());
     o.write(xml_config.c_str(), xml_config.size());
     o.close();
 
@@ -1165,7 +1244,7 @@ int main(int argc, char *argv[] )
     {
         std::cerr << "Failed to call up xsltproc : \t" << syscmd << std::endl;
 
-        std::ofstream o(xml_pre);
+        std::ofstream o(xml_pre.c_str());
         o.write(xml_config.c_str(), xml_config.size());
         o.close();
 

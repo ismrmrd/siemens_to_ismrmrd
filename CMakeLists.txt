@@ -81,12 +81,16 @@ target_link_libraries(b64 ${Boost_LIBRARIES})
 
 add_custom_command(
     OUTPUT defaults.cpp
-    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
+    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/ismrmrd.xsd 
                 defaults.cpp
     VERBATIM
