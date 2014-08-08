@@ -1228,7 +1228,15 @@ int main(int argc, char *argv[] )
     int xsltproc_res(0);
 
     std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
-    syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+
+    if (parammap_xsl.length() == 0)
+    {
+        syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(usermap_xsl) + std::string("\" xml_pre.xml");
+    }
+    else
+    {
+        syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+    }
 
     std::ofstream o(xml_pre.c_str());
     o.write(xml_config.c_str(), xml_config.size());
