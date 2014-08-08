@@ -12,6 +12,7 @@ int main(int argc, char *argv[])
     std::ofstream output(outfile_name, std::ofstream::out);
     output << "#include <iostream>" << std::endl;
     output << "#include <map>" << std::endl << std::endl;
+    output << "#include <string>" << std::endl << std::endl;
 
     std::string map_name = "global_embedded_files";
     output << "std::map<std::string, std::string> "<< map_name << ";" << std::endl << std::endl;
