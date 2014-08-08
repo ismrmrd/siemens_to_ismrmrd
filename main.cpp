@@ -310,8 +310,10 @@ int main(int argc, char *argv[] )
 
     std::string parammap_file;
     std::string parammap_xsl;
+
     std::string usermap_file;
     std::string usermap_xsl;
+
     std::string schema_file_name;
 
     std::string hdf5_file;
@@ -323,6 +325,8 @@ int main(int argc, char *argv[] )
 
     bool list = false;
     std::string to_extract;
+
+    std::string xslt_home;
 
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -340,6 +344,9 @@ int main(int argc, char *argv[] )
         ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
+#ifdef WIN32
+        ("xslthome,H",              po::value<std::string>(&xslt_home)->default_value(std::string()), "<XSLT Home>")
+#endif // WIN32
         ;
 
     po::options_description display_options("Allowed options");
@@ -358,6 +365,9 @@ int main(int argc, char *argv[] )
         ("extract,e",               "<Extract embedded file>")
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
+#ifdef WIN32
+        ("xslthome,H",              "<XSLT Home>")
+#endif // WIN3
         ;
 
     po::variables_map vm;
@@ -1238,6 +1248,12 @@ int main(int argc, char *argv[] )
         syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
     }
 
+    if ( !xslt_home.empty() )
+    {
+        std::string syscmdWithXSLTPath = xslt_home + "/" + syscmd;
+        syscmd = syscmdWithXSLTPath;
+    }
+
     std::ofstream o(xml_pre.c_str());
     o.write(xml_config.c_str(), xml_config.size());
     o.close();
@@ -1612,7 +1628,8 @@ int main(int argc, char *argv[] )
 
          if (trajectory == 4)
          { //Spiral, we will add the trajectory to the data
-              std::valarray<float> traj_data = traj.data_;
+
+             std::valarray<float> traj_data = traj.data_;
              std::vector<unsigned int> traj_dims = traj.dimensions_;
 
              if (!(ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT))))
