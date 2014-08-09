@@ -558,16 +558,16 @@
                     </userParameterDouble>
                 </xsl:if>
 
-                <xsl:if test="not(contains(siemens/MEAS/sProtConsistencyInfo/tBaselineString, 'VB'))">
-                    <xsl:if test="siemens/MEAS/sAngio/sFlowArray/lSize">
-                        <userParameterLong>
-                            <name>VENC_0</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sAngio/sFlowArray/asElm/s0/nVelocity" />
-                            </value>
-                        </userParameterLong>
-                    </xsl:if>
+                <xsl:if test="siemens/MEAS/sAngio/sFlowArray/lSize">
+                    <userParameterLong>
+                        <name>VENC_0</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/sAngio/sFlowArray/asElm/s0/nVelocity" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
 
+                <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode = 1">
                     <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages">
                         <userParameterLong>
                             <name>RetroGatedImages</name>
@@ -575,33 +575,63 @@
                                 <xsl:value-of select="siemens/MEAS/sPhysioImaging/lRetroGatedImages" />
                             </value>
                         </userParameterLong>
-                    </xsl:if>
 
-                    <userParameterDouble>
-                        <name>MaxwellCoefficient_0</name>
-                        <value>
-                            <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[1]" />
-                        </value>
-                    </userParameterDouble>
-                    <userParameterDouble>
-                        <name>MaxwellCoefficient_1</name>
-                        <value>
-                            <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[2]" />
-                        </value>
-                    </userParameterDouble>
-                    <userParameterDouble>
-                        <name>MaxwellCoefficient_2</name>
-                        <value>
-                            <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[3]" />
-                        </value>
-                    </userParameterDouble>
-                    <userParameterDouble>
-                        <name>MaxwellCoefficient_3</name>
-                        <value>
-                            <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[4]" />
-                        </value>
-                    </userParameterDouble>
+                        <userParameterLong>
+                            <name>RetroGatedSegmentSize</name>
+                            <value>
+                                <xsl:choose>
+                                    <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize">
+                                        <xsl:value-of select="siemens/MEAS/sFastImaging/lSegmentSize"/>
+                                    </xsl:when>
+                                    <xsl:otherwise>0</xsl:otherwise>
+                                </xsl:choose>
+                            </value>
+                        </userParameterLong>
+                    </xsl:if>
                 </xsl:if>
+
+                <xsl:if test="siemens/MEAS/sPat/lRefLinesPE">
+                    <userParameterLong>
+                        <name>EmbeddedRefLinesE1</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/sPat/lRefLinesPE" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
+
+                <xsl:if test="siemens/MEAS/sPat/lRefLines3D">
+                    <userParameterLong>
+                        <name>EmbeddedRefLinesE2</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/sPat/lRefLines3D" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
+
+                <userParameterDouble>
+                    <name>MaxwellCoefficient_0</name>
+                    <value>
+                        <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[1]" />
+                    </value>
+                </userParameterDouble>
+                <userParameterDouble>
+                    <name>MaxwellCoefficient_1</name>
+                    <value>
+                        <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[2]" />
+                    </value>
+                </userParameterDouble>
+                <userParameterDouble>
+                    <name>MaxwellCoefficient_2</name>
+                    <value>
+                        <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[3]" />
+                    </value>
+                </userParameterDouble>
+                <userParameterDouble>
+                    <name>MaxwellCoefficient_3</name>
+                    <value>
+                        <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[4]" />
+                    </value>
+                </userParameterDouble>
             </userParameters>
 
         </ismrmrdHeader>
