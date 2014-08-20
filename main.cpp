@@ -1245,7 +1245,8 @@ int main(int argc, char *argv[] )
     }
     else
     {
-        syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+        std::string GTHOME = getenv("GADGETRON_HOME");
+        syscmd = std::string("xsltproc --output xml_post.xml \"") + GTHOME + "/schema/" + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
     }
 
     if ( !xslt_home.empty() )
