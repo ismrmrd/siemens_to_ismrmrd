@@ -73,6 +73,13 @@
                     </xsl:choose>
                 </patientGender>
             </subjectInformation>
+
+            <studyInformation>
+	        <studyInstanceUID>
+                    <xsl:value-of select="$studyID" />
+                </studyInstanceUID>
+
+            </studyInformation>
             -->
 
             <measurementInformation>
@@ -112,6 +119,10 @@
                         </measurementID>
                     </measurementDependency>
                 </xsl:if>
+
+                <frameOfReferenceUID>
+                    <xsl:value-of select="siemens/YAPS/tFrameOfReference" />
+                </frameOfReferenceUID>
 
             </measurementInformation>
 
@@ -456,50 +467,49 @@
                         <center>0</center>
                     </average>
                 </encodingLimits>
-            </encoding>
-
-            <parallelImaging>
-                <accelerationFactor>
+		<parallelImaging>
+		  <accelerationFactor>
                     <kspace_encoding_step_1>
-                        <xsl:choose>
-                            <xsl:when test="not(siemens/MEAS/sPat/lAccelFactPE)">1</xsl:when>
-                            <xsl:otherwise>
-                                <xsl:value-of select="(siemens/MEAS/sPat/lAccelFactPE)"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
+		      <xsl:choose>
+			<xsl:when test="not(siemens/MEAS/sPat/lAccelFactPE)">1</xsl:when>
+			<xsl:otherwise>
+			  <xsl:value-of select="(siemens/MEAS/sPat/lAccelFactPE)"/>
+			</xsl:otherwise>
+		      </xsl:choose>
                     </kspace_encoding_step_1>
                     <kspace_encoding_step_2>
-                        <xsl:choose>
-                            <xsl:when test="not(siemens/MEAS/sPat/lAccelFact3D)">1</xsl:when>
-                            <xsl:otherwise>
-                                <xsl:value-of select="(siemens/MEAS/sPat/lAccelFact3D)"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
+		      <xsl:choose>
+			<xsl:when test="not(siemens/MEAS/sPat/lAccelFact3D)">1</xsl:when>
+			<xsl:otherwise>
+			  <xsl:value-of select="(siemens/MEAS/sPat/lAccelFact3D)"/>
+			</xsl:otherwise>
+		      </xsl:choose>
                     </kspace_encoding_step_2>
-                </accelerationFactor>
-                <calibrationMode>
+		  </accelerationFactor>
+		  <calibrationMode>
                     <xsl:choose>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 1">other</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 2">embedded</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 4">separate</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 8">separate</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">interleaved</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">interleaved</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 64">interleaved</xsl:when>
-                        <xsl:otherwise>other</xsl:otherwise>
+		      <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 1">other</xsl:when>
+		      <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 2">embedded</xsl:when>
+		      <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 4">separate</xsl:when>
+		      <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 8">separate</xsl:when>
+		      <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">interleaved</xsl:when>
+		      <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">interleaved</xsl:when>
+		      <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 64">interleaved</xsl:when>
+		      <xsl:otherwise>other</xsl:otherwise>
                     </xsl:choose>
-                </calibrationMode>
-                <xsl:if test="(siemens/MEAS/sPat/ucRefScanMode = 1) or (siemens/MEAS/sPat/ucRefScanMode = 16) or (siemens/MEAS/sPat/ucRefScanMode = 32) or (siemens/MEAS/sPat/ucRefScanMode = 64)">
+		  </calibrationMode>
+		  <xsl:if test="(siemens/MEAS/sPat/ucRefScanMode = 1) or (siemens/MEAS/sPat/ucRefScanMode = 16) or (siemens/MEAS/sPat/ucRefScanMode = 32) or (siemens/MEAS/sPat/ucRefScanMode = 64)">
                     <interleavingDimension>
-                        <xsl:choose>
-                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">average</xsl:when>
-                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">repetition</xsl:when>
-                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 64">phase</xsl:when>
-                            <xsl:otherwise>other</xsl:otherwise>
-                        </xsl:choose>
+		      <xsl:choose>
+			<xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">average</xsl:when>
+			<xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">repetition</xsl:when>
+			<xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 64">phase</xsl:when>
+			<xsl:otherwise>other</xsl:otherwise>
+		      </xsl:choose>
                     </interleavingDimension>
-                </xsl:if>
-            </parallelImaging>
+		  </xsl:if>
+		</parallelImaging>
+            </encoding>
 
             <sequenceParameters>
                 <xsl:for-each select="siemens/MEAS/alTR">
@@ -525,30 +535,10 @@
                         </TI>
                     </xsl:if>
                 </xsl:for-each>
+		<flipAngle_deg>
+		  <xsl:value-of select="siemens/DICOM/adFlipAngleDegree" />
+		</flipAngle_deg>
             </sequenceParameters>
-
-            <dicomParameters>
-                <studyInstanceUID>
-                    <xsl:value-of select="$studyID" />
-                </studyInstanceUID>
-                <frameOfReferenceUID>
-                    <xsl:value-of select="siemens/YAPS/tFrameOfReference" />
-                </frameOfReferenceUID>
-                <MRImageModule>
-                    <imageType>
-                        <xsl:value-of select="siemens/DICOM/Modality" />
-                    </imageType>
-                    <scanningSequence>
-                        <xsl:value-of select="siemens/DICOM/tScanningSequence" />
-                    </scanningSequence>
-                    <mrAcquisitionType>
-                        <xsl:value-of select="siemens/DICOM/tMRAcquisitionType" />
-                    </mrAcquisitionType>
-                    <flipAngle_deg>
-                        <xsl:value-of select="siemens/DICOM/adFlipAngleDegree" />
-                    </flipAngle_deg>
-                </MRImageModule>
-            </dicomParameters>
 
             <userParameters>
                 <xsl:if test="contains(siemens/MEAS/sProtConsistencyInfo/tBaselineString, 'VB') = 'true'">
