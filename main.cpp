@@ -453,6 +453,7 @@ int main(int argc, char *argv[] )
         // If the user did not specify any stylesheet
         if (usermap_xsl.length() == 0)
         {
+            parammap_xsl = "IsmrmrdParameterMap_Siemens.xsl";
             parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
             std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens.xsl" << std::endl;
         }
@@ -1239,13 +1240,32 @@ int main(int argc, char *argv[] )
 
     std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
 
-    if (parammap_xsl.length() == 0)
+    if ( usermap_xsl.length() > 0)
     {
         syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(usermap_xsl) + std::string("\" xml_pre.xml");
     }
     else
     {
-        syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+        std::string GT_HOME = getenv("GADGETRON_HOME");
+        if ( GT_HOME.empty() )
+        {
+            std::fstream f(parammap_xsl, std::ios::out | std::ios::binary);
+
+            if( !f.is_open() )
+            {
+                std::cout << "ERROR: Cannot write xsl file " << parammap_xsl << std::endl;
+                return -1;
+            }
+
+            f.write(parammap_xsl_content.c_str(), sizeof(char)*parammap_xsl_content.length());
+            f.close();
+
+            syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+        }
+        else
+        {
+            syscmd = std::string("xsltproc --output xml_post.xml \"") + GT_HOME + "/schema/" + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+        }
     }
 
     if ( !xslt_home.empty() )
