@@ -541,13 +541,6 @@
             </sequenceParameters>
 
             <userParameters>
-                <xsl:if test="contains(siemens/MEAS/sProtConsistencyInfo/tBaselineString, 'VB') = 'true'">
-                    <userParameterDouble>
-                        <name>NoiseBandWidth</name>
-                        <value>130.0</value>
-                    </userParameterDouble>
-                </xsl:if>
-
                 <xsl:if test="siemens/MEAS/sAngio/sFlowArray/lSize">
                     <userParameterLong>
                         <name>VENC_0</name>
