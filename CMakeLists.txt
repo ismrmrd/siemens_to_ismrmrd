@@ -136,9 +136,7 @@ add_executable(siemens_to_ismrmrd
                )
 
 IF (WIN32)
-    target_link_libraries(siemens_to_ismrmrd optimized ${HDF5_hdf5_LIBRARY_RELEASE} ${HDF5_hdf5_cpp_LIBRARY_RELEASE})
-    target_link_libraries(siemens_to_ismrmrd debug ${HDF5_hdf5_LIBRARY_DEBUG} ${HDF5_hdf5_cpp_LIBRARY_DEBUG})
-
+    target_link_libraries(siemens_to_ismrmrd ${HDF5_LIBRARIES})
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 ELSE(WIN32)
     target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
