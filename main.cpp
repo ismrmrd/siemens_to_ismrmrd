@@ -13,6 +13,12 @@
 #include <libxslt/xsltutils.h>
 #endif //WIN32
 
+#ifdef WIN32
+    #include <windows.h>
+    #include <Shlwapi.h>
+    #pragma comment(lib, "shlwapi.lib")
+#endif // WIN32
+
 #include "siemensraw.h"
 #include "base64.h"
 
@@ -337,16 +343,12 @@ int main(int argc, char *argv[] )
         ("pMapStyle,x",             po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
         ("user-map",                po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
         ("user-stylesheet",         po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
-        //("schemaFile,c",            po::value<std::string>(&schema_file_name), "<ISMRMRD schema XSD file>")
         ("output,o",                po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
         ("outputGroup,g",           po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
         ("list,l",                  po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
         ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
-#ifdef WIN32
-        ("xslthome,H",              po::value<std::string>(&xslt_home)->default_value(std::string()), "<XSLT Home>")
-#endif // WIN32
         ;
 
     po::options_description display_options("Allowed options");
@@ -358,16 +360,12 @@ int main(int argc, char *argv[] )
         ("pMapStyle,x",             "<Parameter stylesheet XSL>")
         ("user-map",                "<Provide a parameter map XML file>")
         ("user-stylesheet",         "<Provide a parameter stylesheet XSL file>")
-        //("schemaFile,c",            "<ISMRMRD schema XSD file>")
         ("output,o",                "<HDF5 output file>")
         ("outputGroup,g",           "<HDF5 output group>")
         ("list,l",                  "<List embedded files>")
         ("extract,e",               "<Extract embedded file>")
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
-#ifdef WIN32
-        ("xslthome,H",              "<XSLT Home>")
-#endif // WIN3
         ;
 
     po::variables_map vm;
@@ -492,32 +490,8 @@ int main(int argc, char *argv[] )
         }
     }
 
-
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
-/*
-    if (schema_file_name.length() == 0)
-    {
-        schema_file_name_content = load_embedded("ismrmrd.xsd");
-    }
 
-    else
-    {
-        std::ifstream file_4(schema_file_name.c_str());
-        if (!file_4)
-        {
-            std::cout << "Schema file name: " << schema_file_name << " does not exist." << std::endl;
-            std::cout << display_options << "\n";
-            return -1;
-        }
-        else
-        {
-            std::cout << "Schema file name is: " << schema_file_name << std::endl;
-            std::string str_file_4((std::istreambuf_iterator<char>(file_4)), std::istreambuf_iterator<char>());
-            schema_file_name_content = str_file_4;
-        }
-        file_4.close();
-    }
-*/
     boost::shared_ptr<ISMRMRD::IsmrmrdDataset>  ismrmrd_dataset;
 
     ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
@@ -683,12 +657,7 @@ int main(int argc, char *argv[] )
         ParcFileEntries[0].len_ = f.tellg(); //This is the whole size of the dat file
         f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
 
-        //std::cout << "ParcFileEntries[0].off_ = " << ParcFileEntries[0].off_ << std::endl;
-        //std::cout << "ParcFileEntries[0].len_ = " << ParcFileEntries[0].len_ << std::endl;
-        //std::cout << "File id: " << ParcFileEntries[0].fileId_ << std::endl; // 0
-        //std::cout << "Meas id: " << ParcFileEntries[0].measId_ << std::endl; // 0
         std::cout << "Protocol name: " << ParcFileEntries[0].protName_ << std::endl; // blank
-        //std::cout << "Patient Name: " << ParcFileEntries[0].patName_ << std::endl; // blank
     }
     else
     {
@@ -699,12 +668,7 @@ int main(int argc, char *argv[] )
 
             if (i < ParcRaidHead.count_)
             {
-                //std::cout << "File id: " << ParcFileEntries[i].fileId_ << std::endl;
-                //std::cout << "Meas id: " << ParcFileEntries[i].measId_ << std::endl;
                 std::cout << "Protocol name: " << ParcFileEntries[i].protName_ << std::endl;
-                //std::cout << "Offset: " << ParcFileEntries[i].off_ << std::endl;
-                //std::cout << "Length: " << ParcFileEntries[i].len_ << std::endl;
-                //std::cout << "Patient Name: " << ParcFileEntries[i].patName_ << std::endl;
             }
         }
     }
@@ -1233,27 +1197,40 @@ int main(int argc, char *argv[] )
 
     xsltCleanupGlobals();
     xmlCleanupParser();
+
 #else
     std::string syscmd;
     int xsltproc_res(0);
 
     std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
-
-    if (parammap_xsl.length() == 0)
+	
+	// Full path to the executable (including the executable file)
+	char fullPath[MAX_PATH];
+	
+	// Full path to the executable (without executable file)
+	char *rightPath;
+    
+	// Will contain exe path
+    HMODULE hModule = GetModuleHandle(NULL);
+    if (hModule != NULL)
     {
-        syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(usermap_xsl) + std::string("\" xml_pre.xml");
+	    // When passing NULL to GetModuleHandle, it returns handle of exe itself
+	    GetModuleFileName(hModule, fullPath, (sizeof(fullPath))); 
+
+		rightPath = fullPath;
+		
+		PathRemoveFileSpec(rightPath);
     }
     else
     {
-        std::string GTHOME = getenv("GADGETRON_HOME");
-        syscmd = std::string("xsltproc --output xml_post.xml \"") + GTHOME + "/schema/" + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
+        std::cout << "The path to the executable is NULL" << std::endl;
     }
-
-    if ( !xslt_home.empty() )
-    {
-        std::string syscmdWithXSLTPath = xslt_home + "/" + syscmd;
-        syscmd = syscmdWithXSLTPath;
-    }
+	
+	std::ofstream xslf("xsl_file");
+    xslf.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
+    xslf.close();
+	
+    syscmd = std::string(rightPath) + std::string("\\") + std::string("xsltproc --output xml_post.xml \"") + std::string("xsl_file") + std::string("\" xml_pre.xml");
 
     std::ofstream o(xml_pre.c_str());
     o.write(xml_config.c_str(), xml_config.size());
@@ -1262,8 +1239,7 @@ int main(int argc, char *argv[] )
     xsltproc_res = system(syscmd.c_str());
 
     std::ifstream t(xml_post.c_str());
-    xml_config = std::string((std::istreambuf_iterator<char>(t)),
-        std::istreambuf_iterator<char>());
+    xml_config = std::string((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
 
     if ( xsltproc_res != 0 )
     {
