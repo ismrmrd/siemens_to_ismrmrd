@@ -131,9 +131,6 @@ add_executable(siemens_to_ismrmrd
                )
 
 IF (WIN32)
-    target_link_libraries(siemens_to_ismrmrd optimized)
-    target_link_libraries(siemens_to_ismrmrd debug)
-
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 ELSE(WIN32)
     target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
