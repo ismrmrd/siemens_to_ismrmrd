@@ -334,14 +334,8 @@ int main(int argc, char *argv[] )
         ("pMapStyle,x",             po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
         ("user-map",                po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
         ("user-stylesheet",         po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
-<<<<<<< HEAD
-        //("schemaFile,c",            po::value<std::string>(&schema_file_name), "<ISMRMRD schema XSD file>")
-        ("output,o",                po::value<std::string>(&ismrmrd_file)->default_value("output.h5"), "<HDF5 output file>")
-        ("outputGroup,g",           po::value<std::string>(&ismrmrd_group)->default_value("dataset"), "<HDF5 output group>")
-=======
         ("output,o",                po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
         ("outputGroup,g",           po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
->>>>>>> origin/development
         ("list,l",                  po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
         ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
@@ -448,7 +442,6 @@ int main(int argc, char *argv[] )
         // If the user did not specify any stylesheet
         if (usermap_xsl.length() == 0)
         {
-            parammap_xsl = "IsmrmrdParameterMap_Siemens.xsl";
             parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
             std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens.xsl" << std::endl;
         }
@@ -1199,21 +1192,16 @@ int main(int argc, char *argv[] )
     int xsltproc_res(0);
 
     std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
-<<<<<<< HEAD
 
-    if ( usermap_xsl.length() > 0)
-=======
+    // Full path to the executable (including the executable file)
+    char fullPath[MAX_PATH];
 	
-	// Full path to the executable (including the executable file)
-	char fullPath[MAX_PATH];
-	
-	// Full path to the executable (without executable file)
-	char *rightPath;
+    // Full path to the executable (without executable file)
+    char *rightPath;
     
-	// Will contain exe path
+    // Will contain exe path
     HMODULE hModule = GetModuleHandle(NULL);
     if (hModule != NULL)
->>>>>>> origin/development
     {
 	    // When passing NULL to GetModuleHandle, it returns handle of exe itself
 	    GetModuleFileName(hModule, fullPath, (sizeof(fullPath))); 
@@ -1224,39 +1212,10 @@ int main(int argc, char *argv[] )
     }
     else
     {
-<<<<<<< HEAD
-        std::string GT_HOME = getenv("GADGETRON_HOME");
-        if ( GT_HOME.empty() )
-        {
-            std::fstream f(parammap_xsl, std::ios::out | std::ios::binary);
-
-            if( !f.is_open() )
-            {
-                std::cout << "ERROR: Cannot write xsl file " << parammap_xsl << std::endl;
-                return -1;
-            }
-
-            f.write(parammap_xsl_content.c_str(), sizeof(char)*parammap_xsl_content.length());
-            f.close();
-
-            syscmd = std::string("xsltproc --output xml_post.xml \"") + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
-        }
-        else
-        {
-            syscmd = std::string("xsltproc --output xml_post.xml \"") + GT_HOME + "/schema/" + std::string(parammap_xsl) + std::string("\" xml_pre.xml");
-        }
-    }
-
-    if ( !xslt_home.empty() )
-    {
-        std::string syscmdWithXSLTPath = xslt_home + "/" + syscmd;
-        syscmd = syscmdWithXSLTPath;
-=======
         std::cout << "The path to the executable is NULL" << std::endl;
->>>>>>> origin/development
     }
 	
-	std::ofstream xslf("xsl_file");
+    std::ofstream xslf("xsl_file");
     xslf.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
     xslf.close();
 	
@@ -1590,26 +1549,26 @@ int main(int argc, char *argv[] )
          ismrmrd_acq->setHead(ismrmrd_acq_head);
 
          uint64_t aulEvalInfoMask;
-         memcpy(&aulEvalInfoMask, scanhead.scanHeader.aulEvalInfoMask, sizeof(uint64_t));
+         memcpy(&aulEvalInfoMask, , sizeof(uint64_t));
 
-         if ((aulEvalInfoMask & (1ULL << 25)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
-         if ((aulEvalInfoMask & (1ULL << 28)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
-         if ((aulEvalInfoMask & (1ULL << 29)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
-         if ((aulEvalInfoMask & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
-         if ((aulEvalInfoMask & (1ULL << 22)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
-         if ((aulEvalInfoMask & (1ULL << 23)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
-         if ((aulEvalInfoMask & (1ULL << 24)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_REVERSE));
-         if ((aulEvalInfoMask & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
-         if ((aulEvalInfoMask & (1ULL << 21)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PHASECORR_DATA));
-         if ((aulEvalInfoMask & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NAVIGATION_DATA));
-         if ((aulEvalInfoMask & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
-         if ((aulEvalInfoMask & (1ULL << 2)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
-         if ((aulEvalInfoMask & (1ULL << 51)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
-         if ((aulEvalInfoMask & (1ULL << 10)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA));
-         if ((aulEvalInfoMask & (1ULL << 5)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NOISE_MEASUREMENT));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 28)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_FIRST_IN_SLICE));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 29)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_SLICE));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 22)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 23)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 24)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_REVERSE));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 21)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PHASECORR_DATA));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_NAVIGATION_DATA));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_RTFEEDBACK_DATA));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 2)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_HPFEEDBACK_DATA));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 51)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 10)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 5)))    ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_DUMMYSCAN_DATA));
          // if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
 
-         if ((aulEvalInfoMask & (1ULL << 46)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
+         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 46)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
 
          if ((flash_pat_ref_scan) & (ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION))))
          {
