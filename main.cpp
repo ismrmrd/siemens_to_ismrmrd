@@ -19,22 +19,13 @@
 #include "GadgetXml.h"
 #include "XNode.h"
 
-#include "siemens_hdf5_datatypes.h"
-
 #include "ismrmrd.h"
-#include "ismrmrd_hdf5.h"
+#include "ismrmrd_dataset.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
-#include <H5Cpp.h>
 #include <iomanip>
-
-#define EXCLUDE_ISMRMRD_XSD
-
-#ifndef H5_NO_NAMESPACE
-using namespace H5;
-#endif
 
 #include <iostream>
 #include <string>
@@ -316,8 +307,8 @@ int main(int argc, char *argv[] )
 
     std::string schema_file_name;
 
-    std::string hdf5_file;
-    std::string hdf5_group;
+    std::string ismrmrd_file;
+    std::string ismrmrd_group;
     std::string date_time = get_date_time_string();
 
     bool debug_xml = false;
@@ -338,8 +329,8 @@ int main(int argc, char *argv[] )
         ("user-map",                po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
         ("user-stylesheet",         po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
         //("schemaFile,c",            po::value<std::string>(&schema_file_name), "<ISMRMRD schema XSD file>")
-        ("output,o",                po::value<std::string>(&hdf5_file)->default_value("output.h5"), "<HDF5 output file>")
-        ("outputGroup,g",           po::value<std::string>(&hdf5_group)->default_value("dataset"), "<HDF5 output group>")
+        ("output,o",                po::value<std::string>(&ismrmrd_file)->default_value("output.h5"), "<HDF5 output file>")
+        ("outputGroup,g",           po::value<std::string>(&ismrmrd_group)->default_value("dataset"), "<HDF5 output group>")
         ("list,l",                  po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
         ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
@@ -519,9 +510,8 @@ int main(int argc, char *argv[] )
         file_4.close();
     }
 */
-    boost::shared_ptr<ISMRMRD::IsmrmrdDataset>  ismrmrd_dataset;
-
-    ismrmrd_dataset = boost::shared_ptr<ISMRMRD::IsmrmrdDataset>(new ISMRMRD::IsmrmrdDataset(hdf5_file.c_str(), hdf5_group.c_str()));
+    // Create an ISMRMRD dataset
+    ISMRMRD::Dataset ismrmrd_dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
 
     std::ifstream f(filename.c_str(), std::ios::binary);
 
@@ -1172,7 +1162,6 @@ int main(int argc, char *argv[] )
 
     //Get rid of dynamically allocated memory in header
     {
-        ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
         ClearMeasurementHeader(&mhead);
     }
 
@@ -1307,26 +1296,14 @@ int main(int argc, char *argv[] )
 #endif //WIN32
 
     ISMRMRD::AcquisitionHeader acq_head_base;
-    memset(&acq_head_base, 0, sizeof(ISMRMRD::AcquisitionHeader) );
-
+    if (ismrmrd_dataset.writeHeader(xml_config) != ISMRMRD_NOERROR )
     {
-        ISMRMRD::HDF5Exclusive lock; //This will ensure threadsafe access to HDF5
-        if (ismrmrd_dataset->writeHeader(xml_config) < 0 )
-        {
-            std::cerr << "Failed to write XML header to HDF file" << std::endl;
-            return -1;
-        }
-
-        // a test
-        if (ismrmrd_dataset->writeHeader(xml_config) < 0 )
-        {
-            std::cerr << "Failed to write XML header to HDF file" << std::endl;
-            return -1;
-        }
+        std::cerr << "Failed to write XML header to HDF file" << std::endl;
+        return -1;
     }
 
     //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
-     ISMRMRD::NDArrayContainer<float> traj;
+     ISMRMRD::NDArray traj;
      if (trajectory == 4)
      {
          int     nfov   = 1;         /*  number of fov coefficients.             */
@@ -1362,19 +1339,20 @@ int main(int argc, char *argv[] )
          /* Calcualte the trajectory and weights*/
          calc_traj(xgrad, ygrad, ngrad, interleaves, sample_time, krmax, &x_trajectory, &y_trajectory, &weighting);
 
-         std::vector<unsigned int> trajectory_dimensions;
+         // 2 * number of points for each X and Y
+         std::vector<uint16_t> trajectory_dimensions;
+         trjaectory_dimensions.push_back(2);
          trajectory_dimensions.push_back(ngrad);
          trajectory_dimensions.push_back(interleaves);
 
-         traj = ISMRMRD::NDArrayContainer<float>(trajectory_dimensions);
-
-         // 2 * number of points for each X and Y
-         traj.resize(2 * ngrad * interleaves);
+         if ( traj.setProperties(ISMRMRD_FLOAT, trajectory_dimensions) != ISMRMRD_NOERROR) {
+             // TODO Throw exception
+         }
 
          for (int i = 0; i < (ngrad*interleaves); i++)
          {
-             traj[i * 2]     = (float)(-x_trajectory[i]/2);
-             traj[i * 2 + 1] = (float)(-y_trajectory[i]/2);
+             reinterpret_cast<float>(traj.data())[i * 2] = (float)(-x_trajectory[i]/2);
+             reinterpret_cast<float>(traj.data())[i * 2 + 1] = (float)(-y_trajectory[i]/2);
          }
 
          delete [] xgrad;
@@ -1512,16 +1490,12 @@ int main(int argc, char *argv[] )
          if (scanhead.scanHeader.aulEvalInfoMask[0] & 1)
          {
              std::cout << "Last scan reached..." << std::endl;
-             ISMRMRD::HDF5Exclusive lock;
              ClearsScanHeader_with_data(&scanhead);
              break;
          }
 
          ISMRMRD::Acquisition* ismrmrd_acq = new ISMRMRD::Acquisition;
-
          ISMRMRD::AcquisitionHeader ismrmrd_acq_head;
-
-         memset(&ismrmrd_acq_head,0,sizeof(ismrmrd_acq_head));
 
          ismrmrd_acq_head.measurement_uid                 = scanhead.scanHeader.lMeasUID;
          ismrmrd_acq_head.scan_counter                    = scanhead.scanHeader.ulScanCounter;
@@ -1638,9 +1612,6 @@ int main(int argc, char *argv[] )
          // if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_REPETITION));
 
          if ((aulEvalInfoMask & (1ULL << 46)))   ismrmrd_acq->setFlag(ISMRMRD::FlagBit(ISMRMRD::ACQ_LAST_IN_MEASUREMENT));
-
-         //This memory will be deleted by the ISMRMRD::Acquisition object
-         //ismrmrd_acq->data_ = new float[ismrmrd_acq->head_.number_of_samples*ismrmrd_acq->head_.active_channels*2];
 
          if ((flash_pat_ref_scan) & (ismrmrd_acq->isFlagSet(ISMRMRD::FlagBit(ISMRMRD::ACQ_IS_PARALLEL_CALIBRATION))))
          {

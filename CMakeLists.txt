@@ -45,10 +45,8 @@ endif(WIN32)
 
 # Added for static linking!!!
 set(Boost_USE_STATIC_LIBS ON)
-# set(HDF5_USE_STATIC_LIBRARIES ON)
 
 find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
-find_package(HDF5 1.8 REQUIRED C CXX)
 find_package(Ismrmrd REQUIRED)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
@@ -67,10 +65,7 @@ if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
 endif(WIN32)
 
-INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
-                     ${ISMRMRD_SCHEMA_DIR} 
-                     ${HDF5_CXX_INCLUDE_DIR}
-                     ${HDF5_C_INCLUDE_DIR} )
+INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR} )
 
 add_executable(b64
     base64.h
@@ -124,7 +119,6 @@ add_executable(siemens_to_ismrmrd
                XNodeParser.cpp 
                vds.cpp
                defaults.cpp
-               siemens_hdf5_datatypes.h 
                siemensraw.h
                base64.h
                base64.cpp
@@ -136,12 +130,12 @@ add_executable(siemens_to_ismrmrd
                )
 
 IF (WIN32)
-    target_link_libraries(siemens_to_ismrmrd optimized ${HDF5_hdf5_LIBRARY_RELEASE} ${HDF5_hdf5_cpp_LIBRARY_RELEASE})
-    target_link_libraries(siemens_to_ismrmrd debug ${HDF5_hdf5_LIBRARY_DEBUG} ${HDF5_hdf5_cpp_LIBRARY_DEBUG})
+    target_link_libraries(siemens_to_ismrmrd optimized)
+    target_link_libraries(siemens_to_ismrmrd debug)
 
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 ELSE(WIN32)
-    target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
+    target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
 ENDIF(WIN32)
 
 target_link_libraries(siemens_to_ismrmrd
