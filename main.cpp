@@ -16,8 +16,8 @@
 #include "siemensraw.h"
 #include "base64.h"
 
-#include "GadgetXml.h"
 #include "XNode.h"
+#include "tinyxml.h"
 
 #include "ismrmrd.h"
 #include "ismrmrd_dataset.h"
