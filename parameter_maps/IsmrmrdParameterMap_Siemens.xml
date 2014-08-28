@@ -1,5 +1,5 @@
 <?xml version="1.0" ?>
-<gadgetron>
+<siemens>
     <parameters>
         <p><s>MEAS.sKSpace.lBaseResolution</s>                      <d>siemens.MEAS.sKSpace.lBaseResolution</d></p>
         <p><s>MEAS.sKSpace.lPhaseEncodingLines</s>                  <d>siemens.MEAS.sKSpace.lPhaseEncodingLines</d></p>
@@ -103,4 +103,4 @@
         <!-- user defined parameter -->
         <p><s>MEAS.sProtConsistencyInfo.tBaselineString</s> <d>siemens.MEAS.sProtConsistencyInfo.tBaselineString</d></p>
     </parameters>
-</gadgetron>
+</siemens>

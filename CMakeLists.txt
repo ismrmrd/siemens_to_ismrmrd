@@ -19,7 +19,7 @@ if (WIN32)
     SET (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     SET (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
 
-    ADD_DEFINITIONS(-D__BUILD_GADGETRON_TINYXML__)
+    ADD_DEFINITIONS(-D__BUILD_CONVERTER_TINYXML__)
 
 endif (WIN32)
 
@@ -88,9 +88,9 @@ add_custom_command(
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
+#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
+#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
+#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 defaults.cpp
     VERBATIM
@@ -101,9 +101,9 @@ add_custom_command(
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
+#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
+#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
+#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 )
 
