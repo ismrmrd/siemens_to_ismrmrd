@@ -19,7 +19,7 @@ if (WIN32)
     SET (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     SET (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
 
-    ADD_DEFINITIONS(-D__BUILD_GADGETRON_TINYXML__)
+    ADD_DEFINITIONS(-D__BUILD_CONVERTER_TINYXML__)
 
 endif (WIN32)
 
@@ -83,9 +83,6 @@ add_custom_command(
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 defaults.cpp
     VERBATIM
@@ -96,21 +93,8 @@ add_custom_command(
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 )
-
-
-#set(schema_files parameter_maps/IsmrmrdParameterMap.xsl
-#               parameter_maps/IsmrmrdParameterMap_Siemens.xml
-#               parameter_maps/IsmrmrdParameterMap_Siemens.xsl
-#               parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
-#               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
-#               parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-#               parameter_maps/ismrmrd.xsd
-#               )
 
 add_executable(siemens_to_ismrmrd 
                main.cpp 
@@ -141,4 +125,4 @@ target_link_libraries(siemens_to_ismrmrd
                         ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
-#install(FILES ${schema_files} DESTINATION schema)
+

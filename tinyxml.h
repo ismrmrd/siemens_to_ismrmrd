@@ -37,7 +37,16 @@ distribution.
 #pragma warning( disable : 4786 )
 #endif
 
-#include "gadgetron_tinyxml_export.h"
+/* Windows import/export */
+#if defined (WIN32)
+#ifdef __BUILD_CONVERTER_TINYXML__
+#define EXPORTTINYXML __declspec(dllexport)
+#else
+#define EXPORTTINYXML __declspec(dllimport)
+#endif
+#else
+#define EXPORTTINYXML
+#endif
 
 #include <ctype.h>
 #include <stdio.h>

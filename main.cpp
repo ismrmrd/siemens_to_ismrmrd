@@ -23,7 +23,7 @@
 #include "base64.h"
 
 #include "XNode.h"
-#include "tinyxml.h"
+#include "ConverterXML.h"
 
 #include "ismrmrd.h"
 #include "ismrmrd_dataset.h"
@@ -166,14 +166,14 @@ std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfil
     TiXmlDeclaration* decl = new TiXmlDeclaration( "1.0", "", "" );
     out_doc.LinkEndChild( decl );
 
-    GadgetXMLNode out_n(&out_doc);
+    ConverterXMLNode out_n(&out_doc);
 
     //Input document
     TiXmlDocument doc;
     doc.Parse(mapfile);
     TiXmlHandle docHandle(&doc);
 
-    TiXmlElement* parameters = docHandle.FirstChildElement("gadgetron").FirstChildElement("parameters").ToElement();
+    TiXmlElement* parameters = docHandle.FirstChildElement("siemens").FirstChildElement("parameters").ToElement();
     if (parameters)
     {
         TiXmlNode* p = 0;
@@ -251,13 +251,13 @@ std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfil
             }
             else
             {
-                std::cout << "Malformed Gadgetron parameter map" << std::endl;
+                std::cout << "Malformed parameter map" << std::endl;
             }
         }
     }
     else
     {
-        std::cout << "Malformed Gadgetron parameter map (parameters section not found)" << std::endl;
+        std::cout << "Malformed parameter map (parameters section not found)" << std::endl;
         return std::string("");
     }
     return XmlToString(out_doc);
@@ -707,7 +707,7 @@ int main(int argc, char *argv[] )
     }
 
     // Measurement header done!
-    //Now we should have the measurement headers, so let's use the Meas header to create the gadgetron XML parameters
+    //Now we should have the measurement headers, so let's use the Meas header to create the XML parameters
 
     std::string xml_config;
     std::vector<std::string> wip_long;
