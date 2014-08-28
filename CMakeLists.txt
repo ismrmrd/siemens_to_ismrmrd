@@ -103,15 +103,10 @@ add_executable(siemens_to_ismrmrd
                XNodeParser.cpp 
                vds.cpp
                defaults.cpp
-               siemens_hdf5_datatypes.h
-               siemensraw.h
-               base64.h
                base64.cpp
-               tinyxml.h
                tinyxml.cpp
                tinyxmlerror.cpp
                tinyxmlparser.cpp
-               ${schema_files}
                )
 
 IF (WIN32)
