@@ -21,6 +21,10 @@ if (WIN32)
 
     ADD_DEFINITIONS(-D__BUILD_CONVERTER_TINYXML__)
 
+else (WIN32)
+    SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
+    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+
 endif (WIN32)
 
 ###############################################################
