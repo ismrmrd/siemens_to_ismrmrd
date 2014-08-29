@@ -1,5 +1,5 @@
-#ifndef GADGETXML_H
-#define GADGETXML_H
+#ifndef CONVERTERXML_H
+#define CONVERTERXML_H
 
 #include <string>
 #include <sstream>
@@ -14,16 +14,16 @@
 
 //#include <boost/algorithm/string.hpp>
 
-class GadgetXMLNode
+class ConverterXMLNode
 {
  public:
-  GadgetXMLNode(TiXmlNode* anchor) 
+  ConverterXMLNode(TiXmlNode* anchor)
     : anchor_(anchor)
     { }
 
   template<typename T> std::vector<T> get(std::string name);
 
-  GadgetXMLNode add(const std::string name) {
+  ConverterXMLNode add(const std::string name) {
     //We have to make a copy of this string, the strtok function will eat it up
     char* tmp = new char[name.size()+1];
     memcpy(tmp,name.c_str(),name.size());
@@ -46,19 +46,19 @@ class GadgetXMLNode
       h = TiXmlHandle(child);
     }
     delete [] tmp; tmp = 0x0;
-    return GadgetXMLNode(child);
+    return ConverterXMLNode(child);
   }
 
 
-  template<typename T> GadgetXMLNode add(const std::string name, T contents) {
-    GadgetXMLNode n = add(name);
+  template<typename T> ConverterXMLNode add(const std::string name, T contents) {
+    ConverterXMLNode n = add(name);
     std::stringstream ss; ss << contents;
     n.get_node()->LinkEndChild(new TiXmlText(ss.str().c_str()));
     return n;
   }
 
-  template<typename T> GadgetXMLNode add(std::string n, std::vector<T> c) {
-    GadgetXMLNode ret(NULL);
+  template<typename T> ConverterXMLNode add(std::string n, std::vector<T> c) {
+    ConverterXMLNode ret(NULL);
     for (unsigned int i = 0; i < c.size(); i++) {
       ret = add<T>(n,c[i]);
     }
@@ -85,7 +85,7 @@ class GadgetXMLNode
 };
 
 
-template<> inline std::string GadgetXMLNode::contents() {
+template<> inline std::string ConverterXMLNode::contents() {
   std::string ret_val("");
   TiXmlNode* e = anchor_->FirstChild();
   if (e && (e->Type() == TiXmlNode::TINYXML_TEXT)) {
@@ -94,17 +94,17 @@ template<> inline std::string GadgetXMLNode::contents() {
   return ret_val;
 }
 
-template<> inline long int GadgetXMLNode::contents() {
+template<> inline long int ConverterXMLNode::contents() {
   std::string s = contents<std::string>();
   return atoi(s.c_str());
 }
 
-template<> inline double GadgetXMLNode::contents() {
+template<> inline double ConverterXMLNode::contents() {
   std::string s = contents<std::string>();
   return atof(s.c_str());
 }
 
-template<typename T> inline std::vector<T> contents(std::vector<GadgetXMLNode>& v)
+template<typename T> inline std::vector<T> contents(std::vector<ConverterXMLNode>& v)
 {
   std::vector<T> ret(v.size());
   for (unsigned int i = 0; i < v.size(); i++) {
@@ -113,8 +113,8 @@ template<typename T> inline std::vector<T> contents(std::vector<GadgetXMLNode>& 
   return ret;
 }
 
-template<> inline std::vector<GadgetXMLNode> GadgetXMLNode::get<GadgetXMLNode>(std::string name) {
-  std::vector<GadgetXMLNode> ret;
+template<> inline std::vector<ConverterXMLNode> ConverterXMLNode::get<ConverterXMLNode>(std::string name) {
+  std::vector<ConverterXMLNode> ret;
   
   //We have to make a copy of this string, the strtok function will eat it up
   char* tmp = new char[name.size()+1];
@@ -130,9 +130,9 @@ template<> inline std::vector<GadgetXMLNode> GadgetXMLNode::get<GadgetXMLNode>(s
   }
   
   if (child) {
-    ret.push_back(GadgetXMLNode(child));
+    ret.push_back(ConverterXMLNode(child));
     while ( (child = child->NextSiblingElement(child->Value())) ) {
-      ret.push_back(GadgetXMLNode(child));
+      ret.push_back(ConverterXMLNode(child));
     }
   }
   
@@ -141,18 +141,18 @@ template<> inline std::vector<GadgetXMLNode> GadgetXMLNode::get<GadgetXMLNode>(s
   return ret;
 }
 
-template<> inline std::vector<long> GadgetXMLNode::get<long>(std::string name) {
-  std::vector<GadgetXMLNode> vals = get<GadgetXMLNode>(name);
+template<> inline std::vector<long> ConverterXMLNode::get<long>(std::string name) {
+  std::vector<ConverterXMLNode> vals = get<ConverterXMLNode>(name);
   return ::contents<long>(vals);
 }
 
-template<> inline std::vector<double> GadgetXMLNode::get<double>(std::string name) {
-  std::vector<GadgetXMLNode> vals = get<GadgetXMLNode>(name);
+template<> inline std::vector<double> ConverterXMLNode::get<double>(std::string name) {
+  std::vector<ConverterXMLNode> vals = get<ConverterXMLNode>(name);
   return ::contents<double>(vals);
 }
 
-template<> inline std::vector<std::string> GadgetXMLNode::get< std::string >(std::string name) {
-  std::vector<GadgetXMLNode> vals = get<GadgetXMLNode>(name);
+template<> inline std::vector<std::string> ConverterXMLNode::get< std::string >(std::string name) {
+  std::vector<ConverterXMLNode> vals = get<ConverterXMLNode>(name);
   return ::contents<std::string>(vals);
 }
 
@@ -188,7 +188,7 @@ inline TiXmlElement* AddReaderToXML(TiXmlNode* anchor, const char* class_name, c
   return AddClassToXML(anchor, "readers", "reader", class_name, dll, slot);
 }
 
-inline TiXmlElement* AddGadgetToXML(TiXmlNode* anchor, const char* name, const char* class_name, const char* dll)
+inline TiXmlElement* AddConverterToXML(TiXmlNode* anchor, const char* name, const char* class_name, const char* dll)
 {
   return AddClassToXML(anchor, "stream", "gadget", class_name, dll,0,name);
 }
@@ -289,4 +289,4 @@ inline std::string XmlToString(TiXmlNode& base)
 }
 
 
-#endif //GADGETXML_H
+#endif //CONVERTERXML_H
