@@ -24,7 +24,6 @@ if (WIN32)
 else (WIN32)
     SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
     SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
 endif (WIN32)
 
 ###############################################################
@@ -107,10 +106,14 @@ add_executable(siemens_to_ismrmrd
                XNodeParser.cpp 
                vds.cpp
                defaults.cpp
+               siemensraw.h
+               base64.h
                base64.cpp
+               tinyxml.h
                tinyxml.cpp
                tinyxmlerror.cpp
                tinyxmlparser.cpp
+               ${schema_files}
                )
 
 IF (WIN32)
