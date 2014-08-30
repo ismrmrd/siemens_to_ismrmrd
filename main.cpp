@@ -1547,7 +1547,9 @@ int main(int argc, char *argv[] )
          ismrmrd_acq_head.idx.user[2]                = scanhead.scanHeader.sLC.ushIdc;
          ismrmrd_acq_head.idx.user[3]                = scanhead.scanHeader.sLC.ushIdd;
          ismrmrd_acq_head.idx.user[4]                = scanhead.scanHeader.sLC.ushIde;
-         // TODO: remove this once the GTPlus can properly autodetect partial fourier
+
+         // TODO: Remove this once the GTPlus can properly autodetect partial fourier
+	 //       This is a major hack. Should be removed as soon as possible. 
          ismrmrd_acq_head.idx.user[5]                = scanhead.scanHeader.ushKSpaceCentreLineNo;
          ismrmrd_acq_head.idx.user[6]                = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
 
