@@ -1761,10 +1761,5 @@ int main(int argc, char *argv[] )
 
      f.close();
 
-     // TODO Do I need to force a flush somehow?
-     // getting weird errors without this line.
-     std::cout << "Made it you Yahoo!" << std::endl;
-
-     
      return 0;
 }
