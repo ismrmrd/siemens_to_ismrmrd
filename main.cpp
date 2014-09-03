@@ -1694,7 +1694,7 @@ int main(int argc, char *argv[] )
                   }
                   ismrmrd_acq->trajectory_dimensions() = traj_dim[0];
                   float* t_ptr = &(reinterpret_cast<float*>(traj.data())[ traj_dim[0] * traj_dim[1] * ismrmrd_acq->idx().kspace_encode_step_1 ]);
-                  memcpy(ismrmrd_acq->traj(), t_ptr, sizeof(float) * traj_dim[0] * traj_samples_to_copy);
+                  memcpy(ismrmrd_acq->getTraj(), t_ptr, sizeof(float) * traj_dim[0] * traj_samples_to_copy);
              }
          }
 
@@ -1702,7 +1702,7 @@ int main(int argc, char *argv[] )
          for (unsigned int c = 0; c < ismrmrd_acq->active_channels(); c++)
          {
              complex_float_t* dptr = reinterpret_cast< complex_float_t* >(channel_header[c].data.p);
-             memcpy(&(const_cast<complex_float_t*>(ismrmrd_acq->data())[c*ismrmrd_acq->number_of_samples()]), dptr, ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
+             memcpy(&(const_cast<complex_float_t*>(ismrmrd_acq->getData())[c*ismrmrd_acq->number_of_samples()]), dptr, ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
          }
 
          {
