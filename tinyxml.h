@@ -38,7 +38,7 @@ distribution.
 #endif
 
 #if defined (WIN32)
-#ifdef __BUILD_GADGETRON_TINYXML__
+#ifdef __BUILD_CONVERTER_TINYXML__
 #define EXPORTTINYXML __declspec(dllexport)
 #else
 #define EXPORTTINYXML __declspec(dllimport)
