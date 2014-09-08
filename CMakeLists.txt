@@ -21,10 +21,6 @@ if (WIN32)
 
     ADD_DEFINITIONS(-D__BUILD_CONVERTER_TINYXML__)
 
-else (WIN32)
-    #SET (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=c99")
-    #SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-
 endif (WIN32)
 
 ###############################################################
@@ -72,7 +68,6 @@ endif(WIN32)
 INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR} )
 
 add_executable(b64
-    base64.h
     base64.cpp
     embed.cpp)
 
@@ -80,25 +75,18 @@ target_link_libraries(b64 ${Boost_LIBRARIES})
 
 add_custom_command(
     OUTPUT defaults.cpp
-    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
+    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 defaults.cpp
     VERBATIM
-    DEPENDS b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
+    DEPENDS b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 )
+
 
 add_executable(siemens_to_ismrmrd 
                main.cpp 
@@ -111,6 +99,7 @@ add_executable(siemens_to_ismrmrd
                tinyxml.cpp
                tinyxmlerror.cpp
                tinyxmlparser.cpp
+               ${schema_files}
                )
 
 IF (WIN32)
@@ -124,4 +113,3 @@ target_link_libraries(siemens_to_ismrmrd
                         ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
-
