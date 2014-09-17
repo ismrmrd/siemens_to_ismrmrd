@@ -24,8 +24,8 @@
 #include "XNode.h"
 #include "ConverterXml.h"
 
-#include "ismrmrd.h"
-#include "ismrmrd_dataset.h"
+#include "ismrmrd/ismrmrd.h"
+#include "ismrmrd/dataset.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;

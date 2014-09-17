@@ -27,8 +27,9 @@ endif (WIN32)
 #Bootstrap search for libraries (We need to find cmake modules in ismrmrd)
 ###############################################################
 find_path(ISMRMRD_CMAKE_MODULES FindIsmrmrd.cmake HINTS
-  $ENV{ISMRMRD_HOME}/cmake
-  /usr/local/ismrmrd/cmake)
+  $ENV{ISMRMRD_HOME}/share/ismrmrd/cmake
+  ${CMAKE_INSTALL_PREFIX}/share/ismrmrd/cmake
+  /usr/local/share/ismrmrd/cmake)
 
 if (NOT ISMRMRD_CMAKE_MODULES)
    #TODO: Check if path found otherwise create error
