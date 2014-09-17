@@ -1421,6 +1421,7 @@ int main(int argc, char *argv[] )
          delete [] x_trajectory;
          delete [] y_trajectory;
          delete [] weighting;
+
      }
 
      uint32_t last_mask = 0;
@@ -1692,7 +1693,9 @@ int main(int argc, char *argv[] )
                       traj_samples_to_copy = (unsigned long)traj_dim[1];
                       ismrmrd_acq->discard_post() = (uint16_t)(ismrmrd_acq->number_of_samples()-traj_samples_to_copy);
                   }
-                  ismrmrd_acq->trajectory_dimensions() = traj_dim[0];
+                  // Set the trajectory dimensions
+                  // this reallocates the memory for the trajectory
+                  ismrmrd_acq->trajectory_dimensions(traj_dim[0]);
                   float* t_ptr = &(static_cast<float*>(traj.getData())[ traj_dim[0] * traj_dim[1] * ismrmrd_acq->idx().kspace_encode_step_1 ]);
                   memcpy(ismrmrd_acq->getTraj(), t_ptr, sizeof(float) * traj_dim[0] * traj_samples_to_copy);
              }
@@ -1705,12 +1708,10 @@ int main(int argc, char *argv[] )
              memcpy(&(static_cast<complex_float_t*>(ismrmrd_acq->getData())[c*ismrmrd_acq->number_of_samples()]), dptr, ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
          }
 
+         if (ismrmrd_dataset.appendAcquisition(*ismrmrd_acq) != ISMRMRD::ISMRMRD_NOERROR)
          {
-             if (ismrmrd_dataset.appendAcquisition(*ismrmrd_acq) != ISMRMRD::ISMRMRD_NOERROR)
-             {
-                 std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
-                 return -1;
-             }
+             std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
+             return -1;
          }
 
          if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 ) {
