@@ -37,6 +37,7 @@ distribution.
 #pragma warning( disable : 4786 )
 #endif
 
+/* Windows import/export */
 #if defined (WIN32)
 #ifdef __BUILD_CONVERTER_TINYXML__
 #define EXPORTTINYXML __declspec(dllexport)

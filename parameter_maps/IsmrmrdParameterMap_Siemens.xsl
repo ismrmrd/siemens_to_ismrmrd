@@ -591,30 +591,41 @@
                     </userParameterLong>
                 </xsl:if>
 
-                <userParameterDouble>
-                    <name>MaxwellCoefficient_0</name>
-                    <value>
-                        <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[1]" />
-                    </value>
-                </userParameterDouble>
-                <userParameterDouble>
+                <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[1]">
+                  <userParameterDouble>
+                      <name>MaxwellCoefficient_0</name>
+                      <value>
+                          <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[1]" />
+                      </value>
+                  </userParameterDouble>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[3]">
+                  <userParameterDouble>
                     <name>MaxwellCoefficient_1</name>
                     <value>
                         <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[2]" />
                     </value>
-                </userParameterDouble>
-                <userParameterDouble>
+                  </userParameterDouble>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[3]">
+                  <userParameterDouble>
                     <name>MaxwellCoefficient_2</name>
                     <value>
                         <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[3]" />
                     </value>
-                </userParameterDouble>
-                <userParameterDouble>
+                  </userParameterDouble>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[4]">
+                  <userParameterDouble>
                     <name>MaxwellCoefficient_3</name>
                     <value>
                         <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[4]" />
                     </value>
-                </userParameterDouble>
+                  </userParameterDouble>
+                </xsl:if>
             </userParameters>
 
         </ismrmrdHeader>

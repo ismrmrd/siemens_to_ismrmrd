@@ -7,17 +7,10 @@
 
 #include "tinyxml.h"
 
-//#include "ace/OS_NS_stdlib.h"
-//#include "ace/OS_NS_string.h"
-//#include "ace/OS_NS_stdio.h"
-//#include "ace/OS_NS_netdb.h"
-
-//#include <boost/algorithm/string.hpp>
-
 class ConverterXMLNode
 {
  public:
-  ConverterXMLNode(TiXmlNode* anchor)
+  ConverterXMLNode(TiXmlNode* anchor) 
     : anchor_(anchor)
     { }
 
@@ -156,7 +149,8 @@ template<> inline std::vector<std::string> ConverterXMLNode::get< std::string >(
   return ::contents<std::string>(vals);
 }
 
-
+// TODO BEGIN
+// These few things may be obsolete
 inline TiXmlElement* AddClassToXML(TiXmlNode* anchor, const char* section, const char* type, const char* class_name, const char* dll, int slot = 0, const char* name = 0)
 {
   TiXmlElement* pSectionElem = anchor->FirstChildElement(section);
@@ -192,6 +186,7 @@ inline TiXmlElement* AddConverterToXML(TiXmlNode* anchor, const char* name, cons
 {
   return AddClassToXML(anchor, "stream", "gadget", class_name, dll,0,name);
 }
+// TODO END
 
 template <class T> inline TiXmlElement* AddPropertyToXMLElement(TiXmlNode* anchor, const char* name, T value) 
 {

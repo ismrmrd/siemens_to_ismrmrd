@@ -27,8 +27,9 @@ endif (WIN32)
 #Bootstrap search for libraries (We need to find cmake modules in ismrmrd)
 ###############################################################
 find_path(ISMRMRD_CMAKE_MODULES FindIsmrmrd.cmake HINTS
-  $ENV{ISMRMRD_HOME}/cmake
-  /usr/local/ismrmrd/cmake)
+  $ENV{ISMRMRD_HOME}/share/ismrmrd/cmake
+  ${CMAKE_INSTALL_PREFIX}/share/ismrmrd/cmake
+  /usr/local/share/ismrmrd/cmake)
 
 if (NOT ISMRMRD_CMAKE_MODULES)
    #TODO: Check if path found otherwise create error
@@ -45,10 +46,8 @@ endif(WIN32)
 
 # Added for static linking!!!
 set(Boost_USE_STATIC_LIBS ON)
-# set(HDF5_USE_STATIC_LIBRARIES ON)
 
 find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
-find_package(HDF5 1.8 REQUIRED C CXX)
 find_package(Ismrmrd REQUIRED)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
@@ -67,13 +66,9 @@ if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
 endif(WIN32)
 
-INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR}
-                     ${ISMRMRD_SCHEMA_DIR} 
-                     ${HDF5_CXX_INCLUDE_DIR}
-                     ${HDF5_C_INCLUDE_DIR} )
+INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR} )
 
 add_executable(b64
-    base64.h
     base64.cpp
     embed.cpp)
 
@@ -86,36 +81,17 @@ add_custom_command(
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
-#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
-#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 defaults.cpp
     VERBATIM
     DEPENDS b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/RadialParameterMap.xml
-#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap.xml
-#               ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/SpiralParameterMap_MSH.xml
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 )
 
-
-#set(schema_files parameter_maps/IsmrmrdParameterMap.xsl
-#               parameter_maps/IsmrmrdParameterMap_Siemens.xml
-#               parameter_maps/IsmrmrdParameterMap_Siemens.xsl
-#               parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
-#               parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
-#               parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
-#               parameter_maps/ismrmrd.xsd
-#               )
 
 add_executable(siemens_to_ismrmrd 
                main.cpp 
@@ -124,11 +100,7 @@ add_executable(siemens_to_ismrmrd
                XNodeParser.cpp 
                vds.cpp
                defaults.cpp
-               siemens_hdf5_datatypes.h 
-               siemensraw.h
-               base64.h
                base64.cpp
-               tinyxml.h
                tinyxml.cpp
                tinyxmlerror.cpp
                tinyxmlparser.cpp
@@ -136,10 +108,9 @@ add_executable(siemens_to_ismrmrd
                )
 
 IF (WIN32)
-    target_link_libraries(siemens_to_ismrmrd ${HDF5_LIBRARIES})
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
 ELSE(WIN32)
-    target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES} ${HDF5_LIBRARIES})
+    target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
 ENDIF(WIN32)
 
 target_link_libraries(siemens_to_ismrmrd
@@ -147,4 +118,3 @@ target_link_libraries(siemens_to_ismrmrd
                         ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
-#install(FILES ${schema_files} DESTINATION schema)
