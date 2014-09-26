@@ -1364,8 +1364,8 @@ int main(int argc, char *argv[] )
     }
 
     //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
-     ISMRMRD::NDArray traj;
-     std::vector<uint16_t> traj_dim;
+    ISMRMRD::NDArray<float> traj;
+     std::vector<size_t> traj_dim;
      if (trajectory == 4)
      {
          int     nfov   = 1;         /*  number of fov coefficients.             */
@@ -1405,15 +1405,12 @@ int main(int argc, char *argv[] )
          traj_dim.push_back(2);
          traj_dim.push_back(ngrad);
          traj_dim.push_back(interleaves);
-
-         if ( traj.setProperties(ISMRMRD::ISMRMRD_FLOAT, traj_dim) != ISMRMRD::ISMRMRD_NOERROR) {
-             // TODO Throw exception
-         }
+         traj.resize(traj_dim);
 
          for (int i = 0; i < (ngrad*interleaves); i++)
          {
-             static_cast<float*>(traj.getData())[i * 2] = (float)(-x_trajectory[i]/2);
-             static_cast<float*>(traj.getData())[i * 2 + 1] = (float)(-y_trajectory[i]/2);
+             traj.getData()[i * 2] = (float)(-x_trajectory[i]/2);
+             traj.getData()[i * 2 + 1] = (float)(-y_trajectory[i]/2);
          }
 
          delete [] xgrad;
@@ -1682,7 +1679,7 @@ int main(int argc, char *argv[] )
              // traj_dim[1] = ngrad i.e. points per interleaf
              // traj_dim[2] = no. of interleaves
              // and
-             // traj.getData() is a void * pointer to the trajectory stored as floats
+             // traj.getData() is a float * pointer to the trajectory stored
              // kspace_encode_step_1 is the interleaf number
 
              if (!(ismrmrd_acq->isFlagSet(ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT)))
@@ -1696,7 +1693,7 @@ int main(int argc, char *argv[] )
                   // Set the trajectory dimensions
                   // this reallocates the memory for the trajectory
                   ismrmrd_acq->trajectory_dimensions(traj_dim[0]);
-                  float* t_ptr = &(static_cast<float*>(traj.getData())[ traj_dim[0] * traj_dim[1] * ismrmrd_acq->idx().kspace_encode_step_1 ]);
+                  float* t_ptr = &traj.getData()[ traj_dim[0] * traj_dim[1] * ismrmrd_acq->idx().kspace_encode_step_1 ];
                   memcpy(ismrmrd_acq->getTraj(), t_ptr, sizeof(float) * traj_dim[0] * traj_samples_to_copy);
              }
          }
