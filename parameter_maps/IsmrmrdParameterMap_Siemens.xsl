@@ -626,6 +626,14 @@
                     </value>
                   </userParameterDouble>
                 </xsl:if>
+
+		<xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ID/tCoilID">
+		  <xsl:variable name="CurCoil" select="position()"/>
+		  <userParameterString>
+		    <name>COIL_<xsl:value-of select="$CurCoil -1"/></name>
+		    <value><xsl:value-of select="."/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></value>
+		  </userParameterString>
+		</xsl:for-each>
             </userParameters>
 
         </ismrmrdHeader>

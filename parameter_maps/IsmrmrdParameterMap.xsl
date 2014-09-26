@@ -238,6 +238,15 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 	<xsl:if test=". &gt; 0"><TI><xsl:value-of select=". div 1000.0" /></TI></xsl:if>
    </xsl:for-each>
   </sequenceParameters>
+  <userParameters>
+    <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ID/tCoilID">
+      <xsl:variable name="CurCoil" select="position()"/>
+      <userParameterString>
+	<name>COIL_<xsl:value-of select="$CurCoil -1"/></name>
+	<value><xsl:value-of select="."/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></value>
+      </userParameterString>
+    </xsl:for-each>
+  </userParameters>
 </ismrmrdHeader>
 </xsl:template>
 
