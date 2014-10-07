@@ -36,6 +36,15 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
         <xsl:value-of select="siemens/MEAS/lContrasts"/>
     </xsl:variable>
 
+    <xsl:variable name="studyID">
+        <xsl:value-of select="substring(siemens/IRIS/RECOMPOSE/StudyLOID, 6)"/>
+    </xsl:variable>
+
+    <xsl:variable name="patientID">
+        <xsl:value-of select="substring(siemens/IRIS/RECOMPOSE/PatientLOID, 6)"/>
+    </xsl:variable>
+
+    <xsl:variable name="strSeperator">_</xsl:variable>
 
     <xsl:template match="/">
         <ismrmrdHeader xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd"
@@ -238,7 +247,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/YAPS/iNSet">
-                                    <xsl:value-of select="siemens/YAPS/iNSet"/>
+                                    <xsl:value-of select="siemens/YAPS/iNSet - 1"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
@@ -250,7 +259,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/MEAS/sPhysioImaging/lPhases">
-                                    <xsl:value-of select="siemens/MEAS/sPhysioImaging/lPhases"/>
+                                    <xsl:value-of select="siemens/MEAS/sPhysioImaging/lPhases - 1"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
@@ -274,7 +283,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
-                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments"/>
+                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments - 1"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
@@ -286,7 +295,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/MEAS/lContrasts">
-                                    <xsl:value-of select="siemens/MEAS/lContrasts"/>
+                                    <xsl:value-of select="siemens/MEAS/lContrasts - 1"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
@@ -298,7 +307,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <maximum>
                             <xsl:choose>
                                 <xsl:when test="siemens/MEAS/lAverages">
-                                    <xsl:value-of select="siemens/MEAS/lAverages"/>
+                                    <xsl:value-of select="siemens/MEAS/lAverages - 1"/>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
@@ -306,6 +315,49 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <center>0</center>
                     </average>
                 </encodingLimits>
+
+                <parallelImaging>
+                    <accelerationFactor>
+                        <kspace_encoding_step_1>
+                            <xsl:choose>
+                                <xsl:when test="not(siemens/MEAS/sPat/lAccelFactPE)">1</xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:value-of select="(siemens/MEAS/sPat/lAccelFactPE)"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </kspace_encoding_step_1>
+                        <kspace_encoding_step_2>
+                            <xsl:choose>
+                                <xsl:when test="not(siemens/MEAS/sPat/lAccelFact3D)">1</xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:value-of select="(siemens/MEAS/sPat/lAccelFact3D)"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
+                        </kspace_encoding_step_2>
+                    </accelerationFactor>
+                    <calibrationMode>
+                        <xsl:choose>
+                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 1">other</xsl:when>
+                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 2">embedded</xsl:when>
+                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 4">separate</xsl:when>
+                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 8">separate</xsl:when>
+                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">interleaved</xsl:when>
+                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">interleaved</xsl:when>
+                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 64">interleaved</xsl:when>
+                            <xsl:otherwise>other</xsl:otherwise>
+                        </xsl:choose>
+                    </calibrationMode>
+                    <xsl:if test="(siemens/MEAS/sPat/ucRefScanMode = 1) or (siemens/MEAS/sPat/ucRefScanMode = 16) or (siemens/MEAS/sPat/ucRefScanMode = 32) or (siemens/MEAS/sPat/ucRefScanMode = 64)">
+                        <interleavingDimension>
+                            <xsl:choose>
+                                <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">average</xsl:when>
+                                <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">repetition</xsl:when>
+                                <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 64">phase</xsl:when>
+                                <xsl:otherwise>other</xsl:otherwise>
+                            </xsl:choose>
+                        </interleavingDimension>
+                    </xsl:if>
+                </parallelImaging>
             </encoding>
 
             <!-- FLASH PAT Reference Scan Encoding Space 1-->
@@ -402,49 +454,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     </slice>
                 </encodingLimits>
             </encoding>
-
-            <parallelImaging>
-                <accelerationFactor>
-                    <kspace_encoding_step_1>
-                        <xsl:choose>
-                            <xsl:when test="not(siemens/MEAS/sPat/lAccelFactPE)">1</xsl:when>
-                            <xsl:otherwise>
-                                <xsl:value-of select="(siemens/MEAS/sPat/lAccelFactPE)"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </kspace_encoding_step_1>
-                    <kspace_encoding_step_2>
-                        <xsl:choose>
-                            <xsl:when test="not(siemens/MEAS/sPat/lAccelFact3D)">1</xsl:when>
-                            <xsl:otherwise>
-                                <xsl:value-of select="(siemens/MEAS/sPat/lAccelFact3D)"/>
-                            </xsl:otherwise>
-                        </xsl:choose>
-                    </kspace_encoding_step_2>
-                </accelerationFactor>
-                <calibrationMode>
-                    <xsl:choose>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 1">other</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 2">embedded</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 4">separate</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 8">separate</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">interleaved</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">interleaved</xsl:when>
-                        <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 64">interleaved</xsl:when>
-                        <xsl:otherwise>other</xsl:otherwise>
-                    </xsl:choose>
-                </calibrationMode>
-                <xsl:if test="(siemens/MEAS/sPat/ucRefScanMode = 1) or (siemens/MEAS/sPat/ucRefScanMode = 16) or (siemens/MEAS/sPat/ucRefScanMode = 32) or (siemens/MEAS/sPat/ucRefScanMode = 64)">
-                    <interleavingDimension>
-                        <xsl:choose>
-                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 16">average</xsl:when>
-                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 32">repetition</xsl:when>
-                            <xsl:when test="siemens/MEAS/sPat/ucRefScanMode = 64">phase</xsl:when>
-                            <xsl:otherwise>other</xsl:otherwise>
-                        </xsl:choose>
-                    </interleavingDimension>
-                </xsl:if>
-            </parallelImaging>
 
             <sequenceParameters>
                 <xsl:for-each select="siemens/MEAS/alTR">

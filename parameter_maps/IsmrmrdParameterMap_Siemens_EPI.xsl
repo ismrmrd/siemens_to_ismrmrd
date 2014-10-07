@@ -36,6 +36,15 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
         <xsl:value-of select="siemens/MEAS/lContrasts"/>
     </xsl:variable>
 
+    <xsl:variable name="studyID">
+        <xsl:value-of select="substring(siemens/IRIS/RECOMPOSE/StudyLOID, 6)"/>
+    </xsl:variable>
+
+    <xsl:variable name="patientID">
+        <xsl:value-of select="substring(siemens/IRIS/RECOMPOSE/PatientLOID, 6)"/>
+    </xsl:variable>
+
+    <xsl:variable name="strSeperator">_</xsl:variable>
 
     <xsl:template match="/">
         <ismrmrdHeader xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd"
