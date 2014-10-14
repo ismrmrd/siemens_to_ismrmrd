@@ -1357,11 +1357,7 @@ int main(int argc, char *argv[] )
 #endif //WIN32
 
     ISMRMRD::AcquisitionHeader acq_head_base;
-    if (ismrmrd_dataset.writeHeader(xml_config) != ISMRMRD::ISMRMRD_NOERROR )
-    {
-        std::cerr << "Failed to write XML header to HDF file" << std::endl;
-        return -1;
-    }
+    ismrmrd_dataset.writeHeader(xml_config);
 
     //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
     ISMRMRD::NDArray<float> traj;
@@ -1705,11 +1701,7 @@ int main(int argc, char *argv[] )
              memcpy(&(static_cast<complex_float_t*>(ismrmrd_acq->getData())[c*ismrmrd_acq->number_of_samples()]), dptr, ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
          }
 
-         if (ismrmrd_dataset.appendAcquisition(*ismrmrd_acq) != ISMRMRD::ISMRMRD_NOERROR)
-         {
-             std::cerr << "Error appending ISMRMRD Dataset" << std::endl;
-             return -1;
-         }
+         ismrmrd_dataset.appendAcquisition(*ismrmrd_acq);
 
          if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 ) {
              std::cout << "wrote scan : " << scanhead.scanHeader.ulScanCounter << std::endl;
