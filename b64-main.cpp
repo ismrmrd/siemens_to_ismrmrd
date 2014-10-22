@@ -49,25 +49,25 @@ int main(int argc, char *argv[])
     ofs1 << "#include <iostream>" << std::endl << std::endl;
 
     ofs1 << "std::string global_xml_VB_string(";
-    splitBigString(ofs1, encoded_xml_VB, 4);
+    splitBigString(ofs1, encoded_xml_VB, 12);
 
     ofs1 << "std::string global_xml_VD_string(";
-    splitBigString(ofs1, encoded_xml_VD, 4);
+    splitBigString(ofs1, encoded_xml_VD, 12);
 
     ofs1 << "std::string global_xsl_string_1(";
-    splitBigString(ofs1, encoded_xsl_1, 4);
+    splitBigString(ofs1, encoded_xsl_1, 12);
 
     ofs1 << "std::string global_xsl_string_2(";
-    splitBigString(ofs1, encoded_xsl_2, 4);
+    splitBigString(ofs1, encoded_xsl_2, 12);
 
     ofs1 << "std::string global_xsl_string_3(";
-    splitBigString(ofs1, encoded_xsl_3, 4);
+    splitBigString(ofs1, encoded_xsl_3, 12);
 
     ofs1 << "std::string global_xsl_string_4(";
-    splitBigString(ofs1, encoded_xsl_4, 4);
+    splitBigString(ofs1, encoded_xsl_4, 12);
 
     ofs1 << "std::string global_xsd_string(";
-    splitBigString(ofs1, encoded_xsd, 4);
+    splitBigString(ofs1, encoded_xsd, 12);
 
     ofs1.close();
 
