@@ -630,18 +630,21 @@
 		<xsl:choose>
 		  <!-- VD line with dual density -->
 		  <xsl:when test="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected">
-		    <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected">
+			<xsl:variable name="NumberOfSelectedCoils">
+				<xsl:value-of select="count(siemens/MEAS/asCoilSelectMeas/Select/lElementSelected[text() = '1'])" />
+			</xsl:variable>
+		    <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
 		      <xsl:sort data-type="number" select="." />
 		      <xsl:variable name="CurADC" select="."/>
 		      <xsl:variable name="CurADCIndex" select="position()" />
-		      <xsl:for-each select="../lADCChannelConnected">
-			<xsl:if test="$CurADC = .">
-			  <xsl:variable name="CurCoil" select="position()"/>
-			  <userParameterString>
-			    <name>COIL_<xsl:value-of select="$CurADCIndex -1"/></name>
-			    <value><xsl:value-of select="../../ID/tCoilID[$CurCoil]"/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></value>
-			  </userParameterString>
-			</xsl:if>
+		      <xsl:for-each select="../lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
+				<xsl:if test="$CurADC = .">
+					<xsl:variable name="CurCoil" select="position()"/>
+					<userParameterString>
+						<name>COIL_<xsl:value-of select="$CurADCIndex -1"/></name>
+						<value><xsl:value-of select="../../ID/tCoilID[$CurCoil]"/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></value>
+					</userParameterString>
+				</xsl:if>
 		      </xsl:for-each>
 		    </xsl:for-each>
 		  </xsl:when>
