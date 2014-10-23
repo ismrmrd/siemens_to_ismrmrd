@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
         boost::filesystem::path path(infile_name);
         std::string keyname = path.filename().string();
         output << "    " << map_name << "[\"" << keyname << "\"] = ";
-        splitBigString(output, encoded, 4);
+        splitBigString(output, encoded, 12);
     }
 
     output << "}" << std::endl;
