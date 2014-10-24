@@ -97,20 +97,17 @@ void splitBigString(std::ofstream &resFile, std::string bigString, int parts)
 
     int at, pre=0, i;
 
-    int size_a_part = len/parts;
-
-    if ( size_a_part == 0 )
+    for (pre = i = 0; i < parts; ++i)
     {
-        resFile << "\""<< bigString.substr(0, std::string::npos) << "\";" << std::endl;
-    }
-    else
-    {
-        for (pre = i = 0; i < parts-1; ++i)
+        at = (len + len*i)/parts;
+        if (parts-i == 1)
         {
-	    resFile << "\""<< bigString.substr(pre, size_a_part) << "\";" << std::endl;
-	    pre += size_a_part;
+	    resFile << "\""<< bigString.substr(pre, at-pre) << "\";" << std::endl;
         }
-
-        resFile << "\""<< bigString.substr(pre, std::string::npos) << "\";" << std::endl;
+        else
+        {
+	    resFile << "\""<< bigString.substr(pre, at-pre) << "\"" << std::endl;
+        }
+        pre = at;
     }
 }
