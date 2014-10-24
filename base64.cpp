@@ -90,23 +90,27 @@ std::string base64_decode(std::string const& encoded_string)
     return ret;
 }
 
+
 void splitBigString(std::ofstream &resFile, std::string bigString, int parts)
 {
     int len = bigString.length();
 
     int at, pre=0, i;
 
-    for (pre = i = 0; i < parts; ++i)
+    int size_a_part = len/parts;
+
+    if ( size_a_part == 0 )
     {
-        at = (len + len*i)/parts;
-        if (parts-i == 1)
+        resFile << "\""<< bigString.substr(0, std::string::npos) << "\";" << std::endl;
+    }
+    else
+    {
+        for (pre = i = 0; i < parts-1; ++i)
         {
-            resFile << "\""<< bigString.substr(pre, at-pre) << "\";" << std::endl;
+	    resFile << "\""<< bigString.substr(pre, size_a_part) << "\";" << std::endl;
+	    pre += size_a_part;
         }
-        else
-        {
-            resFile << "\""<< bigString.substr(pre, at-pre) << "\"" << std::endl;
-        }
-        pre = at;
+
+        resFile << "\""<< bigString.substr(pre, std::string::npos) << "\";" << std::endl;
     }
 }
