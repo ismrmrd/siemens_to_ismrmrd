@@ -1,5 +1,5 @@
 #include "base64.h"
-
+#include "sstream"
 
 std::string base64_encode(unsigned char const* bytes_to_encode, unsigned int in_len)
 {
@@ -90,24 +90,41 @@ std::string base64_decode(std::string const& encoded_string)
     return ret;
 }
 
-
 void splitBigString(std::ofstream &resFile, std::string bigString, int parts)
 {
-    int len = bigString.length();
+  int len = bigString.length();
 
-    int at, pre=0, i;
+  int at, pre=0, i;
 
-    for (pre = i = 0; i < parts; ++i)
+  int size_a_part = len/parts;
+  std::cout << "size_a_part = " << size_a_part << std::endl;
+
+  if ( size_a_part == 0 )
     {
-        at = (len + len*i)/parts;
-        if (parts-i == 1)
+      resFile << "    v = \""<< bigString.substr(0, std::string::npos) << "\";" << std::endl;
+    }
+  else
+    {
+      for (pre = i = 0; i < parts-1; ++i)
         {
-	    resFile << "\""<< bigString.substr(pre, at-pre) << "\";" << std::endl;
+	  std::stringstream str;
+	  str << "    std::string v" << i << " = " << "\""<< bigString.substr(pre, size_a_part) << "\";" << std::endl;
+	  resFile << str.str();
+	  pre += size_a_part;
         }
-        else
+
+      {
+	std::stringstream str;
+	str << "    std::string v" << parts-1 << " = " << "\""<< bigString.substr(pre, std::string::npos) << "\";" << std::endl;
+	resFile << str.str();
+      }
+
+      for (pre = i = 0; i < parts; ++i)
         {
-	    resFile << "\""<< bigString.substr(pre, at-pre) << "\"" << std::endl;
+	  std::stringstream str;
+	  str << "    v += v" << i << ";" << std::endl;
+	  resFile << str.str();
         }
-        pre = at;
     }
 }
+
