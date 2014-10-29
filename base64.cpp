@@ -97,7 +97,6 @@ void splitBigString(std::ofstream &resFile, std::string bigString, int parts)
   int at, pre=0, i;
 
   int size_a_part = len/parts;
-  std::cout << "size_a_part = " << size_a_part << std::endl;
 
   if ( size_a_part == 0 )
     {
