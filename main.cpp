@@ -1716,27 +1716,28 @@ int main(int argc, char *argv[] )
      }//End of the while loop
 
      //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
-     //We will store them in the HDF file in case we need them for creating a binary
-     //identical dat file.
      unsigned int mystery_bytes = (ParcFileEntries[measurement_number-1].off_+ParcFileEntries[measurement_number-1].len_)-f.tellg();
 
      if (mystery_bytes > 0)
      {
          if (mystery_bytes != 160)
          {
-             std::cout << "WARNING: An unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
+             //Something in not quite right
+             std::cout << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
              std::cout << "ParcFileEntries[" << measurement_number-1 << "].off_ = " << ParcFileEntries[measurement_number-1].off_ << std::endl;
              std::cout << "ParcFileEntries[" << measurement_number-1 << "].len_ = " << ParcFileEntries[measurement_number-1].len_ << std::endl;
              std::cout << "f.tellg() = " << f.tellg() << std::endl;
-             throw std::runtime_error("Error caught handling mystery bytes.");
+             std::cout << "Please check the result." << std::endl;
          }
-
-         f.read(reinterpret_cast<char*>(&mystery_data), mystery_bytes);
-
-         //After this we have to be on a 512 byte boundary
-         if (f.tellg() % 512)
+         else
          {
-             f.seekg(512-(f.tellg() % 512), std::ios::cur);
+             //Read the mystery bytes
+             f.read(reinterpret_cast<char*>(&mystery_data), mystery_bytes);
+             //After this we have to be on a 512 byte boundary
+             if (f.tellg() % 512)
+             {
+                 f.seekg(512-(f.tellg() % 512), std::ios::cur);
+             }
          }
      }
 
@@ -1749,6 +1750,7 @@ int main(int argc, char *argv[] )
          std::cout << "WARNING: End of file was not reached during conversion. There are " << additional_bytes << " additional bytes at the end of file." << std::endl;
      }
 
+     ismrmrd_dataset.close();
      f.close();
 
      return 0;
