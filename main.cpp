@@ -1750,7 +1750,6 @@ int main(int argc, char *argv[] )
          std::cout << "WARNING: End of file was not reached during conversion. There are " << additional_bytes << " additional bytes at the end of file." << std::endl;
      }
 
-     ismrmrd_dataset.close();
      f.close();
 
      return 0;
