@@ -377,7 +377,7 @@ double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isA
     }
     else if ( isVB )
     {
-        return (10e6/num_of_noise_samples_this_acq/130.0);
+        return (1e6/num_of_noise_samples_this_acq/130.0);
     }
     else
     {
@@ -1565,7 +1565,7 @@ int main(int argc, char *argv[] )
 
          if ( scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25) )
          { //This is noise
-             ismrmrd_acq->sample_time_us() =  compute_noise_sample_in_us(ismrmrd_acq->number_of_samples(), isAdjustCoilSens, isVB);
+             ismrmrd_acq->sample_time_us() =  compute_noise_sample_in_us(scanhead.scanHeader.ushSamplesInScan, isAdjustCoilSens, isVB);
          }
          else
          {
