@@ -1405,8 +1405,8 @@ int main(int argc, char *argv[] )
 
          for (int i = 0; i < (ngrad*interleaves); i++)
          {
-             traj.getData()[i * 2] = (float)(-x_trajectory[i]/2);
-             traj.getData()[i * 2 + 1] = (float)(-y_trajectory[i]/2);
+             traj.getDataPtr()[i * 2] = (float)(-x_trajectory[i]/2);
+             traj.getDataPtr()[i * 2 + 1] = (float)(-y_trajectory[i]/2);
          }
 
          delete [] xgrad;
@@ -1550,14 +1550,14 @@ int main(int argc, char *argv[] )
          }
 
          ISMRMRD::Acquisition* ismrmrd_acq = new ISMRMRD::Acquisition;
+         // The number of samples, channels and trajectory dimensions is set below
+
          // Acquistion header values are zero by default
          ismrmrd_acq->measurement_uid()          = scanhead.scanHeader.lMeasUID;
          ismrmrd_acq->scan_counter()             = scanhead.scanHeader.ulScanCounter;
          ismrmrd_acq->acquisition_time_stamp()   = scanhead.scanHeader.ulTimeStamp;
          ismrmrd_acq->physiology_time_stamp()[0] = scanhead.scanHeader.ulPMUTimeStamp;
-         ismrmrd_acq->number_of_samples(scanhead.scanHeader.ushSamplesInScan);
          ismrmrd_acq->available_channels()       = (uint16_t)max_channels;
-         ismrmrd_acq->active_channels(scanhead.scanHeader.ushUsedChannels);
          // uint64_t channel_mask[16];     //Mask to indicate which channels are active. Support for 1024 channels
          ismrmrd_acq->discard_pre()             = scanhead.scanHeader.sCutOff.ushPre;
          ismrmrd_acq->discard_post()            = scanhead.scanHeader.sCutOff.ushPost;
@@ -1667,8 +1667,8 @@ int main(int argc, char *argv[] )
              ismrmrd_acq->encoding_space_ref() = 1;
          }
 
-         if (trajectory == 4)
-         { //Spiral, we will add the trajectory to the data
+         if ( (trajectory == 4) & !(ismrmrd_acq->isFlagSet(ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT)) )
+         { //Spiral and not noise, we will add the trajectory to the data
 
              // from above we have the following
              // traj_dim[0] = dimensionality (2)
@@ -1678,27 +1678,33 @@ int main(int argc, char *argv[] )
              // traj.getData() is a float * pointer to the trajectory stored
              // kspace_encode_step_1 is the interleaf number
 
-             if (!(ismrmrd_acq->isFlagSet(ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT)))
-             { //Only when this is not noise
-                  unsigned long traj_samples_to_copy = ismrmrd_acq->number_of_samples();
-                  if (traj_dim[1] < traj_samples_to_copy)
-                  {
-                      traj_samples_to_copy = (unsigned long)traj_dim[1];
-                      ismrmrd_acq->discard_post() = (uint16_t)(ismrmrd_acq->number_of_samples()-traj_samples_to_copy);
-                  }
-                  // Set the trajectory dimensions
-                  // this reallocates the memory for the trajectory
-                  ismrmrd_acq->trajectory_dimensions(traj_dim[0]);
-                  float* t_ptr = &traj.getData()[ traj_dim[0] * traj_dim[1] * ismrmrd_acq->idx().kspace_encode_step_1 ];
-                  memcpy(ismrmrd_acq->getTraj(), t_ptr, sizeof(float) * traj_dim[0] * traj_samples_to_copy);
+             // Set the acquisition number of samples, channels and trajectory dimensions
+             // this reallocates the memory
+             ismrmrd_acq->resize(scanhead.scanHeader.ushSamplesInScan,
+                                 scanhead.scanHeader.ushUsedChannels,
+                                 traj_dim[0]);
+             
+             unsigned long traj_samples_to_copy = ismrmrd_acq->number_of_samples();
+             if (traj_dim[1] < traj_samples_to_copy)
+             {
+                 traj_samples_to_copy = (unsigned long)traj_dim[1];
+                 ismrmrd_acq->discard_post() = (uint16_t)(ismrmrd_acq->number_of_samples()-traj_samples_to_copy);
              }
+             float* t_ptr = &traj.getDataPtr()[ traj_dim[0] * traj_dim[1] * ismrmrd_acq->idx().kspace_encode_step_1 ];
+             memcpy((void*)ismrmrd_acq->getTrajPtr(), t_ptr, sizeof(float) * traj_dim[0] * traj_samples_to_copy);
+         }
+         else
+         { //No trajectory
+             // Set the acquisition number of samples, channels and trajectory dimensions
+             // this reallocates the memory
+             ismrmrd_acq->resize(scanhead.scanHeader.ushSamplesInScan, scanhead.scanHeader.ushUsedChannels);
          }
 
          sChannelHeader_with_data* channel_header = reinterpret_cast<sChannelHeader_with_data*>(scanhead.data.p);
          for (unsigned int c = 0; c < ismrmrd_acq->active_channels(); c++)
          {
              complex_float_t* dptr = static_cast< complex_float_t* >(channel_header[c].data.p);
-             memcpy(&(static_cast<complex_float_t*>(ismrmrd_acq->getData())[c*ismrmrd_acq->number_of_samples()]), dptr, ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
+             memcpy((complex_float_t *)&(ismrmrd_acq->getDataPtr()[c*ismrmrd_acq->number_of_samples()]), dptr, ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
          }
 
          ismrmrd_dataset.appendAcquisition(*ismrmrd_acq);
