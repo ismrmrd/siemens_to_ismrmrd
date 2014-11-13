@@ -1468,6 +1468,13 @@ int main(int argc, char *argv[] )
              f.read(reinterpret_cast<char*>(&scanhead.scanHeader) + sizeof(uint32_t), sizeof(sScanHeader)-sizeof(uint32_t));
          }
 
+         if (!f)
+         {
+             std::cout << "Error reading header at acquisition " << acquisitions << "." << std::endl;
+             ClearsScanHeader_with_data(&scanhead);
+             break;
+         }
+
          uint32_t dma_length = scanhead.scanHeader.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
          uint32_t mdh_enable_flags = scanhead.scanHeader.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
@@ -1539,6 +1546,13 @@ int main(int argc, char *argv[] )
              f.read(reinterpret_cast<char*>(chan[c].data.p), chan[c].data.len*sizeof(complex_float_t));
          }
 
+         if (!f)
+         {
+             std::cout << "Error reading data at acquisition " << acquisitions << "." << std::endl;
+             ClearsScanHeader_with_data(&scanhead);
+             break;
+         }
+         
          acquisitions++;
          last_mask = scanhead.scanHeader.aulEvalInfoMask[0];
 
@@ -1718,44 +1732,51 @@ int main(int argc, char *argv[] )
          }
 
          delete ismrmrd_acq;
-         
+
      }//End of the while loop
 
-     //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
-     unsigned int mystery_bytes = (ParcFileEntries[measurement_number-1].off_+ParcFileEntries[measurement_number-1].len_)-f.tellg();
-
-     if (mystery_bytes > 0)
+     if (f)
      {
-         if (mystery_bytes != 160)
+         //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
+         std::streamoff mystery_bytes = (std::streamoff)(ParcFileEntries[measurement_number-1].off_+ParcFileEntries[measurement_number-1].len_)-f.tellg();
+
+         if (mystery_bytes > 0)
          {
-             //Something in not quite right
-             std::cout << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
-             std::cout << "ParcFileEntries[" << measurement_number-1 << "].off_ = " << ParcFileEntries[measurement_number-1].off_ << std::endl;
-             std::cout << "ParcFileEntries[" << measurement_number-1 << "].len_ = " << ParcFileEntries[measurement_number-1].len_ << std::endl;
-             std::cout << "f.tellg() = " << f.tellg() << std::endl;
-             std::cout << "Please check the result." << std::endl;
-         }
-         else
-         {
-             //Read the mystery bytes
-             f.read(reinterpret_cast<char*>(&mystery_data), mystery_bytes);
-             //After this we have to be on a 512 byte boundary
-             if (f.tellg() % 512)
+             if (mystery_bytes != 160)
              {
-                 f.seekg(512-(f.tellg() % 512), std::ios::cur);
+                 //Something in not quite right
+                 std::cout << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
+                 std::cout << "ParcFileEntries[" << measurement_number-1 << "].off_ = " << ParcFileEntries[measurement_number-1].off_ << std::endl;
+                 std::cout << "ParcFileEntries[" << measurement_number-1 << "].len_ = " << ParcFileEntries[measurement_number-1].len_ << std::endl;
+                 std::cout << "f.tellg() = " << f.tellg() << std::endl;
+                 std::cout << "Please check the result." << std::endl;
+             }
+             else
+             {
+                 //Read the mystery bytes
+                 f.read(reinterpret_cast<char*>(&mystery_data), mystery_bytes);
+                 //After this we have to be on a 512 byte boundary
+                 if (f.tellg() % 512)
+                 {
+                     f.seekg(512-(f.tellg() % 512), std::ios::cur);
+                 }
              }
          }
-     }
 
-     size_t end_position = f.tellg();
-     f.seekg(0,std::ios::end);
-     size_t eof_position = f.tellg();
-     if (end_position != eof_position && ParcRaidHead.count_ == measurement_number)
+         size_t end_position = f.tellg();
+         f.seekg(0,std::ios::end);
+         size_t eof_position = f.tellg();
+         if (end_position != eof_position && ParcRaidHead.count_ == measurement_number)
+         {
+             size_t additional_bytes = eof_position-end_position;
+             std::cout << "WARNING: End of file was not reached during conversion. There are " << additional_bytes << " additional bytes at the end of file." << std::endl;
+         }
+     }
+     else
      {
-         size_t additional_bytes = eof_position-end_position;
-         std::cout << "WARNING: End of file was not reached during conversion. There are " << additional_bytes << " additional bytes at the end of file." << std::endl;
+         std::cout << "WARNING: Unexpected error.  Please check the result." << std::endl;
      }
-
+     
      f.close();
 
      return 0;
