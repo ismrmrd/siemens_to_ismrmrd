@@ -551,25 +551,27 @@
                 </xsl:if>
 
                 <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode = 1">
-                    <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
-                        <userParameterLong>
-                            <name>RetroGatedImages</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sPhysioImaging/lRetroGatedImages" />
-                            </value>
-                        </userParameterLong>
+                    <xsl:if test="siemens/MEAS/sPhysioImaging/lPhases > 1">
+                        <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
+                            <userParameterLong>
+                                <name>RetroGatedImages</name>
+                                <value>
+                                    <xsl:value-of select="siemens/MEAS/sPhysioImaging/lRetroGatedImages" />
+                                </value>
+                            </userParameterLong>
 
-                        <userParameterLong>
-                            <name>RetroGatedSegmentSize</name>
-                            <value>
-                                <xsl:choose>
-                                    <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize">
-                                        <xsl:value-of select="siemens/MEAS/sFastImaging/lSegmentSize"/>
-                                    </xsl:when>
-                                    <xsl:otherwise>0</xsl:otherwise>
-                                </xsl:choose>
-                            </value>
-                        </userParameterLong>
+                            <userParameterLong>
+                                <name>RetroGatedSegmentSize</name>
+                                <value>
+                                    <xsl:choose>
+                                        <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize">
+                                            <xsl:value-of select="siemens/MEAS/sFastImaging/lSegmentSize"/>
+                                        </xsl:when>
+                                        <xsl:otherwise>0</xsl:otherwise>
+                                    </xsl:choose>
+                                </value>
+                            </userParameterLong>
+                        </xsl:if>
                     </xsl:if>
                 </xsl:if>
 
