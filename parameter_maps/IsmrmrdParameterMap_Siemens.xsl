@@ -550,7 +550,7 @@
                     </userParameterLong>
                 </xsl:if>
 
-                <xsl:if test="siemens/MEAS/sFastImaging/lSegments > 1">
+                <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode = 1">
                     <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
                         <userParameterLong>
                             <name>RetroGatedImages</name>
