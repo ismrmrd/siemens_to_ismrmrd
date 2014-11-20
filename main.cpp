@@ -423,6 +423,7 @@ int main(int argc, char *argv[] )
 
     bool debug_xml = false;
     bool flash_pat_ref_scan = false;
+    bool header_only = false;
 
     bool list = false;
     std::string to_extract;
@@ -444,6 +445,7 @@ int main(int argc, char *argv[] )
         ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
+        ("headerOnly,H",             po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
         ;
 
     po::options_description display_options("Allowed options");
@@ -461,6 +463,7 @@ int main(int argc, char *argv[] )
         ("extract,e",               "<Extract embedded file>")
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
+        ("headerOnly,H",             "<HEADER ONLY flag (create xml header only)>")
         ;
 
     po::variables_map vm;
@@ -586,9 +589,6 @@ int main(int argc, char *argv[] )
     }
 
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
-
-    // Create an ISMRMRD dataset
-    ISMRMRD::Dataset ismrmrd_dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
 
     std::ifstream f(filename.c_str(), std::ios::binary);
 
@@ -1356,6 +1356,16 @@ int main(int argc, char *argv[] )
     }
 #endif //WIN32
 
+    //This means we should only create XML header and exit
+    if (header_only) {
+      std::ofstream header_out_file(ismrmrd_file.c_str());
+      header_out_file << xml_config;
+      header_out_file.close();
+      exit(0);
+    }
+
+    // Create an ISMRMRD dataset
+    ISMRMRD::Dataset ismrmrd_dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
     ISMRMRD::AcquisitionHeader acq_head_base;
     ismrmrd_dataset.writeHeader(xml_config);
 
