@@ -5,7 +5,7 @@ BASEDIR=$(dirname $0)
 if [ $# -eq 1 ]; then
   TAR_FILE_NAME=converter-`date '+%Y%m%d-%H%M'`
   mkdir $BASEDIR/dep_location
-  mkdir $BASEDIR/tar_location
+  mkdir -p $BASEDIR/tar_location
 
   CONVERTER_BINARY=${1}
 
