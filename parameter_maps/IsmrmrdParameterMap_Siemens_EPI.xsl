@@ -119,10 +119,10 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 <systemFieldStrength_T>
                     <xsl:value-of select="siemens/YAPS/flMagneticFieldStrength"/>
                 </systemFieldStrength_T>
+                <relativeReceiverNoiseBandwidth>0.793</relativeReceiverNoiseBandwidth>
                 <receiverChannels>
                     <xsl:value-of select="siemens/YAPS/iMaxNoOfRxChannels" />
                 </receiverChannels>
-                <relativeReceiverNoiseBandwidth>0.793</relativeReceiverNoiseBandwidth>
                 <institutionName>
                     <xsl:value-of select="siemens/DICOM/InstitutionName" />
                 </institutionName>

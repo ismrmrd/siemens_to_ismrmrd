@@ -48,8 +48,8 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
   	<systemVendor><xsl:value-of select="siemens/DICOM/Manufacturer"/></systemVendor>
   	<systemModel><xsl:value-of select="siemens/DICOM/ManufacturersModelName"/></systemModel>  	
   	<systemFieldStrength_T><xsl:value-of select="siemens/YAPS/flMagneticFieldStrength"/></systemFieldStrength_T>
-  	<receiverChannels><xsl:value-of select="siemens/YAPS/iMaxNoOfRxChannels" /></receiverChannels> 
   	<relativeReceiverNoiseBandwidth>0.79</relativeReceiverNoiseBandwidth> 	
+  	<receiverChannels><xsl:value-of select="siemens/YAPS/iMaxNoOfRxChannels" /></receiverChannels> 
   </acquisitionSystemInformation> 
         
   <experimentalConditions>
