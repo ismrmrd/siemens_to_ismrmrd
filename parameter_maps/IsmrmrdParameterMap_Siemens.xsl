@@ -136,10 +136,44 @@
                 <systemFieldStrength_T>
                     <xsl:value-of select="siemens/YAPS/flMagneticFieldStrength"/>
                 </systemFieldStrength_T>
+                <relativeReceiverNoiseBandwidth>0.793</relativeReceiverNoiseBandwidth>
                 <receiverChannels>
                     <xsl:value-of select="siemens/YAPS/iMaxNoOfRxChannels" />
                 </receiverChannels>
-                <relativeReceiverNoiseBandwidth>0.793</relativeReceiverNoiseBandwidth>
+		
+		<!-- Coil Labels -->
+		<xsl:choose>
+                  <!-- VD line with dual density -->
+                  <xsl:when test="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected">
+                    <xsl:variable name="NumberOfSelectedCoils">
+                        <xsl:value-of select="count(siemens/MEAS/asCoilSelectMeas/Select/lElementSelected[text() = '1'])" />
+                    </xsl:variable>
+                    <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
+                      <xsl:sort data-type="number" select="." />
+                      <xsl:variable name="CurADC" select="."/>
+                      <xsl:variable name="CurADCIndex" select="position()" />
+                      <xsl:for-each select="../lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
+                        <xsl:if test="$CurADC = .">
+                            <xsl:variable name="CurCoil" select="position()"/>
+			    <coilLabel>
+			      <coilNumber><xsl:value-of select="$CurADCIndex -1"/></coilNumber>
+			      <coilName><xsl:value-of select="../../ID/tCoilID[$CurCoil]"/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></coilName>
+			    </coilLabel>
+                        </xsl:if>
+                      </xsl:for-each>
+                    </xsl:for-each>
+                  </xsl:when>
+                  <xsl:otherwise> <!-- This is probably VB -->
+                    <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ID/tCoilID">
+                      <xsl:variable name="CurCoil" select="position()"/>
+		      <coilLabel>
+			<coilNumber><xsl:value-of select="$CurCoil -1"/></coilNumber>
+			<coilName><xsl:value-of select="."/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></coilName>
+		      </coilLabel>
+                    </xsl:for-each>
+                  </xsl:otherwise>
+                </xsl:choose>
+
                 <institutionName>
                     <xsl:value-of select="siemens/DICOM/InstitutionName" />
                 </institutionName>
@@ -550,26 +584,30 @@
                     </userParameterLong>
                 </xsl:if>
 
-                <xsl:if test="siemens/MEAS/sFastImaging/lSegments > 1">
-                    <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
-                        <userParameterLong>
-                            <name>RetroGatedImages</name>
-                            <value>
-                                <xsl:value-of select="siemens/MEAS/sPhysioImaging/lRetroGatedImages" />
-                            </value>
-                        </userParameterLong>
+                <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1) and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">
+                    <xsl:if test="siemens/MEAS/sFastImaging/lSegments > 1">
+                        <xsl:if test="siemens/MEAS/sPhysioImaging/lPhases > 1">
+                            <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
+                                <userParameterLong>
+                                    <name>RetroGatedImages</name>
+                                    <value>
+                                        <xsl:value-of select="siemens/MEAS/sPhysioImaging/lRetroGatedImages" />
+                                    </value>
+                                </userParameterLong>
 
-                        <userParameterLong>
-                            <name>RetroGatedSegmentSize</name>
-                            <value>
-                                <xsl:choose>
-                                    <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize">
-                                        <xsl:value-of select="siemens/MEAS/sFastImaging/lSegmentSize"/>
-                                    </xsl:when>
-                                    <xsl:otherwise>0</xsl:otherwise>
-                                </xsl:choose>
-                            </value>
-                        </userParameterLong>
+                                <userParameterLong>
+                                    <name>RetroGatedSegmentSize</name>
+                                    <value>
+                                        <xsl:choose>
+                                            <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize">
+                                                <xsl:value-of select="siemens/MEAS/sFastImaging/lSegmentSize"/>
+                                            </xsl:when>
+                                            <xsl:otherwise>0</xsl:otherwise>
+                                        </xsl:choose>
+                                    </value>
+                                </userParameterLong>
+                            </xsl:if>
+                        </xsl:if>
                     </xsl:if>
                 </xsl:if>
 
@@ -626,40 +664,9 @@
                     </value>
                   </userParameterDouble>
                 </xsl:if>
-		
-		<xsl:choose>
-		  <!-- VD line with dual density -->
-		  <xsl:when test="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected">
-			<xsl:variable name="NumberOfSelectedCoils">
-				<xsl:value-of select="count(siemens/MEAS/asCoilSelectMeas/Select/lElementSelected[text() = '1'])" />
-			</xsl:variable>
-		    <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
-		      <xsl:sort data-type="number" select="." />
-		      <xsl:variable name="CurADC" select="."/>
-		      <xsl:variable name="CurADCIndex" select="position()" />
-		      <xsl:for-each select="../lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
-				<xsl:if test="$CurADC = .">
-					<xsl:variable name="CurCoil" select="position()"/>
-					<userParameterString>
-						<name>COIL_<xsl:value-of select="$CurADCIndex -1"/></name>
-						<value><xsl:value-of select="../../ID/tCoilID[$CurCoil]"/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></value>
-					</userParameterString>
-				</xsl:if>
-		      </xsl:for-each>
-		    </xsl:for-each>
-		  </xsl:when>
-		  <xsl:otherwise> <!-- This is probably VB -->
-		    <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ID/tCoilID">
-		      <xsl:variable name="CurCoil" select="position()"/>
-		      <userParameterString>
-			<name>COIL_<xsl:value-of select="$CurCoil -1"/></name>
-			<value><xsl:value-of select="."/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></value>
-		      </userParameterString>
-		    </xsl:for-each>
-		  </xsl:otherwise>
-		</xsl:choose>
-              </userParameters>
-	      
+        
+            </userParameters>
+
         </ismrmrdHeader>
     </xsl:template>
 

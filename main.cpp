@@ -62,99 +62,99 @@ typedef struct {
 
 struct sChannelHeader_with_data
 {
-	sChannelHeader channelHeader;
-	hvl_t data;
+    sChannelHeader channelHeader;
+    hvl_t data;
 };
 
 void ClearsChannelHeader_with_data(sChannelHeader_with_data* b)
 {
-	if (b->data.len) {
-		if (b->data.p) {
-			complex_float_t* ptr = reinterpret_cast<complex_float_t*>(b->data.p);
-			delete [] ptr;
-		}
-		b->data.p = 0;
-		b->data.len = 0;
-	}
+    if (b->data.len) {
+        if (b->data.p) {
+            complex_float_t* ptr = reinterpret_cast<complex_float_t*>(b->data.p);
+            delete [] ptr;
+        }
+        b->data.p = 0;
+        b->data.len = 0;
+    }
 }
 
 struct sScanHeader_with_data
 {
-	sScanHeader scanHeader;
-	hvl_t data;
+    sScanHeader scanHeader;
+    hvl_t data;
 };
 
 struct sScanHeader_with_syncdata
 {
-	sScanHeader scanHeader;
-	uint32_t last_scan_counter;
-	hvl_t syncdata;
+    sScanHeader scanHeader;
+    uint32_t last_scan_counter;
+    hvl_t syncdata;
 };
 
 void ClearsScanHeader_with_data(sScanHeader_with_data* c)
 {
-	if (c->data.len) {
-		if (c->data.p) {
-			for (unsigned int i = 0; i < c->data.len; i++) {
-				sChannelHeader_with_data* ptr = reinterpret_cast<sChannelHeader_with_data*>(c->data.p);
-				ClearsChannelHeader_with_data(ptr+i);
-			}
-		}
-		c->data.p = 0;
-		c->data.len = 0;
-	}
+    if (c->data.len) {
+        if (c->data.p) {
+            for (unsigned int i = 0; i < c->data.len; i++) {
+                sChannelHeader_with_data* ptr = reinterpret_cast<sChannelHeader_with_data*>(c->data.p);
+                ClearsChannelHeader_with_data(ptr+i);
+            }
+        }
+        c->data.p = 0;
+        c->data.len = 0;
+    }
 }
 
 struct MeasurementHeaderBuffer
 {
-	hvl_t bufName_;
-	uint32_t bufLen_;
-	hvl_t buf_;
+    hvl_t bufName_;
+    uint32_t bufLen_;
+    hvl_t buf_;
 };
 
 void ClearMeasurementHeaderBuffer(MeasurementHeaderBuffer* b)
 {
-	if (b->bufName_.len) {
-		if (b->bufName_.p) {
-			char* ptr = reinterpret_cast<char*>(b->bufName_.p);
-			delete [] ptr;
-		}
-		b->bufName_.p = 0;
-		b->bufName_.len = 0;
-	}
+    if (b->bufName_.len) {
+        if (b->bufName_.p) {
+            char* ptr = reinterpret_cast<char*>(b->bufName_.p);
+            delete [] ptr;
+        }
+        b->bufName_.p = 0;
+        b->bufName_.len = 0;
+    }
 
-	if (b->buf_.len) {
-		if (b->buf_.p) {
-			char* ptr = reinterpret_cast<char*>(b->buf_.p);
-			delete [] ptr;
-		}
-		b->buf_.len = 0;
-		b->buf_.p = 0;
-	}
+    if (b->buf_.len) {
+        if (b->buf_.p) {
+            char* ptr = reinterpret_cast<char*>(b->buf_.p);
+            delete [] ptr;
+        }
+        b->buf_.len = 0;
+        b->buf_.p = 0;
+    }
 }
 
 struct MeasurementHeader
 {
 
 public:
-	uint32_t dma_length;
-	uint32_t nr_buffers;
-	hvl_t buffers;
+    uint32_t dma_length;
+    uint32_t nr_buffers;
+    hvl_t buffers;
 
 };
 
 void ClearMeasurementHeader(MeasurementHeader* h)
 {
-	if (h->buffers.len) {
-		if (h->buffers.p) {
-			MeasurementHeaderBuffer* ptr = reinterpret_cast<MeasurementHeaderBuffer*>(h->buffers.p);
-			for (unsigned int i = 0; i < h->buffers.len; i++) {
-				ClearMeasurementHeaderBuffer(ptr+i);
-			}
-		}
-		h->buffers.p = 0;
-		h->buffers.len = 0;
-	}
+    if (h->buffers.len) {
+        if (h->buffers.p) {
+            MeasurementHeaderBuffer* ptr = reinterpret_cast<MeasurementHeaderBuffer*>(h->buffers.p);
+            for (unsigned int i = 0; i < h->buffers.len; i++) {
+                ClearMeasurementHeaderBuffer(ptr+i);
+            }
+        }
+        h->buffers.p = 0;
+        h->buffers.len = 0;
+    }
 }
 
 void calc_vds(double slewmax,double gradmax,double Tgsample,double Tdsample,int Ninterleaves,
@@ -423,6 +423,7 @@ int main(int argc, char *argv[] )
 
     bool debug_xml = false;
     bool flash_pat_ref_scan = false;
+    bool header_only = false;
 
     bool list = false;
     std::string to_extract;
@@ -444,6 +445,7 @@ int main(int argc, char *argv[] )
         ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
+        ("headerOnly,H",             po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
         ;
 
     po::options_description display_options("Allowed options");
@@ -461,6 +463,7 @@ int main(int argc, char *argv[] )
         ("extract,e",               "<Extract embedded file>")
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
+        ("headerOnly,H",             "<HEADER ONLY flag (create xml header only)>")
         ;
 
     po::variables_map vm;
@@ -586,9 +589,6 @@ int main(int argc, char *argv[] )
     }
 
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
-
-    // Create an ISMRMRD dataset
-    ISMRMRD::Dataset ismrmrd_dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
 
     std::ifstream f(filename.c_str(), std::ios::binary);
 
@@ -1299,7 +1299,7 @@ int main(int argc, char *argv[] )
 
     // Full path to the executable (including the executable file)
     char fullPath[MAX_PATH];
-	
+    
     // Full path to the executable (without executable file)
     char *rightPath;
     
@@ -1307,22 +1307,22 @@ int main(int argc, char *argv[] )
     HMODULE hModule = GetModuleHandle(NULL);
     if (hModule != NULL)
     {
-	    // When passing NULL to GetModuleHandle, it returns handle of exe itself
-	    GetModuleFileName(hModule, fullPath, (sizeof(fullPath))); 
+        // When passing NULL to GetModuleHandle, it returns handle of exe itself
+        GetModuleFileName(hModule, fullPath, (sizeof(fullPath))); 
 
-		rightPath = fullPath;
-		
-		PathRemoveFileSpec(rightPath);
+        rightPath = fullPath;
+        
+        PathRemoveFileSpec(rightPath);
     }
     else
     {
         std::cout << "The path to the executable is NULL" << std::endl;
     }
-	
+    
     std::ofstream xslf("xsl_file");
     xslf.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
     xslf.close();
-	
+    
     syscmd = std::string(rightPath) + std::string("\\") + std::string("xsltproc --output xml_post.xml \"") + std::string("xsl_file") + std::string("\" xml_pre.xml");
 
     std::ofstream o(xml_pre.c_str());
@@ -1356,6 +1356,16 @@ int main(int argc, char *argv[] )
     }
 #endif //WIN32
 
+    //This means we should only create XML header and exit
+    if (header_only) {
+      std::ofstream header_out_file(ismrmrd_file.c_str());
+      header_out_file << xml_config;
+      header_out_file.close();
+      exit(0);
+    }
+
+    // Create an ISMRMRD dataset
+    ISMRMRD::Dataset ismrmrd_dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
     ISMRMRD::AcquisitionHeader acq_head_base;
     ismrmrd_dataset.writeHeader(xml_config);
 

@@ -29,7 +29,16 @@
         <p><s>MEAS.sSliceArray.asSlice.0.dPhaseFOV</s>              <d>siemens.MEAS.sSliceArray.asSlice.s0.dPhaseFOV</d></p>
         <p><s>MEAS.sSliceArray.asSlice.0.dThickness</s>             <d>siemens.MEAS.sSliceArray.asSlice.s0.dThickness</d></p>
         <p><s>MEAS.sAngio.sFlowArray.lSize</s>                      <d>siemens.MEAS.sAngio.sFlowArray.lSize</d></p>
+        <p><s>MEAS.sAngio.sFlowArray.asElm.0.nVelocity</s>          <d>siemens.MEAS.sAngio.sFlowArray.asElm.s0.nVelocity</d></p>
+        <p><s>YAPS.aflMaxwellCoefficients</s>                       <d>siemens.YAPS.aflMaxwellCoefficients</d></p>
+        <p><s>MEAS.sPhysioImaging.lSignal1</s>                      <d>siemens.MEAS.sPhysioImaging.lSignal1</d></p>
+        <p><s>MEAS.sPhysioImaging.lMethod1</s>                      <d>siemens.MEAS.sPhysioImaging.lMethod1</d></p>
+        <p><s>MEAS.sPhysioImaging.lSignal2</s>                      <d>siemens.MEAS.sPhysioImaging.lSignal2</d></p>
+        <p><s>MEAS.sPhysioImaging.lMethod2</s>                      <d>siemens.MEAS.sPhysioImaging.lMethod2</d></p>
+        <p><s>MEAS.sPhysioImaging.lRetroGatedImages</s>             <d>siemens.MEAS.sPhysioImaging.lRetroGatedImages</d></p>
         <p><s>MEAS.sFastImaging.lShots</s>                          <d>siemens.MEAS.sFastImaging.lSegments</d></p>
+        <p><s>MEAS.sFastImaging.lSegments</s>                       <d>siemens.MEAS.sFastImaging.lSegmentSize</d></p>
+        <p><s>MEAS.sFastImaging.ucSegmentationMode</s>              <d>siemens.MEAS.sFastImaging.ucSegmentationMode</d></p>
         <p><s>MEAS.sPhysioImaging.lPhases</s>                       <d>siemens.MEAS.sPhysioImaging.lPhases</d></p>
         <p><s>MEAS.lRepetitions</s>                                 <d>siemens.MEAS.lRepetitions</d></p>
         <p><s>MEAS.lAverages</s>                                    <d>siemens.MEAS.lAverages</d></p>
