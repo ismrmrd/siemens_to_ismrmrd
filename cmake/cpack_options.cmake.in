@@ -1,0 +1,47 @@
+################################################################################
+# Metadata for package generators
+################################################################################
+
+# Common options
+set(CPACK_PACKAGE_VERSION "@SIEMENS_TO_ISMRMRD_VERSION_STRING@")
+message("CPACK_PACKAGE_VERSION: " ${CPACK_PACKAGE_VERSION} )
+
+set(CPACK_PACKAGE_VERSION_MAJOR "@SIEMENS_TO_ISMRMRD_VERSION_MAJOR@")
+message("CPACK_PACKAGE_VERSION_MAJOR: " ${CPACK_PACKAGE_VERSION_MAJOR} )
+
+set(CPACK_PACKAGE_VERSION_MINOR "@SIEMENS_TO_ISMRMRD_VERSION_MINOR@")
+message("CPACK_PACKAGE_VERSION_MINOR: " ${CPACK_PACKAGE_VERSION_MINOR} )
+
+set(CPACK_PACKAGE_VERSION_PATCH "@SIEMENS_TO_ISMRMRD_VERSION_PATCH@")
+message("CPACK_PACKAGE_VERSION_PATCH: " ${CPACK_PACKAGE_VERSION_PATCH} )
+
+set(CPACK_PACKAGE_NAME "@PROJECT_NAME@")
+set(CPACK_PACKAGE_VENDOR "https://github.com/nih-fmrif/siemens_to_ismrmrd")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Siemens to ISMRMRD converter")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "@PROJECT_NAME_LOWER@")
+set(CPACK_RESOURCE_FILE_LICENSE "@CMAKE_SOURCE_DIR@/LICENSE")
+set(CPACK_RESOURCE_FILE_README "@CMAKE_SOURCE_DIR@/README.mkd")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "@CMAKE_SOURCE_DIR@/README.mkd")
+set(CPACK_PACKAGE_MAINTAINER "Michael S. Hansen <michael.hansen@nih.gov>")
+set(CPACK_PACKAGE_CONTACT "Michael S. Hansen <michael.hansen@nih.gov>")
+
+# DEB specific
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "@DEBIAN_PACKAGE_DEPENDS@")
+set(CPACK_DEBIAN_PACKAGE_SECTION "devel")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_DEBIAN_PACKAGE_DESCRIPTION "Implementation of the Siemens to ISMRMRD converter.")
+
+# RPM specific
+# TODO: set(CPACK_RPM_PACKAGE_REQUIRES "@RPM_PACKAGE_DEPENDS@")
+# TODO: set(CPACK_RPM_PACKAGE_DESCRIPTION "Implementation of the ISMRMRD format.")
+
+# NSIS specific
+set(CPACK_NSIS_HELP_LINK "https://github.com/nih-fmrif/siemens_to_ismrmrd")
+set(CPACK_NSIS_URL_INFO_ABOUT "https://github.com/nih-fmrif/siemens_to_ismrmrd")
+set(CPACK_NSIS_MODIFY_PATH ON)
+set(CPACK_NSIS_DISPLAY_NAME "siemens_to_ismrmrd")
+
+# Output filename of the generated tarball / package
+set(CPACK_PACKAGE_FILE_NAME "@PROJECT_NAME_LOWER@-@SIEMENS_TO_ISMRMRD_VERSION_STRING@")
+set(CPACK_SOURCE_PACKAGE_FILE_NAME "@PROJECT_NAME_LOWER@-@SIEMENS_TO_ISMRMRD_VERSION_STRING@")

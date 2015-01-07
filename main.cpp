@@ -445,7 +445,7 @@ int main(int argc, char *argv[] )
         ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
-        ("headerOnly,H",             po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
+        ("headerOnly,H",            po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
         ;
 
     po::options_description display_options("Allowed options");
