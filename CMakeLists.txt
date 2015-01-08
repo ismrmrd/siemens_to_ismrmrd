@@ -8,6 +8,10 @@ set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 0)
 set(SIEMENS_TO_ISMRMRD_VERSION_PATCH 0)
 set(SIEMENS_TO_ISMRMRD_VERSION_STRING ${SIEMENS_TO_ISMRMRD_VERSION_MAJOR}.${SIEMENS_TO_ISMRMRD_VERSION_MINOR}.${SIEMENS_TO_ISMRMRD_VERSION_PATCH})
 
+# Generate the converter_version.h header file
+configure_file(include/converter_version.in ${CMAKE_BINARY_DIR}/include/ismrmrd/converter_version.h)
+install(FILES ${CMAKE_BINARY_DIR}/include/ismrmrd/converter_version.h DESTINATION include/ismrmrd)
+
 # set project specific cmake module path
 set (SIEMENS_TO_ISMRMRD_CMAKE_DIR ${PROJECT_SOURCE_DIR}/cmake CACHE PATH
   "Location of CMake scripts")
