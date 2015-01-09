@@ -27,7 +27,7 @@
 #include "ismrmrd/ismrmrd.h"
 #include "ismrmrd/dataset.h"
 #include "ismrmrd/version.h"
-#include "ismrmrd/converter_version.h"
+#include "converter_version.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
