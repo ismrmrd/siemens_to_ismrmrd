@@ -1,8 +1,24 @@
 cmake_minimum_required(VERSION 2.6)
 
-project(SIEMENS_TO_ISMRMRD)
+project(SIEMENS-TO-ISMRMRD)
 
-#Set the build type to Release if not specified                                                                                                                                                                                                                                         
+#VERSIONING
+set(SIEMENS_TO_ISMRMRD_VERSION_MAJOR 1)
+set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 0)
+set(SIEMENS_TO_ISMRMRD_VERSION_PATCH 0)
+set(SIEMENS_TO_ISMRMRD_VERSION_STRING ${SIEMENS_TO_ISMRMRD_VERSION_MAJOR}.${SIEMENS_TO_ISMRMRD_VERSION_MINOR}.${SIEMENS_TO_ISMRMRD_VERSION_PATCH})
+
+# Generate the converter_version.h header file
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/converter_version.in ${CMAKE_CURRENT_SOURCE_DIR}/converter_version.h)
+
+# set project specific cmake module path
+set (SIEMENS_TO_ISMRMRD_CMAKE_DIR ${PROJECT_SOURCE_DIR}/cmake CACHE PATH
+  "Location of CMake scripts")
+
+message ("PROJECT CMAKE DIR: " ${SIEMENS_TO_ISMRMRD_CMAKE_DIR})
+message ("PROJECT SOURCE DIR: " ${PROJECT_SOURCE_DIR})
+
+#Set the build type to Release if not specified
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release CACHE STRING
       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
@@ -33,8 +49,9 @@ find_path(ISMRMRD_CMAKE_MODULES FindIsmrmrd.cmake HINTS
 
 if (NOT ISMRMRD_CMAKE_MODULES)
    #TODO: Check if path found otherwise create error
-   MESSAGE(FATAL_ERROR "ISMRMRD_CMAKE_MODULES cannot be found. 
-   Try to set ISMRMRD_HOME environment variable.")
+   message(FATAL_ERROR "ISMRMRD_CMAKE_MODULES cannot be found. Try to set ISMRMRD_HOME environment variable.")
+else (NOT ISMRMRD_CMAKE_MODULES)
+   message("ISMRMRD_CMAKE_MODULES found.")
 endif(NOT ISMRMRD_CMAKE_MODULES)
 
 set(CMAKE_MODULE_PATH ${ISMRMRD_CMAKE_MODULES})
@@ -120,3 +137,16 @@ target_link_libraries(siemens_to_ismrmrd
                         ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
+
+
+# Create package                                                                                                            
+string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
+include(${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/siemens_to_ismrmrd_cpack.cmake)
+
+if(CPACK_GENERATOR)
+  message(STATUS "Found CPack generators: ${CPACK_GENERATOR}")
+  configure_file("${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/cpack_options.cmake.in"
+  ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE} @ONLY)
+  set(CPACK_PROJECT_CONFIG_FILE ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE})
+  include (CPack)
+endif(CPACK_GENERATOR)

@@ -26,6 +26,8 @@
 
 #include "ismrmrd/ismrmrd.h"
 #include "ismrmrd/dataset.h"
+#include "ismrmrd/version.h"
+#include "converter_version.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
@@ -433,6 +435,7 @@ int main(int argc, char *argv[] )
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help,h",                  "Produce HELP message")
+        ("version,v",               "Prints converter version and ISMRMRD version")
         ("file,f",                  po::value<std::string>(&filename), "<SIEMENS dat file>")
         ("measNum,z",               po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
         ("pMap,m",                  po::value<std::string>(&parammap_file), "<Parameter map XML file>")
@@ -445,12 +448,13 @@ int main(int argc, char *argv[] )
         ("extract,e",               po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
-        ("headerOnly,H",             po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
+        ("headerOnly,H",            po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
         ;
 
     po::options_description display_options("Allowed options");
     display_options.add_options()
         ("help,h",                  "Produce HELP message")
+        ("version,v",               "Prints converter version and ISMRMRD version")
         ("file,f",                  "<SIEMENS dat file>")
         ("measNum,z",               "<Measurement number>")
         ("pMap,m",                  "<Parameter map XML>")
@@ -463,7 +467,7 @@ int main(int argc, char *argv[] )
         ("extract,e",               "<Extract embedded file>")
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
-        ("headerOnly,H",             "<HEADER ONLY flag (create xml header only)>")
+        ("headerOnly,H",            "<HEADER ONLY flag (create xml header only)>")
         ;
 
     po::variables_map vm;
@@ -476,6 +480,13 @@ int main(int argc, char *argv[] )
         if (vm.count("help"))
         {
             std::cout << display_options << "\n";
+            return 1;
+        }
+
+        if (vm.count("version"))
+        {
+            std::cout << "Converter version is: " << SIEMENS_TO_ISMRMRD_VERSION_MAJOR << "." << SIEMENS_TO_ISMRMRD_VERSION_MINOR << "." << SIEMENS_TO_ISMRMRD_VERSION_PATCH << "\n";
+            std::cout << "Built against ISMRMRD version: " << ISMRMRD_VERSION_MAJOR << "." << ISMRMRD_VERSION_MINOR << "." << ISMRMRD_VERSION_PATCH << "\n";
             return 1;
         }
     }
