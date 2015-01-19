@@ -629,6 +629,15 @@
                     </userParameterLong>
                 </xsl:if>
 
+                <xsl:if test="siemens/MEAS/lProtonDensMap">
+                    <userParameterLong>
+                        <name>NumOfPDImages</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/lProtonDensMap" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
+
                 <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[1]">
                   <userParameterDouble>
                       <name>MaxwellCoefficient_0</name>
