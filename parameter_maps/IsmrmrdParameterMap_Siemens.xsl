@@ -631,7 +631,7 @@
 
                 <xsl:if test="siemens/MEAS/lProtonDensMap">
                     <userParameterLong>
-                        <name>NumOfPDImages</name>
+                        <name>NumOfProtonDensityImages</name>
                         <value>
                             <xsl:value-of select="siemens/MEAS/lProtonDensMap" />
                         </value>
