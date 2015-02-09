@@ -26,7 +26,7 @@ list(APPEND CPACK_SOURCE_IGNORE_FILES ";.git;.gitignore;todo.txt;_clang-format;b
 
 # set dependencies explicitly
 include(InstallRequiredSystemLibraries)
-set(DEBIAN_PACKAGE_DEPENDS "ismrmrd-lib, libxml2-dev, libxslt-dev, libboost-system-dev, libboost-thread-dev, libboost-program-options-dev, libboost-filesystem-dev")
+set(DEBIAN_PACKAGE_DEPENDS "ismrmrd, libxml2-dev, libxslt-dev, libboost-system-dev, libboost-thread-dev, libboost-program-options-dev, libboost-filesystem-dev")
 
 # where the package metadata are
 set(SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE "${PROJECT_BINARY_DIR}/cpack_options.cmake")
