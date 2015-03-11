@@ -141,17 +141,9 @@ install(TARGETS siemens_to_ismrmrd DESTINATION bin)
 # Create package                                                                                                            
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 include(${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/siemens_to_ismrmrd_cpack.cmake)
-
-# set dependencies explicitly 
-include(InstallRequiredSystemLibraries)
-
-set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
-set(DEBIAN_PACKAGE_DEPENDS "ismrmrd, libxml2-dev, libxslt-dev, libboost-system-dev, libboost-thread-dev, libboost-program-options-dev, libboost-filesystem-dev")
-
 if(CPACK_GENERATOR)
   message(STATUS "Found CPack generators: ${CPACK_GENERATOR}")
-  configure_file("${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/cpack_options.cmake.in"
-  ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE} @ONLY)
+  configure_file("${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/cpack_options.cmake.in" ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE} @ONLY)
   set(CPACK_PROJECT_CONFIG_FILE ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE})
   include (CPack)
 endif(CPACK_GENERATOR)
