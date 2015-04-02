@@ -547,14 +547,24 @@
 
             <sequenceParameters>
                 <xsl:for-each select="siemens/MEAS/alTR">
-                    <xsl:if test=". &gt; 0">
+                     <xsl:if test="position() = 1">
+                            <TR>
+                                <xsl:value-of select=". div 1000.0" />
+                            </TR>
+                    </xsl:if>
+                    <xsl:if test="(position() &gt; 1) and (. &gt; 0)">
                         <TR>
                             <xsl:value-of select=". div 1000.0" />
                         </TR>
                     </xsl:if>
                 </xsl:for-each>
                 <xsl:for-each select="siemens/MEAS/alTE">
-                    <xsl:if test=". &gt; 0">
+                     <xsl:if test="position() = 1">
+                            <TE>
+                                <xsl:value-of select=". div 1000.0" />
+                            </TE>
+                    </xsl:if>
+                    <xsl:if test="(position() &gt; 1) and (. &gt; 0)">
                         <xsl:if test="position() &lt; ($numberOfContrasts + 1)">
                             <TE>
                                 <xsl:value-of select=". div 1000.0" />
@@ -568,10 +578,14 @@
                             <xsl:value-of select=". div 1000.0" />
                         </TI>
                     </xsl:if>
+                </xsl:for-each> 
+                <xsl:for-each select="siemens/DICOM/adFlipAngleDegree">
+		    <xsl:if test=". &gt; 0">
+                        <flipAngle_deg>
+                            <xsl:value-of select="." />
+                        </flipAngle_deg>
+                    </xsl:if>
                 </xsl:for-each>
-                <flipAngle_deg>
-                  <xsl:value-of select="siemens/DICOM/adFlipAngleDegree" />
-                </flipAngle_deg>
             </sequenceParameters>
 
             <userParameters>
