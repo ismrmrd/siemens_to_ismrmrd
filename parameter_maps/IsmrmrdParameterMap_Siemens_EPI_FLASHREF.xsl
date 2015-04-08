@@ -135,49 +135,65 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <name>numberOfNavigators</name>
                         <value>3</value>
                     </userParameterLong>
-                    <userParameterLong>
-                        <name>rampUpTime</name>
-                        <value>
+                    <!-- Switch depending on ramp sampling -->
+                    <xsl:choose>
+                      <xsl:when test="siemens/YAPS/alRegridMode = 2">
+                        <!-- Ramp sampling is ON -->
+                        <userParameterLong>
+                          <name>rampUpTime</name>
+                          <value>
                             <xsl:value-of select="siemens/YAPS/alRegridRampupTime"/>
-                        </value>
-                    </userParameterLong>
-                    <userParameterLong>
-                        <name>rampDownTime</name>
-                        <value>
+                          </value>
+                        </userParameterLong>
+                        <userParameterLong>
+                          <name>rampDownTime</name>
+                          <value>
                             <xsl:value-of select="siemens/YAPS/alRegridRampdownTime"/>
-                        </value>
-                    </userParameterLong>
-                    <userParameterLong>
-                        <name>flatTopTime</name>
-                        <value>
+                          </value>
+                        </userParameterLong>
+                        <userParameterLong>
+                          <name>flatTopTime</name>
+                          <value>
                             <xsl:value-of select="siemens/YAPS/alRegridFlattopTime"/>
-                        </value>
-                    </userParameterLong>
-                    <userParameterLong>
-                        <name>echoSpacing</name>
-                        <value>
+                          </value>
+                        </userParameterLong>
+                        <userParameterLong>
+                          <name>echoSpacing</name>
+                          <value>
                             <xsl:value-of select="siemens/YAPS/lEchoSpacing"/>
-                        </value>
-                    </userParameterLong>
-                    <userParameterLong>
-                        <name>acqDelayTime</name>
-                        <value>
+                          </value>
+                        </userParameterLong>
+                        <userParameterLong>
+                          <name>acqDelayTime</name>
+                          <value>
                             <xsl:value-of select="siemens/YAPS/alRegridDelaySamplesTime"/>
-                        </value>
-                    </userParameterLong>
-                    <userParameterLong>
-                        <name>numSamples</name>
-                        <value>
+                          </value>
+                        </userParameterLong>
+                        <userParameterLong>
+                          <name>numSamples</name>
+                          <value>
                             <xsl:value-of select="siemens/YAPS/alRegridDestSamples"/>
-                        </value>
-                    </userParameterLong>
+                          </value>
+                        </userParameterLong>
+                      </xsl:when>
+                      <xsl:otherwise>
+                        <!-- Ramp sampling is OFF -->
+                        <userParameterLong>
+                          <name>numSamples</name>
+                          <value>
+                            <xsl:value-of select="siemens/YAPS/iNoOfFourierColumns"/>
+                          </value>
+                        </userParameterLong>
+                      </xsl:otherwise>
+                    </xsl:choose>
+
                     <userParameterDouble>
                         <name>dwellTime</name>
                         <value>
                             <xsl:value-of select="siemens/MEAS/sRXSPEC/alDwellTime div 1000.0"/>
                         </value>
                     </userParameterDouble>
-                    <comment>Conventional 2D EPI sequence</comment>
+                    <comment>Conventional EPI sequence</comment>
                 </trajectoryDescription>
                 <encodedSpace>
                     <matrixSize>
