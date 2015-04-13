@@ -598,6 +598,24 @@
                     </userParameterLong>
                 </xsl:if>
 
+                <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode">
+                    <userParameterLong>
+                        <name>SegmentationMode</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/sFastImaging/ucSegmentationMode" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
+
+                <xsl:if test="siemens/MEAS/sFastImaging/lSegmentSize">
+                    <userParameterLong>
+                        <name>SegmentSize</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/sFastImaging/lSegmentSize" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
+
                 <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1) and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">
                     <xsl:if test="siemens/MEAS/sFastImaging/lSegments > 1">
                         <xsl:if test="siemens/MEAS/sPhysioImaging/lPhases > 1">
