@@ -344,7 +344,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                                         <xsl:when test="siemens/MEAS/sFastImaging/ucSegmentationMode = 1">
                                             <xsl:choose>
                                                 <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize &gt; 1">
-                                                    <xsl:value-of select="floor((siemens/YAPS/iNoOfFourierPartitions * siemens/YAPS/iNoOfFourierLines) div siemens/MEAS/sFastImaging/lSegmentSize) + 1"/>
+                                                    <xsl:value-of select="ceiling((siemens/YAPS/iNoOfFourierPartitions * siemens/YAPS/iNoOfFourierLines) div siemens/MEAS/sFastImaging/lSegmentSize)"/>
                                                 </xsl:when>
                                                 <xsl:otherwise>0</xsl:otherwise>
                                             </xsl:choose>
