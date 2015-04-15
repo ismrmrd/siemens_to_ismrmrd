@@ -370,12 +370,22 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     <segment>
                         <minimum>0</minimum>
                         <maximum>
-                            <xsl:choose>
-                                <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
-                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments - 1"/>
-                                </xsl:when>
-                                <xsl:otherwise>0</xsl:otherwise>
-                            </xsl:choose>
+                            <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode = 2">
+                                <xsl:choose>
+                                    <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
+                                        <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments - 1"/>
+                                    </xsl:when>
+                                    <xsl:otherwise>0</xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:if>
+                            <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode = 1">
+                                <xsl:choose>
+                                    <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize">
+                                        <xsl:value-of select="((siemens/YAPS/iNoOfFourierPartitions * siemens/YAPS/iNoOfFourierLines) div siemens/MEAS/sFastImaging/lSegmentSize)"/>
+                                    </xsl:when>
+                                    <xsl:otherwise>0</xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:if>
                         </maximum>
                         <center>0</center>
                     </segment>

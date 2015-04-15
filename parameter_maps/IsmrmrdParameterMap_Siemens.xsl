@@ -467,12 +467,22 @@
                     <segment>
                         <minimum>0</minimum>
                         <maximum>
-                            <xsl:choose>
-                                <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
-                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments - 1"/>
-                                </xsl:when>
-                                <xsl:otherwise>0</xsl:otherwise>
-                            </xsl:choose>
+                            <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode = 2">
+                                <xsl:choose>
+                                    <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
+                                        <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments - 1"/>
+                                    </xsl:when>
+                                    <xsl:otherwise>0</xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:if>
+                            <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode = 1">
+                                <xsl:choose>
+                                    <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize">
+                                        <xsl:value-of select="((siemens/YAPS/iNoOfFourierPartitions * siemens/YAPS/iNoOfFourierLines) div siemens/MEAS/sFastImaging/lSegmentSize)"/>
+                                    </xsl:when>
+                                    <xsl:otherwise>0</xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:if>
                         </maximum>
                         <center>0</center>
                     </segment>
@@ -580,7 +590,7 @@
                     </xsl:if>
                 </xsl:for-each> 
                 <xsl:for-each select="siemens/DICOM/adFlipAngleDegree">
-		    <xsl:if test=". &gt; 0">
+                <xsl:if test=". &gt; 0">
                         <flipAngle_deg>
                             <xsl:value-of select="." />
                         </flipAngle_deg>
@@ -594,24 +604,6 @@
                         <name>VENC_0</name>
                         <value>
                             <xsl:value-of select="siemens/MEAS/sAngio/sFlowArray/asElm/s0/nVelocity" />
-                        </value>
-                    </userParameterLong>
-                </xsl:if>
-
-                <xsl:if test="siemens/MEAS/sFastImaging/ucSegmentationMode">
-                    <userParameterLong>
-                        <name>SegmentationMode</name>
-                        <value>
-                            <xsl:value-of select="siemens/MEAS/sFastImaging/ucSegmentationMode" />
-                        </value>
-                    </userParameterLong>
-                </xsl:if>
-
-                <xsl:if test="siemens/MEAS/sFastImaging/lSegmentSize">
-                    <userParameterLong>
-                        <name>SegmentSize</name>
-                        <value>
-                            <xsl:value-of select="siemens/MEAS/sFastImaging/lSegmentSize" />
                         </value>
                     </userParameterLong>
                 </xsl:if>
