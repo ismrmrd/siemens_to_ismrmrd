@@ -468,8 +468,26 @@
                         <minimum>0</minimum>
                         <maximum>
                             <xsl:choose>
-                                <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
-                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments - 1"/>
+                                <xsl:when test="siemens/MEAS/sFastImaging/ucSegmentationMode" >
+                                    <xsl:choose>
+                                        <xsl:when test="siemens/MEAS/sFastImaging/ucSegmentationMode = 2">
+                                            <xsl:choose>
+                                                <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
+                                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments - 1"/>
+                                                </xsl:when>
+                                                <xsl:otherwise>0</xsl:otherwise>
+                                            </xsl:choose>
+                                        </xsl:when>
+                                        <xsl:when test="siemens/MEAS/sFastImaging/ucSegmentationMode = 1">
+                                            <xsl:choose>
+                                                <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize &gt; 1">
+                                                    <xsl:value-of select="ceiling((siemens/YAPS/iNoOfFourierPartitions * siemens/YAPS/iNoOfFourierLines) div siemens/MEAS/sFastImaging/lSegmentSize)"/>
+                                                </xsl:when>
+                                                <xsl:otherwise>0</xsl:otherwise>
+                                            </xsl:choose>
+                                        </xsl:when>
+                                        <xsl:otherwise>0</xsl:otherwise>
+                                    </xsl:choose>
                                 </xsl:when>
                                 <xsl:otherwise>0</xsl:otherwise>
                             </xsl:choose>
@@ -580,7 +598,7 @@
                     </xsl:if>
                 </xsl:for-each> 
                 <xsl:for-each select="siemens/DICOM/adFlipAngleDegree">
-		    <xsl:if test=". &gt; 0">
+                <xsl:if test=". &gt; 0">
                         <flipAngle_deg>
                             <xsl:value-of select="." />
                         </flipAngle_deg>
