@@ -670,6 +670,28 @@
                     </userParameterLong>
                 </xsl:if>
 
+                <xsl:if test="siemens/MEAS/ucSequenceType">
+                    <userParameterString>
+                        <name>SequenceType</name>
+                        <value>
+                            <xsl:choose>
+                                <xsl:when test="siemens/MEAS/ucSequenceType = 1">Flash</xsl:when>
+                                <xsl:when test="siemens/MEAS/ucSequenceType = 2">SSFP</xsl:when>
+                                <xsl:otherwise>Unknown</xsl:otherwise>
+                            </xsl:choose>
+                        </value>
+                    </userParameterString>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/lEchoSpacing">
+                    <userParameterDouble>
+                        <name>EchoSpacing</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/lEchoSpacing div 1000.0" />
+                        </value>
+                    </userParameterDouble>
+                </xsl:if>
+
                 <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[1]">
                   <userParameterDouble>
                       <name>MaxwellCoefficient_0</name>
