@@ -604,6 +604,19 @@
                         </flipAngle_deg>
                     </xsl:if>
                 </xsl:for-each>
+                <xsl:if test="siemens/MEAS/ucSequenceType">
+                    <sequence_type>
+                        <xsl:choose>
+                            <xsl:when test="siemens/MEAS/ucSequenceType = 1">Flash</xsl:when>
+                            <xsl:when test="siemens/MEAS/ucSequenceType = 2">SSFP</xsl:when>
+                            <xsl:when test="siemens/MEAS/ucSequenceType = 4">EPI</xsl:when>
+                            <xsl:when test="siemens/MEAS/ucSequenceType = 8">TurboSpinEcho</xsl:when>
+                            <xsl:when test="siemens/MEAS/ucSequenceType = 16">ChemicalShiftImaging</xsl:when>
+                            <xsl:when test="siemens/MEAS/ucSequenceType = 32">FID</xsl:when>
+                            <xsl:otherwise>Unknown</xsl:otherwise>
+                        </xsl:choose>
+                    </sequence_type>
+                </xsl:if>
             </sequenceParameters>
 
             <userParameters>
@@ -715,22 +728,6 @@
                   </userParameterDouble>
                 </xsl:if>
 
-                <xsl:if test="siemens/MEAS/ucSequenceType">
-                    <userParameterString>
-                        <name>SequenceType</name>
-                        <value>
-                            <xsl:choose>
-                                <xsl:when test="siemens/MEAS/ucSequenceType = 1">Flash</xsl:when>
-                                <xsl:when test="siemens/MEAS/ucSequenceType = 2">SSFP</xsl:when>
-                                <xsl:when test="siemens/MEAS/ucSequenceType = 4">EPI</xsl:when>
-                                <xsl:when test="siemens/MEAS/ucSequenceType = 8">TurboSpinEcho</xsl:when>
-                                <xsl:when test="siemens/MEAS/ucSequenceType = 16">ChemicalShiftImaging</xsl:when>
-                                <xsl:when test="siemens/MEAS/ucSequenceType = 32">FID</xsl:when>
-                                <xsl:otherwise>Unknown</xsl:otherwise>
-                            </xsl:choose>
-                        </value>
-                    </userParameterString>
-                </xsl:if>
             </userParameters>
 
         </ismrmrdHeader>
