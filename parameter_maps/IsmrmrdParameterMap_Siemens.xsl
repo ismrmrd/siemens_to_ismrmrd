@@ -617,6 +617,11 @@
                         </xsl:choose>
                     </sequence_type>
                 </xsl:if>
+                <xsl:if test="siemens/YAPS/lEchoSpacing">
+                    <echo_spacing>
+                        <xsl:value-of select="siemens/YAPS/lEchoSpacing div 1000.0" />
+                    </echo_spacing>
+                </xsl:if>
             </sequenceParameters>
 
             <userParameters>
@@ -681,15 +686,6 @@
                             <xsl:value-of select="siemens/MEAS/lProtonDensMap" />
                         </value>
                     </userParameterLong>
-                </xsl:if>
-
-                <xsl:if test="siemens/YAPS/lEchoSpacing">
-                    <userParameterDouble>
-                        <name>EchoSpacing</name>
-                        <value>
-                            <xsl:value-of select="siemens/YAPS/lEchoSpacing div 1000.0" />
-                        </value>
-                    </userParameterDouble>
                 </xsl:if>
 
                 <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[1]">
