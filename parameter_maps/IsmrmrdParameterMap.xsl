@@ -270,6 +270,31 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
    <xsl:for-each select="siemens/MEAS/alTI">
 	<xsl:if test=". &gt; 0"><TI><xsl:value-of select=". div 1000.0" /></TI></xsl:if>
    </xsl:for-each>
+   <xsl:for-each select="siemens/DICOM/adFlipAngleDegree">
+    <xsl:if test=". &gt; 0">
+            <flipAngle_deg>
+                <xsl:value-of select="." />
+            </flipAngle_deg>
+    </xsl:if>
+   </xsl:for-each>
+   <xsl:if test="siemens/MEAS/ucSequenceType">
+        <sequence_type>
+            <xsl:choose>
+                <xsl:when test="siemens/MEAS/ucSequenceType = 1">Flash</xsl:when>
+                <xsl:when test="siemens/MEAS/ucSequenceType = 2">SSFP</xsl:when>
+                <xsl:when test="siemens/MEAS/ucSequenceType = 4">EPI</xsl:when>
+                <xsl:when test="siemens/MEAS/ucSequenceType = 8">TurboSpinEcho</xsl:when>
+                <xsl:when test="siemens/MEAS/ucSequenceType = 16">ChemicalShiftImaging</xsl:when>
+                <xsl:when test="siemens/MEAS/ucSequenceType = 32">FID</xsl:when>
+                <xsl:otherwise>Unknown</xsl:otherwise>
+            </xsl:choose>
+        </sequence_type>
+   </xsl:if>
+   <xsl:if test="siemens/YAPS/lEchoSpacing">
+        <echo_spacing>
+            <xsl:value-of select="siemens/YAPS/lEchoSpacing div 1000.0" />
+        </echo_spacing>
+   </xsl:if>
   </sequenceParameters>
 </ismrmrdHeader>
 </xsl:template>
