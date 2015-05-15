@@ -408,7 +408,7 @@ std::string load_embedded(std::string name)
 
 int main(int argc, char *argv[] )
 {
-    std::string filename;
+    std::string siemens_dat_filename;
     unsigned int measurement_number;
 
     std::string parammap_file;
@@ -436,7 +436,7 @@ int main(int argc, char *argv[] )
     desc.add_options()
         ("help,h",                  "Produce HELP message")
         ("version,v",               "Prints converter version and ISMRMRD version")
-        ("file,f",                  po::value<std::string>(&filename), "<SIEMENS dat file>")
+        ("file,f",                  po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file>")
         ("measNum,z",               po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
         ("pMap,m",                  po::value<std::string>(&parammap_file), "<Parameter map XML file>")
         ("pMapStyle,x",             po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
@@ -501,6 +501,7 @@ int main(int argc, char *argv[] )
     // Add all embedded files to the global_embedded_files map
     initializeEmbeddedFiles();
 
+    // List embededded parameter maps if requested
     if (list)
     {
         std::map<std::string, std::string>::iterator iter;
@@ -514,45 +515,40 @@ int main(int argc, char *argv[] )
         }
         return 0;
     }
-    else
-        if (to_extract.length() > 0)
-        {
-            std::string contents = load_embedded(to_extract);
-            std::ofstream outfile(to_extract.c_str());
-            outfile.write(contents.c_str(), contents.size());
-            outfile.close();
-            std::cout << to_extract << " successfully extracted. " << std::endl;
-            return 0;
-        }
+
+    // Extract specified parameter map if requested
+    if (to_extract.length() > 0)
+    {
+        std::string contents = load_embedded(to_extract);
+        std::ofstream outfile(to_extract.c_str());
+        outfile.write(contents.c_str(), contents.size());
+        std::cout << to_extract << " successfully extracted. " << std::endl;
+        return 0;
+    }
 
     if (measurement_number < 1)
     {
-        std::cout << "The measurement number must be positive number higher than 0" << std::endl;
-        std::cout << display_options << "\n";
+        std::cerr << "The measurement number must be a positive integer" << std::endl;
+        std::cerr << display_options << "\n";
         return -1;
     }
 
-    //If Siemens file is not provided, terminate the execution
-    if (filename.length() == 0)
+    // Siemens file must be specified
+    if (siemens_dat_filename.length() == 0)
     {
-        std::cout << display_options << "\n";
+        std::cerr << "Missing Siemens DAT filename" << std::endl;
+        std::cerr << display_options << "\n";
         return -1;
     }
-    else
-    {
-        std::ifstream file_1(filename.c_str());
-        if (!file_1)
-        {
-            std::cout << "Provided Siemens file can not be open or does not exist." << std::endl;
-            std::cout << display_options << "\n";
-            return -1;
-        }
-        else
-        {
-            std::cout << "Siemens file is: " << filename << std::endl;
-        }
-        file_1.close();
+
+    // Check if Siemens file is valid
+    std::ifstream infile(siemens_dat_filename.c_str());
+    if (!infile) {
+        std::cerr << "Provided Siemens file can not be open or does not exist." << std::endl;
+        std::cerr << display_options << "\n";
+        return -1;
     }
+    std::cout << "Siemens file is: " << siemens_dat_filename << std::endl;
 
     std::string parammap_xsl_content;
     if (parammap_xsl.length() == 0)
@@ -570,17 +566,11 @@ int main(int argc, char *argv[] )
             if (!f)
             {
                 std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
-                std::cerr << display_options << "\n";
                 return -1;
             }
-            else
-            {
-                std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
-
-                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-                parammap_xsl_content = str_f;
-            }
-            f.close();
+            std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
+            std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+            parammap_xsl_content = str_f;
         }
     }
     else
@@ -591,21 +581,19 @@ int main(int argc, char *argv[] )
             std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet" << std::endl;
             return -1;
         }
-        // If the user specified an embedded stylesheet only
-        else
-        {
-            parammap_xsl_content = load_embedded(parammap_xsl);
-            std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
-        }
+
+        // The user specified an embedded stylesheet only
+        parammap_xsl_content = load_embedded(parammap_xsl);
+        std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
     }
 
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
 
-    std::ifstream f(filename.c_str(), std::ios::binary);
+    std::ifstream siemens_dat(siemens_dat_filename.c_str(), std::ios::binary);
 
     MrParcRaidFileHeader ParcRaidHead;
 
-    f.read((char*)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
+    siemens_dat.read((char*)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
 
     bool VBFILE = false;
 
@@ -614,7 +602,7 @@ int main(int argc, char *argv[] )
         VBFILE = true;
 
         //Rewind, we have no raid file header.
-        f.seekg(0, std::ios::beg);
+        siemens_dat.seekg(0, std::ios::beg);
 
         ParcRaidHead.hdSize_ = ParcRaidHead.count_;
         ParcRaidHead.count_ = 1;
@@ -623,9 +611,7 @@ int main(int argc, char *argv[] )
     else if (ParcRaidHead.hdSize_ != 0)
     {
         //This is a VB line data file
-        std::cout << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported." << std::endl;
-        std::cout << display_options << "\n";
-        f.close();
+        std::cerr << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported." << std::endl;
         return -1;
     }
 
@@ -633,8 +619,6 @@ int main(int argc, char *argv[] )
     {
         std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements." << std::endl;
         std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
-        std::cout << display_options << "\n";
-        f.close();
         return -1;
     }
 
@@ -643,8 +627,6 @@ int main(int argc, char *argv[] )
     {
         std::cout << "The file you are trying to convert is a VB file and it has only one measurement." << std::endl;
         std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
-        std::cout << display_options << "\n";
-        f.close();
         return -1;
     }
 
@@ -667,17 +649,12 @@ int main(int argc, char *argv[] )
                 if (!f)
                 {
                     std::cerr << "Parameter map file: " << usermap_file << " does not exist." << std::endl;
-                    std::cerr << display_options << "\n";
                     return -1;
                 }
-                else
-                {
-                    std::cout << "Parameter map file is: " << usermap_file << std::endl;
 
-                    std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-                    parammap_file_content = str_f;
-                }
-                f.close();
+                std::cout << "Parameter map file is: " << usermap_file << std::endl;
+                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                parammap_file_content = str_f;
             }
         }
         else
@@ -688,16 +665,13 @@ int main(int argc, char *argv[] )
                 std::cerr << "Cannot specify a user-supplied parameter map XML file AND embedded XML file" << std::endl;
                 return -1;
             }
-            // If the user specified an embedded parameter map file only
-            else
-            {
-                parammap_file_content = load_embedded(parammap_file);
-                std::cout << "Parameter map file is: " << parammap_file << std::endl;
-            }
+            // The user specified an embedded parameter map file only
+            parammap_file_content = load_embedded(parammap_file);
+            std::cout << "Parameter map file is: " << parammap_file << std::endl;
         }
     }
 
-    if (!VBFILE)
+    else
     {
         if (parammap_file.length() == 0)
         {
@@ -714,17 +688,12 @@ int main(int argc, char *argv[] )
                 if (!f)
                 {
                     std::cerr << "Parameter map file: " << usermap_file << " does not exist." << std::endl;
-                    std::cerr << display_options << "\n";
                     return -1;
                 }
-                else
-                {
-                    std::cout << "Parameter map file is: " << usermap_file << std::endl;
 
-                    std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-                    parammap_file_content = str_f;
-                }
-                f.close();
+                std::cout << "Parameter map file is: " << usermap_file << std::endl;
+                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                parammap_file_content = str_f;
             }
         }
         else
@@ -735,12 +704,9 @@ int main(int argc, char *argv[] )
                 std::cerr << "Cannot specify a user-supplied parameter map XML file AND embedded XML file" << std::endl;
                 return -1;
             }
-            // If the user specified an embedded parameter map file only
-            else
-            {
-                parammap_file_content = load_embedded(parammap_file);
-                std::cout << "Parameter map file is: " << parammap_file << std::endl;
-            }
+            // The user specified an embedded parameter map file only
+            parammap_file_content = load_embedded(parammap_file);
+            std::cout << "Parameter map file is: " << parammap_file << std::endl;
         }
     }
 
@@ -758,9 +724,9 @@ int main(int argc, char *argv[] )
         }
 
         ParcFileEntries[0].off_ = 0;
-        f.seekg(0,std::ios::end); //Rewind a bit, we have no raid file header.
-        ParcFileEntries[0].len_ = f.tellg(); //This is the whole size of the dat file
-        f.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
+        siemens_dat.seekg(0,std::ios::end); //Rewind a bit, we have no raid file header.
+        ParcFileEntries[0].len_ = siemens_dat.tellg(); //This is the whole size of the dat file
+        siemens_dat.seekg(0,std::ios::beg); //Rewind a bit, we have no raid file header.
 
         std::cout << "Protocol name: " << ParcFileEntries[0].protName_ << std::endl; // blank
     }
@@ -769,7 +735,7 @@ int main(int argc, char *argv[] )
         std::cout << "VD line file detected." << std::endl;
         for (unsigned int i = 0; i < 64; i++)
         {
-            f.read((char*)(&ParcFileEntries[i]), sizeof(MrParcRaidFileEntry));
+            siemens_dat.read((char*)(&ParcFileEntries[i]), sizeof(MrParcRaidFileEntry));
 
             if (i < ParcRaidHead.count_)
             {
@@ -781,12 +747,12 @@ int main(int argc, char *argv[] )
     MysteryData mystery_data;
     MeasurementHeader mhead;
 
-    // find the beggining of the desired measurement
-    f.seekg(ParcFileEntries[measurement_number-1].off_, std::ios::beg);
+    // find the beginning of the desired measurement
+    siemens_dat.seekg(ParcFileEntries[measurement_number-1].off_, std::ios::beg);
 
     //MeasurementHeader mhead;
-    f.read((char*)(&mhead.dma_length), sizeof(uint32_t));
-    f.read((char*)(&mhead.nr_buffers),sizeof(uint32_t));
+    siemens_dat.read((char*)(&mhead.dma_length), sizeof(uint32_t));
+    siemens_dat.read((char*)(&mhead.nr_buffers), sizeof(uint32_t));
 
     //std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
 
@@ -801,24 +767,24 @@ int main(int argc, char *argv[] )
     char bufname_tmp[32];
     for (int b = 0; b < mhead.nr_buffers; b++)
     {
-        f.getline(bufname_tmp, 32, '\0');
+        siemens_dat.getline(bufname_tmp, 32, '\0');
         std::cout << "Buffer Name: " << bufname_tmp << std::endl;
-        buffers[b].bufName_.len = f.gcount() + 1;
-        bufname_tmp[f.gcount()] = '\0';
+        buffers[b].bufName_.len = siemens_dat.gcount() + 1;
+        bufname_tmp[siemens_dat.gcount()] = '\0';
         buffers[b].bufName_.p = (void*)(new char[buffers[b].bufName_.len]);
         memcpy(buffers[b].bufName_.p, bufname_tmp, buffers[b].bufName_.len);
 
-        f.read((char*)(&buffers[b].bufLen_), sizeof(uint32_t));
+        siemens_dat.read((char*)(&buffers[b].bufLen_), sizeof(uint32_t));
         buffers[b].buf_.len = buffers[b].bufLen_;
         buffers[b].buf_.p = (void*)(new char[buffers[b].buf_.len]);
-        f.read((char*)(buffers[b].buf_.p), buffers[b].buf_.len);
+        siemens_dat.read((char*)(buffers[b].buf_.p), buffers[b].buf_.len);
     }
 
     //We need to be on a 32 byte boundary after reading the buffers
-    long long int position_in_meas = (long long int)(f.tellg()) - ParcFileEntries[measurement_number-1].off_;
-    if (position_in_meas % 32)
+    long long int position_in_meas = (long long int)(siemens_dat.tellg()) - ParcFileEntries[measurement_number-1].off_;
+    if (position_in_meas % 32 != 0)
     {
-        f.seekg(32 - (position_in_meas % 32), std::ios::cur);
+        siemens_dat.seekg(32 - (position_in_meas % 32), std::ios::cur);
     }
 
     // Measurement header done!
@@ -854,12 +820,11 @@ int main(int argc, char *argv[] )
             {
                 std::ofstream o("config_buffer.xprot");
                 o.write(config_buffer.c_str(), config_buffer.size());
-                o.close();
             }
 
             if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0)
             {
-                std::cout << "Failed to parse XProtocol" << std::endl;
+                std::cerr << "Failed to parse XProtocol" << std::endl;
                 return -1;
             }
 
@@ -876,12 +841,12 @@ int main(int argc, char *argv[] )
                 }
                 if (wip_long.size() == 0)
                 {
-                    std::cout << "Failed to find WIP long parameters" << std::endl;
+                    std::cerr << "Failed to find WIP long parameters" << std::endl;
                     return -1;
                 }
             }
 
-            //Get some parameters - wip long
+            //Get some parameters - wip double
             {
                 const XProtocol::XNode* n2 = boost::apply_visitor(XProtocol::getChildNodeByName("MEAS.sWipMemBlock.adFree"), n);
                 if (n2)
@@ -894,7 +859,7 @@ int main(int argc, char *argv[] )
                 }
                 if (wip_double.size() == 0)
                 {
-                    std::cout << "Failed to find WIP double parameters" << std::endl;
+                    std::cerr << "Failed to find WIP double parameters" << std::endl;
                     return -1;
                 }
             }
@@ -913,7 +878,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() == 0)
                 {
-                    std::cout << "Failed to find dwell times" << std::endl;
+                    std::cerr << "Failed to find dwell times" << std::endl;
                     return -1;
                 }
                 else
@@ -936,7 +901,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1)
                 {
-                    std::cout << "Failed to find appropriate trajectory array" << std::endl;
+                    std::cerr << "Failed to find appropriate trajectory array" << std::endl;
                     return -1;
                 }
                 else
@@ -960,7 +925,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1)
                 {
-                    std::cout << "Failed to find YAPS.iMaxNoOfRxChannels array" << std::endl;
+                    std::cerr << "Failed to find YAPS.iMaxNoOfRxChannels array" << std::endl;
                     return -1;
                 }
                 else
@@ -984,7 +949,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1)
                 {
-                    std::cout << "Failed to find MEAS.sKSpace.lPhaseEncodingLines array" << std::endl;
+                    std::cerr << "Failed to find MEAS.sKSpace.lPhaseEncodingLines array" << std::endl;
                     return -1;
                 }
                 else
@@ -1003,7 +968,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1)
                 {
-                    std::cout << "Failed to find YAPS.iNoOfFourierLines array" << std::endl;
+                    std::cerr << "Failed to find YAPS.iNoOfFourierLines array" << std::endl;
                     return -1;
                 }
                 else
@@ -1045,7 +1010,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1)
                 {
-                    std::cout << "Failed to find MEAS.sKSpace.lPartitions array" << std::endl;
+                    std::cerr << "Failed to find MEAS.sKSpace.lPartitions array" << std::endl;
                     return -1;
                 }
                 else
@@ -1120,7 +1085,7 @@ int main(int argc, char *argv[] )
                 }
 
                 // for spiral sequences the center_line and center_partition are zero
-                if (trajectory == 4) {
+                if (trajectory == TRAJECTORY_SPIRAL) {
                     center_line = 0;
                     center_partition = 0;
                 }
@@ -1140,7 +1105,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1)
                 {
-                    std::cout << "Failed to find YAPS.MEAS.sKSpace.lRadialViews array" << std::endl;
+                    std::cerr << "Failed to find YAPS.MEAS.sKSpace.lRadialViews array" << std::endl;
                     return -1;
                 }
                 else
@@ -1163,7 +1128,7 @@ int main(int argc, char *argv[] )
                 }
                 if (temp.size() != 1)
                 {
-                    std::cout << "Failed to find HEADER.tProtocolName" << std::endl;
+                    std::cerr << "Failed to find HEADER.tProtocolName" << std::endl;
                     return -1;
                 }
                 else
@@ -1235,13 +1200,10 @@ int main(int argc, char *argv[] )
     {
         std::ofstream o("xml_raw.xml");
         o.write(xml_config.c_str(), xml_config.size());
-        o.close();
     }
 
     //Get rid of dynamically allocated memory in header
-    {
-        ClearMeasurementHeader(&mhead);
-    }
+    ClearMeasurementHeader(&mhead);
 
 #ifndef WIN32
     xsltStylesheetPtr cur = NULL;
@@ -1262,7 +1224,7 @@ int main(int argc, char *argv[] )
 
     if (xml_doc == NULL)
     {
-        std::cout << "Error when parsing xsl parameter stylesheet..." << std::endl;
+        std::cerr << "Error when parsing xsl parameter stylesheet..." << std::endl;
         return -1;
     }
 
@@ -1276,7 +1238,7 @@ int main(int argc, char *argv[] )
 
     if (xslt_result < 0)
     {
-        std::cout << "Failed to save converted doc to string" << std::endl;
+        std::cerr << "Failed to save converted doc to string" << std::endl;
         return -1;
     }
 
@@ -1286,12 +1248,11 @@ int main(int argc, char *argv[] )
     {
         std::ofstream o("processed.xml");
         o.write(xml_config.c_str(), xml_config.size());
-        o.close();
     }
 
     if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0)
     {
-        std::cout << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
+        std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
         return -1;
     }
 
@@ -1302,7 +1263,7 @@ int main(int argc, char *argv[] )
     xsltCleanupGlobals();
     xmlCleanupParser();
 
-#else
+#else // ifndef WIN32
     std::string syscmd;
     int xsltproc_res(0);
 
@@ -1371,8 +1332,7 @@ int main(int argc, char *argv[] )
     if (header_only) {
       std::ofstream header_out_file(ismrmrd_file.c_str());
       header_out_file << xml_config;
-      header_out_file.close();
-      exit(0);
+      return -1;
     }
 
     // Create an ISMRMRD dataset
@@ -1383,7 +1343,7 @@ int main(int argc, char *argv[] )
     //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
     ISMRMRD::NDArray<float> traj;
      std::vector<size_t> traj_dim;
-     if (trajectory == 4)
+     if (trajectory == TRAJECTORY_SPIRAL)
      {
          int     nfov   = 1;         /*  number of fov coefficients.             */
          int     ngmax  = (int)1e5;  /*  maximum number of gradient samples      */
@@ -1401,7 +1361,7 @@ int main(int argc, char *argv[] )
          double krmax = std::atof(wip_double[8].c_str());
          long interleaves = radial_views;
 
-         /*    call c-function here to calculate gradients */
+         /* calculate gradients */
          calc_vds(smax, gmax, sample_time, sample_time, interleaves, &fov, nfov, krmax, ngmax, &xgrad, &ygrad, &ngrad);
 
          /*
@@ -1415,7 +1375,7 @@ int main(int argc, char *argv[] )
          << "ngrad: " << ngrad << std::endl;
          */
 
-         /* Calcualte the trajectory and weights*/
+         /* Calculate the trajectory and weights*/
          calc_traj(xgrad, ygrad, ngrad, interleaves, sample_time, krmax, &x_trajectory, &y_trajectory, &weighting);
 
          // 2 * number of points for each X and Y
@@ -1445,15 +1405,15 @@ int main(int argc, char *argv[] )
      bool first_call = true;
 
      while (!(last_mask & 1) && //Last scan not encountered
-             (((ParcFileEntries[measurement_number-1].off_+ ParcFileEntries[measurement_number-1].len_)-f.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
+             (((ParcFileEntries[measurement_number-1].off_+ ParcFileEntries[measurement_number-1].len_)-siemens_dat.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
      {
-         size_t position_in_meas = f.tellg();
+         size_t position_in_meas = siemens_dat.tellg();
          sScanHeader_with_data scanhead;
-         f.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
+         siemens_dat.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
 
          if (VBFILE)
          {
-             f.read(reinterpret_cast<char*>(&mdh) + sizeof(uint32_t), sizeof(sMDH) - sizeof(uint32_t));
+             siemens_dat.read(reinterpret_cast<char*>(&mdh) + sizeof(uint32_t), sizeof(sMDH) - sizeof(uint32_t));
              scanhead.scanHeader.lMeasUID = mdh.lMeasUID;
              scanhead.scanHeader.ulScanCounter = mdh.ulScanCounter;
              scanhead.scanHeader.ulTimeStamp = mdh.ulTimeStamp;
@@ -1486,12 +1446,12 @@ int main(int argc, char *argv[] )
          }
          else
          {
-             f.read(reinterpret_cast<char*>(&scanhead.scanHeader) + sizeof(uint32_t), sizeof(sScanHeader)-sizeof(uint32_t));
+             siemens_dat.read(reinterpret_cast<char*>(&scanhead.scanHeader) + sizeof(uint32_t), sizeof(sScanHeader)-sizeof(uint32_t));
          }
 
-         if (!f)
+         if (!siemens_dat)
          {
-             std::cout << "Error reading header at acquisition " << acquisitions << "." << std::endl;
+             std::cerr << "Error reading header at acquisition " << acquisitions << "." << std::endl;
              ClearsScanHeader_with_data(&scanhead);
              break;
          }
@@ -1516,7 +1476,7 @@ int main(int argc, char *argv[] )
              }
              std::vector<uint8_t> synchdatabytes(synch_data.syncdata.len);
              synch_data.syncdata.p = &synchdatabytes[0];
-             f.read(reinterpret_cast<char*>(&synchdatabytes[0]), synch_data.syncdata.len);
+             siemens_dat.read(reinterpret_cast<char*>(&synchdatabytes[0]), synch_data.syncdata.len);
 
              sync_data_packets++;
              continue;
@@ -1528,8 +1488,8 @@ int main(int argc, char *argv[] )
              //Something must have gone terribly wrong. Bail out.
              if ( first_call )
              {
-                 std::cout << "Corrupted or retro-recon dataset detected (scanhead.scanHeader.lMeasUID != ParcFileEntries[" << measurement_number-1 << "].measId_)" << std::endl;
-                 std::cout << "Fix the scanhead.scanHeader.lMeasUID ... " << std::endl;
+                 std::cerr << "Corrupted or retro-recon dataset detected (scanhead.scanHeader.lMeasUID != ParcFileEntries[" << measurement_number-1 << "].measId_)" << std::endl;
+                 std::cerr << "Fix the scanhead.scanHeader.lMeasUID ... " << std::endl;
                  first_call = false;
              }
              scanhead.scanHeader.lMeasUID = ParcFileEntries[measurement_number-1].measId_;
@@ -1546,7 +1506,7 @@ int main(int argc, char *argv[] )
              {
                  if (c > 0)
                  {
-                     f.read(reinterpret_cast<char*>(&mdh), sizeof(sMDH));
+                     siemens_dat.read(reinterpret_cast<char*>(&mdh), sizeof(sMDH));
                  }
                  chan[c].channelHeader.ulTypeAndChannelLength = 0;
                  chan[c].channelHeader.lMeasUID = mdh.lMeasUID;
@@ -1560,16 +1520,16 @@ int main(int argc, char *argv[] )
              }
              else
              {
-                 f.read(reinterpret_cast<char*>(&chan[c].channelHeader), sizeof(sChannelHeader));
+                 siemens_dat.read(reinterpret_cast<char*>(&chan[c].channelHeader), sizeof(sChannelHeader));
              }
              chan[c].data.len = scanhead.scanHeader.ushSamplesInScan;
              chan[c].data.p = reinterpret_cast<void*>(new complex_float_t[chan[c].data.len]);
-             f.read(reinterpret_cast<char*>(chan[c].data.p), chan[c].data.len*sizeof(complex_float_t));
+             siemens_dat.read(reinterpret_cast<char*>(chan[c].data.p), chan[c].data.len*sizeof(complex_float_t));
          }
 
-         if (!f)
+         if (!siemens_dat)
          {
-             std::cout << "Error reading data at acquisition " << acquisitions << "." << std::endl;
+             std::cerr << "Error reading data at acquisition " << acquisitions << "." << std::endl;
              ClearsScanHeader_with_data(&scanhead);
              break;
          }
@@ -1587,7 +1547,7 @@ int main(int argc, char *argv[] )
          ISMRMRD::Acquisition* ismrmrd_acq = new ISMRMRD::Acquisition;
          // The number of samples, channels and trajectory dimensions is set below
 
-         // Acquistion header values are zero by default
+         // Acquisition header values are zero by default
          ismrmrd_acq->measurement_uid()          = scanhead.scanHeader.lMeasUID;
          ismrmrd_acq->scan_counter()             = scanhead.scanHeader.ulScanCounter;
          ismrmrd_acq->acquisition_time_stamp()   = scanhead.scanHeader.ulTimeStamp;
@@ -1702,7 +1662,7 @@ int main(int argc, char *argv[] )
              ismrmrd_acq->encoding_space_ref() = 1;
          }
 
-         if ( (trajectory == 4) & !(ismrmrd_acq->isFlagSet(ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT)) )
+         if ( (trajectory == TRAJECTORY_SPIRAL) & !(ismrmrd_acq->isFlagSet(ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT)) )
          { //Spiral and not noise, we will add the trajectory to the data
 
              // from above we have the following
@@ -1748,57 +1708,53 @@ int main(int argc, char *argv[] )
              std::cout << "wrote scan : " << scanhead.scanHeader.ulScanCounter << std::endl;
          }
 
-         {
-             ClearsScanHeader_with_data(&scanhead);
-         }
+         ClearsScanHeader_with_data(&scanhead);
 
          delete ismrmrd_acq;
 
      }//End of the while loop
 
-     if (f)
+     if (!siemens_dat)
      {
-         //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
-         std::streamoff mystery_bytes = (std::streamoff)(ParcFileEntries[measurement_number-1].off_+ParcFileEntries[measurement_number-1].len_)-f.tellg();
-
-         if (mystery_bytes > 0)
-         {
-             if (mystery_bytes != 160)
-             {
-                 //Something in not quite right
-                 std::cout << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
-                 std::cout << "ParcFileEntries[" << measurement_number-1 << "].off_ = " << ParcFileEntries[measurement_number-1].off_ << std::endl;
-                 std::cout << "ParcFileEntries[" << measurement_number-1 << "].len_ = " << ParcFileEntries[measurement_number-1].len_ << std::endl;
-                 std::cout << "f.tellg() = " << f.tellg() << std::endl;
-                 std::cout << "Please check the result." << std::endl;
-             }
-             else
-             {
-                 //Read the mystery bytes
-                 f.read(reinterpret_cast<char*>(&mystery_data), mystery_bytes);
-                 //After this we have to be on a 512 byte boundary
-                 if (f.tellg() % 512)
-                 {
-                     f.seekg(512-(f.tellg() % 512), std::ios::cur);
-                 }
-             }
-         }
-
-         size_t end_position = f.tellg();
-         f.seekg(0,std::ios::end);
-         size_t eof_position = f.tellg();
-         if (end_position != eof_position && ParcRaidHead.count_ == measurement_number)
-         {
-             size_t additional_bytes = eof_position-end_position;
-             std::cout << "WARNING: End of file was not reached during conversion. There are " << additional_bytes << " additional bytes at the end of file." << std::endl;
-         }
+         std::cerr << "WARNING: Unexpected error.  Please check the result." << std::endl;
+         return -1;
      }
-     else
-     {
-         std::cout << "WARNING: Unexpected error.  Please check the result." << std::endl;
-     }
-     
-     f.close();
 
-     return 0;
+    //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
+    std::streamoff mystery_bytes = (std::streamoff)(ParcFileEntries[measurement_number-1].off_+ParcFileEntries[measurement_number-1].len_)-siemens_dat.tellg();
+
+    if (mystery_bytes > 0)
+    {
+        if (mystery_bytes != 160)
+        {
+            //Something in not quite right
+            std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
+            std::cerr << "ParcFileEntries[" << measurement_number-1 << "].off_ = " << ParcFileEntries[measurement_number-1].off_ << std::endl;
+            std::cerr << "ParcFileEntries[" << measurement_number-1 << "].len_ = " << ParcFileEntries[measurement_number-1].len_ << std::endl;
+            std::cerr << "siemens_dat.tellg() = " << siemens_dat.tellg() << std::endl;
+            std::cerr << "Please check the result." << std::endl;
+        }
+        else
+        {
+            //Read the mystery bytes
+            siemens_dat.read(reinterpret_cast<char*>(&mystery_data), mystery_bytes);
+            //After this we have to be on a 512 byte boundary
+            if (siemens_dat.tellg() % 512)
+            {
+                siemens_dat.seekg(512-(siemens_dat.tellg() % 512), std::ios::cur);
+            }
+        }
+    }
+
+    size_t end_position = siemens_dat.tellg();
+    siemens_dat.seekg(0,std::ios::end);
+    size_t eof_position = siemens_dat.tellg();
+    if (end_position != eof_position && ParcRaidHead.count_ == measurement_number)
+    {
+        size_t additional_bytes = eof_position-end_position;
+        std::cerr << "WARNING: End of file was not reached during conversion. There are " <<
+                additional_bytes << " additional bytes at the end of file." << std::endl;
+    }
+
+    return 0;
 }

@@ -83,15 +83,13 @@ endif(WIN32)
 
 INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR} )
 
-add_executable(b64
-    base64.cpp
-    embed.cpp)
+add_executable(embed base64.cpp embed.cpp)
 
-target_link_libraries(b64 ${Boost_LIBRARIES})
+target_link_libraries(embed ${Boost_LIBRARIES})
 
 add_custom_command(
     OUTPUT defaults.cpp
-    COMMAND b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
+    COMMAND embed ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
@@ -101,7 +99,7 @@ add_custom_command(
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 defaults.cpp
     VERBATIM
-    DEPENDS b64 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
+    DEPENDS embed ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
