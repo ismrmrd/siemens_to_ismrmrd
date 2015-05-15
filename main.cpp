@@ -43,121 +43,37 @@ namespace po = boost::program_options;
 
 #include <typeinfo>
 
+const size_t MYSTERY_BYTES_EXPECTED = 160;
+
 // defined in generated defaults.cpp
 extern void initializeEmbeddedFiles(void);
 extern std::map<std::string, std::string> global_embedded_files;
 
 
-struct MysteryData
-{
-    char mysteryData[160];
-};
-
-//////////////////////////////////////////
-// These are used in converters         //
-// hdf5 style variable length sequences //
-//////////////////////////////////////////
-typedef struct {
-    size_t len; /* Length of VL data (in base type units) */
-    void *p;    /* Pointer to VL data */
-} hvl_t;
-
 struct sChannelHeader_with_data
 {
     sChannelHeader channelHeader;
-    hvl_t data;
+    std::vector<complex_float_t> chdata_;
 };
-
-void ClearsChannelHeader_with_data(sChannelHeader_with_data* b)
-{
-    if (b->data.len) {
-        if (b->data.p) {
-            complex_float_t* ptr = reinterpret_cast<complex_float_t*>(b->data.p);
-            delete [] ptr;
-        }
-        b->data.p = 0;
-        b->data.len = 0;
-    }
-}
 
 struct sScanHeader_with_data
 {
     sScanHeader scanHeader;
-    hvl_t data;
+    std::vector<sChannelHeader_with_data> shdata_;
 };
 
 struct sScanHeader_with_syncdata
 {
     sScanHeader scanHeader;
     uint32_t last_scan_counter;
-    hvl_t syncdata;
+    std::vector<uint8_t> data_;
 };
-
-void ClearsScanHeader_with_data(sScanHeader_with_data* c)
-{
-    if (c->data.len) {
-        if (c->data.p) {
-            for (unsigned int i = 0; i < c->data.len; i++) {
-                sChannelHeader_with_data* ptr = reinterpret_cast<sChannelHeader_with_data*>(c->data.p);
-                ClearsChannelHeader_with_data(ptr+i);
-            }
-        }
-        c->data.p = 0;
-        c->data.len = 0;
-    }
-}
 
 struct MeasurementHeaderBuffer
 {
-    hvl_t bufName_;
-    uint32_t bufLen_;
-    hvl_t buf_;
+    std::string name;
+    std::string buf;
 };
-
-void ClearMeasurementHeaderBuffer(MeasurementHeaderBuffer* b)
-{
-    if (b->bufName_.len) {
-        if (b->bufName_.p) {
-            char* ptr = reinterpret_cast<char*>(b->bufName_.p);
-            delete [] ptr;
-        }
-        b->bufName_.p = 0;
-        b->bufName_.len = 0;
-    }
-
-    if (b->buf_.len) {
-        if (b->buf_.p) {
-            char* ptr = reinterpret_cast<char*>(b->buf_.p);
-            delete [] ptr;
-        }
-        b->buf_.len = 0;
-        b->buf_.p = 0;
-    }
-}
-
-struct MeasurementHeader
-{
-
-public:
-    uint32_t dma_length;
-    uint32_t nr_buffers;
-    hvl_t buffers;
-
-};
-
-void ClearMeasurementHeader(MeasurementHeader* h)
-{
-    if (h->buffers.len) {
-        if (h->buffers.p) {
-            MeasurementHeaderBuffer* ptr = reinterpret_cast<MeasurementHeaderBuffer*>(h->buffers.p);
-            for (unsigned int i = 0; i < h->buffers.len; i++) {
-                ClearMeasurementHeaderBuffer(ptr+i);
-            }
-        }
-        h->buffers.p = 0;
-        h->buffers.len = 0;
-    }
-}
 
 void calc_vds(double slewmax,double gradmax,double Tgsample,double Tdsample,int Ninterleaves,
     double* fov, int numfov,double krmax,
@@ -744,40 +660,33 @@ int main(int argc, char *argv[] )
         }
     }
 
-    MysteryData mystery_data;
-    MeasurementHeader mhead;
-
     // find the beginning of the desired measurement
     siemens_dat.seekg(ParcFileEntries[measurement_number-1].off_, std::ios::beg);
 
-    //MeasurementHeader mhead;
-    siemens_dat.read((char*)(&mhead.dma_length), sizeof(uint32_t));
-    siemens_dat.read((char*)(&mhead.nr_buffers), sizeof(uint32_t));
+    uint32_t dma_length = 0, num_buffers = 0;
+
+    siemens_dat.read((char*)(&dma_length), sizeof(uint32_t));
+    siemens_dat.read((char*)(&num_buffers), sizeof(uint32_t));
 
     //std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
 
-    //Now allocate dynamic memory for the buffers
-    mhead.buffers.len = mhead.nr_buffers;
+    MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[num_buffers];
 
-    MeasurementHeaderBuffer* buffers = new MeasurementHeaderBuffer[mhead.nr_buffers];
-    mhead.buffers.p = (void*)(buffers);
+    std::cout << "Number of parameter buffers: " << num_buffers << std::endl;
 
-    std::cout << "Number of parameter buffers: " << mhead.nr_buffers << std::endl;
-
-    char bufname_tmp[32];
-    for (int b = 0; b < mhead.nr_buffers; b++)
+    char tmp_bufname[32];
+    for (int b = 0; b < num_buffers; b++)
     {
-        siemens_dat.getline(bufname_tmp, 32, '\0');
-        std::cout << "Buffer Name: " << bufname_tmp << std::endl;
-        buffers[b].bufName_.len = siemens_dat.gcount() + 1;
-        bufname_tmp[siemens_dat.gcount()] = '\0';
-        buffers[b].bufName_.p = (void*)(new char[buffers[b].bufName_.len]);
-        memcpy(buffers[b].bufName_.p, bufname_tmp, buffers[b].bufName_.len);
+        siemens_dat.getline(tmp_bufname, 32, '\0');
+        std::cout << "Buffer Name: " << tmp_bufname << std::endl;
+        buffers[b].name = std::string(tmp_bufname);
 
-        siemens_dat.read((char*)(&buffers[b].bufLen_), sizeof(uint32_t));
-        buffers[b].buf_.len = buffers[b].bufLen_;
-        buffers[b].buf_.p = (void*)(new char[buffers[b].buf_.len]);
-        siemens_dat.read((char*)(buffers[b].buf_.p), buffers[b].buf_.len);
+        uint32_t buflen = 0;
+        siemens_dat.read((char*)(&buflen), sizeof(buflen));
+        buffers[b].buf = std::string(buflen+1, '\0');
+        siemens_dat.read((char*)(&buffers[b].buf[0]), buflen);
+
+        std::cout << buffers[b].buf << std::endl << std::endl;
     }
 
     //We need to be on a 32 byte boundary after reading the buffers
@@ -808,11 +717,12 @@ int main(int argc, char *argv[] )
 
     std::string protocol_name = "";
 
-    for (unsigned int b = 0; b < mhead.nr_buffers; b++)
+    for (unsigned int b = 0; b < num_buffers; b++)
     {
-        if (std::string((char*)buffers[b].bufName_.p).compare("Meas") == 0)
+        if (buffers[b].name.compare("Meas") == 0)
         {
-            std::string config_buffer((char*)buffers[b].buf_.p, buffers[b].buf_.len-2);//-2 because the last two character are ^@
+            // cut off the last 2 characters (because they are "^@")
+            std::string config_buffer(buffers[b].buf, 0, buffers[b].buf.size() - 2);
 
             XProtocol::XNode n;
 
@@ -1177,6 +1087,9 @@ int main(int argc, char *argv[] )
         }
     }
 
+    // Free memory used for MeasurementHeaderBuffers
+    delete [] buffers;
+
     // whether this scan is a adjustment scan
     bool isAdjustCoilSens = false;
     if ( protocol_name == "AdjCoilSens" )
@@ -1201,9 +1114,6 @@ int main(int argc, char *argv[] )
         std::ofstream o("xml_raw.xml");
         o.write(xml_config.c_str(), xml_config.size());
     }
-
-    //Get rid of dynamically allocated memory in header
-    ClearMeasurementHeader(&mhead);
 
 #ifndef WIN32
     xsltStylesheetPtr cur = NULL;
@@ -1452,31 +1362,30 @@ int main(int argc, char *argv[] )
          if (!siemens_dat)
          {
              std::cerr << "Error reading header at acquisition " << acquisitions << "." << std::endl;
-             ClearsScanHeader_with_data(&scanhead);
              break;
          }
 
          uint32_t dma_length = scanhead.scanHeader.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
          uint32_t mdh_enable_flags = scanhead.scanHeader.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
-
+        //Check if this is synch data, if so, it must be handled differently.
          if (scanhead.scanHeader.aulEvalInfoMask[0] & ( 1 << 5))
-         { //Check if this is synch data, if so, it must be handled differently.
+         {
              sScanHeader_with_syncdata synch_data;
              synch_data.scanHeader = scanhead.scanHeader;
              synch_data.last_scan_counter = acquisitions-1;
 
+             size_t len = 0;
              if (VBFILE)
              {
-                 synch_data.syncdata.len = dma_length-sizeof(sMDH);
+                 len = dma_length-sizeof(sMDH);
              }
              else
              {
-                 synch_data.syncdata.len = dma_length-sizeof(sScanHeader);
+                 len = dma_length-sizeof(sScanHeader);
              }
-             std::vector<uint8_t> synchdatabytes(synch_data.syncdata.len);
-             synch_data.syncdata.p = &synchdatabytes[0];
-             siemens_dat.read(reinterpret_cast<char*>(&synchdatabytes[0]), synch_data.syncdata.len);
+             synch_data.data_ = std::vector<uint8_t>(len);
+             siemens_dat.read(reinterpret_cast<char*>(&synch_data.data_[0]), len);
 
              sync_data_packets++;
              continue;
@@ -1496,9 +1405,8 @@ int main(int argc, char *argv[] )
          }
 
          //Allocate data for channels
-         scanhead.data.len = scanhead.scanHeader.ushUsedChannels;
-         sChannelHeader_with_data* chan = new sChannelHeader_with_data[scanhead.data.len];
-         scanhead.data.p = reinterpret_cast<void*>(chan);
+         size_t nchannels = scanhead.scanHeader.ushUsedChannels;
+         std::vector<sChannelHeader_with_data> chan(nchannels);
 
          for (unsigned int c = 0; c < scanhead.scanHeader.ushUsedChannels; c++)
          {
@@ -1522,15 +1430,18 @@ int main(int argc, char *argv[] )
              {
                  siemens_dat.read(reinterpret_cast<char*>(&chan[c].channelHeader), sizeof(sChannelHeader));
              }
-             chan[c].data.len = scanhead.scanHeader.ushSamplesInScan;
-             chan[c].data.p = reinterpret_cast<void*>(new complex_float_t[chan[c].data.len]);
-             siemens_dat.read(reinterpret_cast<char*>(chan[c].data.p), chan[c].data.len*sizeof(complex_float_t));
+
+             size_t nsamples = scanhead.scanHeader.ushSamplesInScan;
+             chan[c].chdata_ = std::vector<complex_float_t>(nsamples);
+             siemens_dat.read(reinterpret_cast<char*>(&chan[c].chdata_[0]), nsamples * sizeof(complex_float_t));
          }
+
+         // Save channel data
+         scanhead.shdata_ = chan;
 
          if (!siemens_dat)
          {
              std::cerr << "Error reading data at acquisition " << acquisitions << "." << std::endl;
-             ClearsScanHeader_with_data(&scanhead);
              break;
          }
          
@@ -1540,7 +1451,6 @@ int main(int argc, char *argv[] )
          if (scanhead.scanHeader.aulEvalInfoMask[0] & 1)
          {
              std::cout << "Last scan reached..." << std::endl;
-             ClearsScanHeader_with_data(&scanhead);
              break;
          }
 
@@ -1695,11 +1605,10 @@ int main(int argc, char *argv[] )
              ismrmrd_acq->resize(scanhead.scanHeader.ushSamplesInScan, scanhead.scanHeader.ushUsedChannels);
          }
 
-         sChannelHeader_with_data* channel_header = reinterpret_cast<sChannelHeader_with_data*>(scanhead.data.p);
          for (unsigned int c = 0; c < ismrmrd_acq->active_channels(); c++)
          {
-             complex_float_t* dptr = static_cast< complex_float_t* >(channel_header[c].data.p);
-             memcpy((complex_float_t *)&(ismrmrd_acq->getDataPtr()[c*ismrmrd_acq->number_of_samples()]), dptr, ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
+             memcpy((complex_float_t *)&(ismrmrd_acq->getDataPtr()[c*ismrmrd_acq->number_of_samples()]),
+                     &scanhead.shdata_[c].chdata_[0], ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
          }
 
          ismrmrd_dataset.appendAcquisition(*ismrmrd_acq);
@@ -1707,8 +1616,6 @@ int main(int argc, char *argv[] )
          if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 ) {
              std::cout << "wrote scan : " << scanhead.scanHeader.ulScanCounter << std::endl;
          }
-
-         ClearsScanHeader_with_data(&scanhead);
 
          delete ismrmrd_acq;
 
@@ -1725,9 +1632,9 @@ int main(int argc, char *argv[] )
 
     if (mystery_bytes > 0)
     {
-        if (mystery_bytes != 160)
+        if (mystery_bytes != MYSTERY_BYTES_EXPECTED)
         {
-            //Something in not quite right
+            // Something in not quite right
             std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
             std::cerr << "ParcFileEntries[" << measurement_number-1 << "].off_ = " << ParcFileEntries[measurement_number-1].off_ << std::endl;
             std::cerr << "ParcFileEntries[" << measurement_number-1 << "].len_ = " << ParcFileEntries[measurement_number-1].len_ << std::endl;
@@ -1736,7 +1643,8 @@ int main(int argc, char *argv[] )
         }
         else
         {
-            //Read the mystery bytes
+            // Read the mystery bytes
+            char mystery_data[MYSTERY_BYTES_EXPECTED];
             siemens_dat.read(reinterpret_cast<char*>(&mystery_data), mystery_bytes);
             //After this we have to be on a 512 byte boundary
             if (siemens_dat.tellg() % 512)
