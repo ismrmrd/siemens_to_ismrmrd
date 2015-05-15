@@ -50,23 +50,10 @@ extern void initializeEmbeddedFiles(void);
 extern std::map<std::string, std::string> global_embedded_files;
 
 
-struct sChannelHeader_with_data
+struct ChannelHeaderAndData
 {
-    sChannelHeader channelHeader;
-    std::vector<complex_float_t> chdata_;
-};
-
-struct sScanHeader_with_data
-{
-    sScanHeader scanHeader;
-    std::vector<sChannelHeader_with_data> shdata_;
-};
-
-struct sScanHeader_with_syncdata
-{
-    sScanHeader scanHeader;
-    uint32_t last_scan_counter;
-    std::vector<uint8_t> data_;
+    sChannelHeader header;
+    std::vector<complex_float_t> data;
 };
 
 struct MeasurementHeaderBuffer
@@ -1318,45 +1305,45 @@ int main(int argc, char *argv[] )
              (((ParcFileEntries[measurement_number-1].off_+ ParcFileEntries[measurement_number-1].len_)-siemens_dat.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
      {
          size_t position_in_meas = siemens_dat.tellg();
-         sScanHeader_with_data scanhead;
-         siemens_dat.read(reinterpret_cast<char*>(&scanhead.scanHeader.ulFlagsAndDMALength), sizeof(uint32_t));
+         sScanHeader scanhead;
+         siemens_dat.read(reinterpret_cast<char*>(&scanhead.ulFlagsAndDMALength), sizeof(uint32_t));
 
          if (VBFILE)
          {
              siemens_dat.read(reinterpret_cast<char*>(&mdh) + sizeof(uint32_t), sizeof(sMDH) - sizeof(uint32_t));
-             scanhead.scanHeader.lMeasUID = mdh.lMeasUID;
-             scanhead.scanHeader.ulScanCounter = mdh.ulScanCounter;
-             scanhead.scanHeader.ulTimeStamp = mdh.ulTimeStamp;
-             scanhead.scanHeader.ulPMUTimeStamp = mdh.ulPMUTimeStamp;
-             scanhead.scanHeader.ushSystemType = 0;
-             scanhead.scanHeader.ulPTABPosDelay = 0;
-             scanhead.scanHeader.lPTABPosX = 0;
-             scanhead.scanHeader.lPTABPosY = 0;
-             scanhead.scanHeader.lPTABPosZ = mdh.ushPTABPosNeg;//TODO: Modify calculation
-             scanhead.scanHeader.ulReserved1 = 0;
-             scanhead.scanHeader.aulEvalInfoMask[0] = mdh.aulEvalInfoMask[0];
-             scanhead.scanHeader.aulEvalInfoMask[1] = mdh.aulEvalInfoMask[1];
-             scanhead.scanHeader.ushSamplesInScan = mdh.ushSamplesInScan;
-             scanhead.scanHeader.ushUsedChannels = mdh.ushUsedChannels;
-             scanhead.scanHeader.sLC = mdh.sLC;
-             scanhead.scanHeader.sCutOff = mdh.sCutOff;
-             scanhead.scanHeader.ushKSpaceCentreColumn = mdh.ushKSpaceCentreColumn;
-             scanhead.scanHeader.ushCoilSelect = mdh.ushCoilSelect;
-             scanhead.scanHeader.fReadOutOffcentre = mdh.fReadOutOffcentre;
-             scanhead.scanHeader.ulTimeSinceLastRF = mdh.ulTimeSinceLastRF;
-             scanhead.scanHeader.ushKSpaceCentreLineNo = mdh.ushKSpaceCentreLineNo;
-             scanhead.scanHeader.ushKSpaceCentrePartitionNo = mdh.ushKSpaceCentrePartitionNo;
-             scanhead.scanHeader.sSliceData = mdh.sSliceData;
-             memset(scanhead.scanHeader.aushIceProgramPara,0,sizeof(uint16_t)*24);
-             memcpy(scanhead.scanHeader.aushIceProgramPara,mdh.aushIceProgramPara,8*sizeof(uint16_t));
-             memset(scanhead.scanHeader.aushReservedPara,0,sizeof(uint16_t)*4);
-             scanhead.scanHeader.ushApplicationCounter = 0;
-             scanhead.scanHeader.ushApplicationMask = 0;
-             scanhead.scanHeader.ulCRC = 0;
+             scanhead.lMeasUID = mdh.lMeasUID;
+             scanhead.ulScanCounter = mdh.ulScanCounter;
+             scanhead.ulTimeStamp = mdh.ulTimeStamp;
+             scanhead.ulPMUTimeStamp = mdh.ulPMUTimeStamp;
+             scanhead.ushSystemType = 0;
+             scanhead.ulPTABPosDelay = 0;
+             scanhead.lPTABPosX = 0;
+             scanhead.lPTABPosY = 0;
+             scanhead.lPTABPosZ = mdh.ushPTABPosNeg;//TODO: Modify calculation
+             scanhead.ulReserved1 = 0;
+             scanhead.aulEvalInfoMask[0] = mdh.aulEvalInfoMask[0];
+             scanhead.aulEvalInfoMask[1] = mdh.aulEvalInfoMask[1];
+             scanhead.ushSamplesInScan = mdh.ushSamplesInScan;
+             scanhead.ushUsedChannels = mdh.ushUsedChannels;
+             scanhead.sLC = mdh.sLC;
+             scanhead.sCutOff = mdh.sCutOff;
+             scanhead.ushKSpaceCentreColumn = mdh.ushKSpaceCentreColumn;
+             scanhead.ushCoilSelect = mdh.ushCoilSelect;
+             scanhead.fReadOutOffcentre = mdh.fReadOutOffcentre;
+             scanhead.ulTimeSinceLastRF = mdh.ulTimeSinceLastRF;
+             scanhead.ushKSpaceCentreLineNo = mdh.ushKSpaceCentreLineNo;
+             scanhead.ushKSpaceCentrePartitionNo = mdh.ushKSpaceCentrePartitionNo;
+             scanhead.sSliceData = mdh.sSliceData;
+             memset(scanhead.aushIceProgramPara,0,sizeof(uint16_t)*24);
+             memcpy(scanhead.aushIceProgramPara,mdh.aushIceProgramPara,8*sizeof(uint16_t));
+             memset(scanhead.aushReservedPara,0,sizeof(uint16_t)*4);
+             scanhead.ushApplicationCounter = 0;
+             scanhead.ushApplicationMask = 0;
+             scanhead.ulCRC = 0;
          }
          else
          {
-             siemens_dat.read(reinterpret_cast<char*>(&scanhead.scanHeader) + sizeof(uint32_t), sizeof(sScanHeader)-sizeof(uint32_t));
+             siemens_dat.read(reinterpret_cast<char*>(&scanhead) + sizeof(uint32_t), sizeof(sScanHeader)-sizeof(uint32_t));
          }
 
          if (!siemens_dat)
@@ -1365,15 +1352,13 @@ int main(int argc, char *argv[] )
              break;
          }
 
-         uint32_t dma_length = scanhead.scanHeader.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
-         uint32_t mdh_enable_flags = scanhead.scanHeader.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
+         uint32_t dma_length = scanhead.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
+         uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
         //Check if this is synch data, if so, it must be handled differently.
-         if (scanhead.scanHeader.aulEvalInfoMask[0] & ( 1 << 5))
+         if (scanhead.aulEvalInfoMask[0] & ( 1 << 5))
          {
-             sScanHeader_with_syncdata synch_data;
-             synch_data.scanHeader = scanhead.scanHeader;
-             synch_data.last_scan_counter = acquisitions-1;
+             uint32_t last_scan_counter = acquisitions-1;
 
              size_t len = 0;
              if (VBFILE)
@@ -1384,31 +1369,32 @@ int main(int argc, char *argv[] )
              {
                  len = dma_length-sizeof(sScanHeader);
              }
-             synch_data.data_ = std::vector<uint8_t>(len);
-             siemens_dat.read(reinterpret_cast<char*>(&synch_data.data_[0]), len);
+
+             std::vector<uint8_t> syncdata(len);
+             siemens_dat.read(reinterpret_cast<char*>(&syncdata[0]), len);
 
              sync_data_packets++;
              continue;
          }
 
          //This check only makes sense in VD line files.
-         if (!VBFILE && (scanhead.scanHeader.lMeasUID != ParcFileEntries[measurement_number-1].measId_))
+         if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number-1].measId_))
          {
              //Something must have gone terribly wrong. Bail out.
              if ( first_call )
              {
-                 std::cerr << "Corrupted or retro-recon dataset detected (scanhead.scanHeader.lMeasUID != ParcFileEntries[" << measurement_number-1 << "].measId_)" << std::endl;
-                 std::cerr << "Fix the scanhead.scanHeader.lMeasUID ... " << std::endl;
+                 std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries[" << measurement_number-1 << "].measId_)" << std::endl;
+                 std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
                  first_call = false;
              }
-             scanhead.scanHeader.lMeasUID = ParcFileEntries[measurement_number-1].measId_;
+             scanhead.lMeasUID = ParcFileEntries[measurement_number-1].measId_;
          }
 
          //Allocate data for channels
-         size_t nchannels = scanhead.scanHeader.ushUsedChannels;
-         std::vector<sChannelHeader_with_data> chan(nchannels);
+         size_t nchannels = scanhead.ushUsedChannels;
+         std::vector<ChannelHeaderAndData> channels(nchannels);
 
-         for (unsigned int c = 0; c < scanhead.scanHeader.ushUsedChannels; c++)
+         for (unsigned int c = 0; c < scanhead.ushUsedChannels; c++)
          {
              if (VBFILE)
              {
@@ -1416,28 +1402,25 @@ int main(int argc, char *argv[] )
                  {
                      siemens_dat.read(reinterpret_cast<char*>(&mdh), sizeof(sMDH));
                  }
-                 chan[c].channelHeader.ulTypeAndChannelLength = 0;
-                 chan[c].channelHeader.lMeasUID = mdh.lMeasUID;
-                 chan[c].channelHeader.ulScanCounter = mdh.ulScanCounter;
-                 chan[c].channelHeader.ulReserved1 = 0;
-                 chan[c].channelHeader.ulSequenceTime = 0;
-                 chan[c].channelHeader.ulUnused2 = 0;
-                 chan[c].channelHeader.ulChannelId = mdh.ushChannelId;
-                 chan[c].channelHeader.ulUnused3 = 0;
-                 chan[c].channelHeader.ulCRC = 0;
+                 channels[c].header.ulTypeAndChannelLength = 0;
+                 channels[c].header.lMeasUID = mdh.lMeasUID;
+                 channels[c].header.ulScanCounter = mdh.ulScanCounter;
+                 channels[c].header.ulReserved1 = 0;
+                 channels[c].header.ulSequenceTime = 0;
+                 channels[c].header.ulUnused2 = 0;
+                 channels[c].header.ulChannelId = mdh.ushChannelId;
+                 channels[c].header.ulUnused3 = 0;
+                 channels[c].header.ulCRC = 0;
              }
              else
              {
-                 siemens_dat.read(reinterpret_cast<char*>(&chan[c].channelHeader), sizeof(sChannelHeader));
+                 siemens_dat.read(reinterpret_cast<char*>(&channels[c].header), sizeof(sChannelHeader));
              }
 
-             size_t nsamples = scanhead.scanHeader.ushSamplesInScan;
-             chan[c].chdata_ = std::vector<complex_float_t>(nsamples);
-             siemens_dat.read(reinterpret_cast<char*>(&chan[c].chdata_[0]), nsamples * sizeof(complex_float_t));
+             size_t nsamples = scanhead.ushSamplesInScan;
+             channels[c].data = std::vector<complex_float_t>(nsamples);
+             siemens_dat.read(reinterpret_cast<char*>(&channels[c].data[0]), nsamples * sizeof(complex_float_t));
          }
-
-         // Save channel data
-         scanhead.shdata_ = chan;
 
          if (!siemens_dat)
          {
@@ -1446,9 +1429,9 @@ int main(int argc, char *argv[] )
          }
          
          acquisitions++;
-         last_mask = scanhead.scanHeader.aulEvalInfoMask[0];
+         last_mask = scanhead.aulEvalInfoMask[0];
 
-         if (scanhead.scanHeader.aulEvalInfoMask[0] & 1)
+         if (scanhead.aulEvalInfoMask[0] & 1)
          {
              std::cout << "Last scan reached..." << std::endl;
              break;
@@ -1458,110 +1441,110 @@ int main(int argc, char *argv[] )
          // The number of samples, channels and trajectory dimensions is set below
 
          // Acquisition header values are zero by default
-         ismrmrd_acq->measurement_uid()          = scanhead.scanHeader.lMeasUID;
-         ismrmrd_acq->scan_counter()             = scanhead.scanHeader.ulScanCounter;
-         ismrmrd_acq->acquisition_time_stamp()   = scanhead.scanHeader.ulTimeStamp;
-         ismrmrd_acq->physiology_time_stamp()[0] = scanhead.scanHeader.ulPMUTimeStamp;
+         ismrmrd_acq->measurement_uid()          = scanhead.lMeasUID;
+         ismrmrd_acq->scan_counter()             = scanhead.ulScanCounter;
+         ismrmrd_acq->acquisition_time_stamp()   = scanhead.ulTimeStamp;
+         ismrmrd_acq->physiology_time_stamp()[0] = scanhead.ulPMUTimeStamp;
          ismrmrd_acq->available_channels()       = (uint16_t)max_channels;
          // uint64_t channel_mask[16];     //Mask to indicate which channels are active. Support for 1024 channels
-         ismrmrd_acq->discard_pre()             = scanhead.scanHeader.sCutOff.ushPre;
-         ismrmrd_acq->discard_post()            = scanhead.scanHeader.sCutOff.ushPost;
-         ismrmrd_acq->center_sample()           = scanhead.scanHeader.ushKSpaceCentreColumn;
+         ismrmrd_acq->discard_pre()             = scanhead.sCutOff.ushPre;
+         ismrmrd_acq->discard_post()            = scanhead.sCutOff.ushPost;
+         ismrmrd_acq->center_sample()           = scanhead.ushKSpaceCentreColumn;
 
-         if ( scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25) )
+         if ( scanhead.aulEvalInfoMask[0] & (1ULL << 25) )
          { //This is noise
-             ismrmrd_acq->sample_time_us() =  compute_noise_sample_in_us(scanhead.scanHeader.ushSamplesInScan, isAdjustCoilSens, isVB);
+             ismrmrd_acq->sample_time_us() =  compute_noise_sample_in_us(scanhead.ushSamplesInScan, isAdjustCoilSens, isVB);
          }
          else
          {
              ismrmrd_acq->sample_time_us() = dwell_time_0 / 1000.0f;
          }
 
-         ismrmrd_acq->position()[0] = scanhead.scanHeader.sSliceData.sSlicePosVec.flSag;
-         ismrmrd_acq->position()[1] = scanhead.scanHeader.sSliceData.sSlicePosVec.flCor;
-         ismrmrd_acq->position()[2] = scanhead.scanHeader.sSliceData.sSlicePosVec.flTra;
+         ismrmrd_acq->position()[0] = scanhead.sSliceData.sSlicePosVec.flSag;
+         ismrmrd_acq->position()[1] = scanhead.sSliceData.sSlicePosVec.flCor;
+         ismrmrd_acq->position()[2] = scanhead.sSliceData.sSlicePosVec.flTra;
 
          // Convert Siemens quaternions to direction cosines.
          // In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
          // Siemens stores the quaternion as (W,X,Y,Z)
          float quat[4];
-         quat[0] = scanhead.scanHeader.sSliceData.aflQuaternion[1]; // X
-         quat[1] = scanhead.scanHeader.sSliceData.aflQuaternion[2]; // Y
-         quat[2] = scanhead.scanHeader.sSliceData.aflQuaternion[3]; // Z
-         quat[3] = scanhead.scanHeader.sSliceData.aflQuaternion[0]; // W
+         quat[0] = scanhead.sSliceData.aflQuaternion[1]; // X
+         quat[1] = scanhead.sSliceData.aflQuaternion[2]; // Y
+         quat[2] = scanhead.sSliceData.aflQuaternion[3]; // Z
+         quat[3] = scanhead.sSliceData.aflQuaternion[0]; // W
          ISMRMRD::ismrmrd_quaternion_to_directions(  quat,
                                              ismrmrd_acq->phase_dir(),
                                              ismrmrd_acq->read_dir(),
                                              ismrmrd_acq->slice_dir());
 
-         ismrmrd_acq->patient_table_position()[0]  = (float)scanhead.scanHeader.lPTABPosX;
-         ismrmrd_acq->patient_table_position()[1]  = (float)scanhead.scanHeader.lPTABPosY;
-         ismrmrd_acq->patient_table_position()[2]  = (float)scanhead.scanHeader.lPTABPosZ;
+         ismrmrd_acq->patient_table_position()[0]  = (float)scanhead.lPTABPosX;
+         ismrmrd_acq->patient_table_position()[1]  = (float)scanhead.lPTABPosY;
+         ismrmrd_acq->patient_table_position()[2]  = (float)scanhead.lPTABPosZ;
 
          bool fixedE1E2 = true;
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25)))   fixedE1E2 = false; // noise
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1)))    fixedE1E2 = false; // navigator, rt feedback
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 2)))    fixedE1E2 = false; // hp feedback
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 51)))   fixedE1E2 = false; // dummy
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 5)))    fixedE1E2 = false; // synch data
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 25)))   fixedE1E2 = false; // noise
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1)))    fixedE1E2 = false; // navigator, rt feedback
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 2)))    fixedE1E2 = false; // hp feedback
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 51)))   fixedE1E2 = false; // dummy
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 5)))    fixedE1E2 = false; // synch data
 
-         ismrmrd_acq->idx().average              = scanhead.scanHeader.sLC.ushAcquisition;
-         ismrmrd_acq->idx().contrast             = scanhead.scanHeader.sLC.ushEcho;
-         ismrmrd_acq->idx().kspace_encode_step_1 = scanhead.scanHeader.sLC.ushLine;
-         ismrmrd_acq->idx().kspace_encode_step_2 = scanhead.scanHeader.sLC.ushPartition;
-         ismrmrd_acq->idx().phase                = scanhead.scanHeader.sLC.ushPhase;
-         ismrmrd_acq->idx().repetition           = scanhead.scanHeader.sLC.ushRepetition;
-         ismrmrd_acq->idx().segment              = scanhead.scanHeader.sLC.ushSeg;
-         ismrmrd_acq->idx().set                  = scanhead.scanHeader.sLC.ushSet;
-         ismrmrd_acq->idx().slice                = scanhead.scanHeader.sLC.ushSlice;
-         ismrmrd_acq->idx().user[0]            = scanhead.scanHeader.sLC.ushIda;
-         ismrmrd_acq->idx().user[1]            = scanhead.scanHeader.sLC.ushIdb;
-         ismrmrd_acq->idx().user[2]            = scanhead.scanHeader.sLC.ushIdc;
-         ismrmrd_acq->idx().user[3]            = scanhead.scanHeader.sLC.ushIdd;
-         ismrmrd_acq->idx().user[4]            = scanhead.scanHeader.sLC.ushIde;
+         ismrmrd_acq->idx().average              = scanhead.sLC.ushAcquisition;
+         ismrmrd_acq->idx().contrast             = scanhead.sLC.ushEcho;
+         ismrmrd_acq->idx().kspace_encode_step_1 = scanhead.sLC.ushLine;
+         ismrmrd_acq->idx().kspace_encode_step_2 = scanhead.sLC.ushPartition;
+         ismrmrd_acq->idx().phase                = scanhead.sLC.ushPhase;
+         ismrmrd_acq->idx().repetition           = scanhead.sLC.ushRepetition;
+         ismrmrd_acq->idx().segment              = scanhead.sLC.ushSeg;
+         ismrmrd_acq->idx().set                  = scanhead.sLC.ushSet;
+         ismrmrd_acq->idx().slice                = scanhead.sLC.ushSlice;
+         ismrmrd_acq->idx().user[0]            = scanhead.sLC.ushIda;
+         ismrmrd_acq->idx().user[1]            = scanhead.sLC.ushIdb;
+         ismrmrd_acq->idx().user[2]            = scanhead.sLC.ushIdc;
+         ismrmrd_acq->idx().user[3]            = scanhead.sLC.ushIdd;
+         ismrmrd_acq->idx().user[4]            = scanhead.sLC.ushIde;
          // TODO: remove this once the GTPlus can properly autodetect partial fourier
-         ismrmrd_acq->idx().user[5]            = scanhead.scanHeader.ushKSpaceCentreLineNo;
-         ismrmrd_acq->idx().user[6]            = scanhead.scanHeader.ushKSpaceCentrePartitionNo;
+         ismrmrd_acq->idx().user[5]            = scanhead.ushKSpaceCentreLineNo;
+         ismrmrd_acq->idx().user[6]            = scanhead.ushKSpaceCentrePartitionNo;
 
          /*****************************************************************************/
          /* the user_int[0] and user_int[1] are used to store user defined parameters */
          /*****************************************************************************/
-         ismrmrd_acq->user_int()[0]   = scanhead.scanHeader.aushIceProgramPara[0];
-         ismrmrd_acq->user_int()[1]   = scanhead.scanHeader.aushIceProgramPara[1];
-         ismrmrd_acq->user_int()[2]   = scanhead.scanHeader.aushIceProgramPara[2];
-         ismrmrd_acq->user_int()[3]   = scanhead.scanHeader.aushIceProgramPara[3];
-         ismrmrd_acq->user_int()[4]   = scanhead.scanHeader.aushIceProgramPara[4];
-         ismrmrd_acq->user_int()[5]   = scanhead.scanHeader.aushIceProgramPara[5];
-         ismrmrd_acq->user_int()[6]   = scanhead.scanHeader.aushIceProgramPara[6];
-         ismrmrd_acq->user_int()[7]   = scanhead.scanHeader.aushIceProgramPara[7];
+         ismrmrd_acq->user_int()[0]   = scanhead.aushIceProgramPara[0];
+         ismrmrd_acq->user_int()[1]   = scanhead.aushIceProgramPara[1];
+         ismrmrd_acq->user_int()[2]   = scanhead.aushIceProgramPara[2];
+         ismrmrd_acq->user_int()[3]   = scanhead.aushIceProgramPara[3];
+         ismrmrd_acq->user_int()[4]   = scanhead.aushIceProgramPara[4];
+         ismrmrd_acq->user_int()[5]   = scanhead.aushIceProgramPara[5];
+         ismrmrd_acq->user_int()[6]   = scanhead.aushIceProgramPara[6];
+         ismrmrd_acq->user_int()[7]   = scanhead.aushIceProgramPara[7];
 
-         ismrmrd_acq->user_float()[0] = scanhead.scanHeader.aushIceProgramPara[8];
-         ismrmrd_acq->user_float()[1] = scanhead.scanHeader.aushIceProgramPara[9];
-         ismrmrd_acq->user_float()[2] = scanhead.scanHeader.aushIceProgramPara[10];
-         ismrmrd_acq->user_float()[3] = scanhead.scanHeader.aushIceProgramPara[11];
-         ismrmrd_acq->user_float()[4] = scanhead.scanHeader.aushIceProgramPara[12];
-         ismrmrd_acq->user_float()[5] = scanhead.scanHeader.aushIceProgramPara[13];
-         ismrmrd_acq->user_float()[6] = scanhead.scanHeader.aushIceProgramPara[14];
-         ismrmrd_acq->user_float()[7] = scanhead.scanHeader.aushIceProgramPara[15];
+         ismrmrd_acq->user_float()[0] = scanhead.aushIceProgramPara[8];
+         ismrmrd_acq->user_float()[1] = scanhead.aushIceProgramPara[9];
+         ismrmrd_acq->user_float()[2] = scanhead.aushIceProgramPara[10];
+         ismrmrd_acq->user_float()[3] = scanhead.aushIceProgramPara[11];
+         ismrmrd_acq->user_float()[4] = scanhead.aushIceProgramPara[12];
+         ismrmrd_acq->user_float()[5] = scanhead.aushIceProgramPara[13];
+         ismrmrd_acq->user_float()[6] = scanhead.aushIceProgramPara[14];
+         ismrmrd_acq->user_float()[7] = scanhead.aushIceProgramPara[15];
 
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 25)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 28)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_FIRST_IN_SLICE);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 29)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_SLICE);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_REPETITION);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 22)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 23)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 24)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_REVERSE);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 21)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PHASECORR_DATA);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_NAVIGATION_DATA);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_RTFEEDBACK_DATA);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 2)))    ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_HPFEEDBACK_DATA);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 51)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 10)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA);
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 5)))    ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
-         // if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_REPETITION);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 25)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 28)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_FIRST_IN_SLICE);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 29)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_SLICE);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_REPETITION);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 23)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 24)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_REVERSE);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 21)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PHASECORR_DATA);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_NAVIGATION_DATA);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1)))    ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_RTFEEDBACK_DATA);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 2)))    ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_HPFEEDBACK_DATA);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 51)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 10)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 5)))    ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
+         // if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_REPETITION);
 
-         if ((scanhead.scanHeader.aulEvalInfoMask[0] & (1ULL << 46)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 46)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
 
          if ((flash_pat_ref_scan) & (ismrmrd_acq->isFlagSet(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION)))
          {
@@ -1585,8 +1568,8 @@ int main(int argc, char *argv[] )
 
              // Set the acquisition number of samples, channels and trajectory dimensions
              // this reallocates the memory
-             ismrmrd_acq->resize(scanhead.scanHeader.ushSamplesInScan,
-                                 scanhead.scanHeader.ushUsedChannels,
+             ismrmrd_acq->resize(scanhead.ushSamplesInScan,
+                                 scanhead.ushUsedChannels,
                                  traj_dim[0]);
              
              unsigned long traj_samples_to_copy = ismrmrd_acq->number_of_samples();
@@ -1602,19 +1585,19 @@ int main(int argc, char *argv[] )
          { //No trajectory
              // Set the acquisition number of samples, channels and trajectory dimensions
              // this reallocates the memory
-             ismrmrd_acq->resize(scanhead.scanHeader.ushSamplesInScan, scanhead.scanHeader.ushUsedChannels);
+             ismrmrd_acq->resize(scanhead.ushSamplesInScan, scanhead.ushUsedChannels);
          }
 
          for (unsigned int c = 0; c < ismrmrd_acq->active_channels(); c++)
          {
              memcpy((complex_float_t *)&(ismrmrd_acq->getDataPtr()[c*ismrmrd_acq->number_of_samples()]),
-                     &scanhead.shdata_[c].chdata_[0], ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
+                     &channels[c].data[0], ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
          }
 
          ismrmrd_dataset.appendAcquisition(*ismrmrd_acq);
 
-         if ( scanhead.scanHeader.ulScanCounter % 1000 == 0 ) {
-             std::cout << "wrote scan : " << scanhead.scanHeader.ulScanCounter << std::endl;
+         if ( scanhead.ulScanCounter % 1000 == 0 ) {
+             std::cout << "wrote scan : " << scanhead.ulScanCounter << std::endl;
          }
 
          delete ismrmrd_acq;
