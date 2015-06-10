@@ -672,8 +672,6 @@ int main(int argc, char *argv[] )
         siemens_dat.read((char*)(&buflen), sizeof(buflen));
         buffers[b].buf = std::string(buflen+1, '\0');
         siemens_dat.read((char*)(&buffers[b].buf[0]), buflen);
-
-        std::cout << buffers[b].buf << std::endl << std::endl;
     }
 
     //We need to be on a 32 byte boundary after reading the buffers
