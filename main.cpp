@@ -1529,8 +1529,17 @@ int main(int argc, char *argv[] )
          if ((scanhead.aulEvalInfoMask[0] & (1ULL << 28)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_FIRST_IN_SLICE);
          if ((scanhead.aulEvalInfoMask[0] & (1ULL << 29)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_SLICE);
          if ((scanhead.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_REPETITION);
-         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
-         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 23)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING);
+
+         /// if a line is both image and ref, then do not set the ref flag
+         if ((scanhead.aulEvalInfoMask[0] & (1ULL << 23)))
+         {
+             ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING);
+         }
+         else
+         {
+             if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
+         }
+
          if ((scanhead.aulEvalInfoMask[0] & (1ULL << 24)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_REVERSE);
          if ((scanhead.aulEvalInfoMask[0] & (1ULL << 11)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
          if ((scanhead.aulEvalInfoMask[0] & (1ULL << 21)))   ismrmrd_acq->setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PHASECORR_DATA);
