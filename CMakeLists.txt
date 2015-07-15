@@ -61,9 +61,15 @@ if(WIN32)
     set(Boost_NO_BOOST_CMAKE ON)
 endif(WIN32)
 
-# Added for static linking!!!
-set(Boost_USE_STATIC_LIBS ON)
-
+ # Added for static linking!!!
+ if (BUILD_DYNAMIC)
+    set(Boost_USE_STATIC_LIBS OFF)
+    message("Building dynamically linked application.")
+ else (BUILD_DYNAMIC)
+   set(Boost_USE_STATIC_LIBS ON)
+   message("Building statically linked application.")
+ endif(BUILD_DYNAMIC)
+ 
 find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
 find_package(Ismrmrd REQUIRED)
 
