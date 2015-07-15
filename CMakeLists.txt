@@ -59,10 +59,9 @@ set(CMAKE_MODULE_PATH ${ISMRMRD_CMAKE_MODULES})
 
 if(WIN32)
     set(Boost_NO_BOOST_CMAKE ON)
+    # Added for static linking!!!
+    set(Boost_USE_STATIC_LIBS ON)
 endif(WIN32)
-
-# Added for static linking!!!
-set(Boost_USE_STATIC_LIBS ON)
 
 find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
 find_package(Ismrmrd REQUIRED)
