@@ -33,8 +33,7 @@ $ sudo apt-get install libboost-all-dev xsdcxx libxerces-c-dev libhdf5-serial-de
 $ tar -zxvf ismrmrd.tar.gz
 ```
 ```sh
-$ git clone git://git.code.sf.net/p/ismrmrd/code ismrmrd
-$ git checkout development
+$ git clone https://github.com/ismrmrd/ismrmrd.git
 ```
 #### Install ISMRMRD
 ```sh
@@ -58,7 +57,7 @@ $ source $HOME/.bash_profile
 $ tar -zxvf siemens_to_ismrmrd.tar.gz
 ```
 ```sh
-$ git clone https://github.com/nih-fmrif/siemens_to_ismrmrd
+$ git clone https://github.com/ismrmrd/siemens_to_ismrmrd.git
 ```
 
 #### Install siemens_to_ismrmrd:
