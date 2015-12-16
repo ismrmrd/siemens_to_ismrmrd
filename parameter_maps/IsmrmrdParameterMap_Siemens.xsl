@@ -140,7 +140,6 @@
                 <receiverChannels>
                     <xsl:value-of select="siemens/YAPS/iMaxNoOfRxChannels" />
                 </receiverChannels>
-		
 		<!-- Coil Labels -->
 		<xsl:choose>
                   <!-- VD line with dual density -->
@@ -596,7 +595,7 @@
                             <xsl:value-of select=". div 1000.0" />
                         </TI>
                     </xsl:if>
-                </xsl:for-each> 
+                </xsl:for-each>
                 <xsl:for-each select="siemens/DICOM/adFlipAngleDegree">
                 <xsl:if test=". &gt; 0">
                         <flipAngle_deg>
@@ -723,6 +722,27 @@
                     </value>
                   </userParameterDouble>
                 </xsl:if>
+
+                <!-- list out ALL the userParameters (WIPMemBlock)- note unit offset! -->
+                <xsl:for-each select="siemens/MEAS/sWipMemBlock/alFree">
+                      <xsl:variable name="CurLong" select="position()"/>
+                      <userParameterLong>
+                        <name>sWipMemBlock.alFree[<xsl:value-of select="$CurLong - 1" />]</name>
+                        <value>
+                          <xsl:value-of select="."/>
+                        </value>
+                      </userParameterLong>
+                </xsl:for-each>
+
+                <xsl:for-each select="siemens/MEAS/sWipMemBlock/adFree">
+                      <xsl:variable name="CurDouble" select="position()"/>
+                      <userParameterDouble>
+                        <name>sWipMemBlock.adFree[<xsl:value-of select="$CurDouble - 1" />]</name>
+                        <value>
+                          <xsl:value-of select="."/>
+                        </value>
+                      </userParameterDouble>
+                </xsl:for-each>
 
             </userParameters>
 
