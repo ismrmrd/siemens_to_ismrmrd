@@ -40,7 +40,7 @@ namespace po = boost::program_options;
 #include <sstream>
 #include <streambuf>
 #include <utility>
-
+#include <codecvt>
 #include <typeinfo>
 
 const size_t MYSTERY_BYTES_EXPECTED = 160;
@@ -307,6 +307,21 @@ std::string load_embedded(std::string name)
         exit(1);
     }
     return contents;
+}
+
+
+std::string ws2s(const std::wstring& wstr)
+{
+    std::string ret(wstr.size(),'0');
+    for (size_t i = 0; i < wstr.size(); i++) {
+        wchar_t c = wstr[i];
+        if (((uint32_t)c) > 127) {
+            ret[i] = 'X';
+        } else {
+            ret[i] = static_cast<char>(c);
+        }
+    }
+    return ret;
 }
 
 int main(int argc, char *argv[] )
@@ -667,11 +682,15 @@ int main(int argc, char *argv[] )
         siemens_dat.getline(tmp_bufname, 32, '\0');
         std::cout << "Buffer Name: " << tmp_bufname << std::endl;
         buffers[b].name = std::string(tmp_bufname);
-
         uint32_t buflen = 0;
         siemens_dat.read((char*)(&buflen), sizeof(buflen));
-        buffers[b].buf = std::string(buflen+1, '\0');
-        siemens_dat.read((char*)(&buffers[b].buf[0]), buflen);
+        char* bytebuf = new char[buflen+1];
+        bytebuf[buflen] = 0;
+        siemens_dat.read(bytebuf, buflen);
+        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>,wchar_t> convert;
+        std::wstring output = convert.from_bytes(bytebuf);
+        buffers[b].buf = ws2s(output);
+        delete [] bytebuf;
     }
 
     //We need to be on a 32 byte boundary after reading the buffers
@@ -706,9 +725,7 @@ int main(int argc, char *argv[] )
     {
         if (buffers[b].name.compare("Meas") == 0)
         {
-            // cut off the last 2 characters (because they are "^@")
-            std::string config_buffer(buffers[b].buf, 0, buffers[b].buf.size() - 2);
-
+            std::string config_buffer = buffers[b].buf;
             XProtocol::XNode n;
 
             if (debug_xml)
@@ -719,7 +736,7 @@ int main(int argc, char *argv[] )
 
             if (XProtocol::ParseXProtocol(const_cast<std::string&>(config_buffer),n) < 0)
             {
-                std::cerr << "Failed to parse XProtocol" << std::endl;
+                std::cerr << "Failed to parse XProtocol for buffer " << buffers[b].name << std::endl;
                 return -1;
             }
 
