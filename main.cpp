@@ -726,7 +726,7 @@ int main(int argc, char *argv[] )
     {
         if (buffers[b].name.compare("Meas") == 0)
         {
-            std::string config_buffer = buffers[b].buf;
+            std::string config_buffer = std::string(&buffers[b].buf[0], buffers[b].buf.size()-2);
             XProtocol::XNode n;
 
             if (debug_xml)
