@@ -32,6 +32,9 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/locale/encoding_utf.hpp>
+using boost::locale::conv::utf_to_utf;
+
 #include <iomanip>
 
 #include <iostream>
@@ -40,7 +43,6 @@ namespace po = boost::program_options;
 #include <sstream>
 #include <streambuf>
 #include <utility>
-#include <codecvt>
 #include <typeinfo>
 
 const size_t MYSTERY_BYTES_EXPECTED = 160;
@@ -687,8 +689,7 @@ int main(int argc, char *argv[] )
         char* bytebuf = new char[buflen+1];
         bytebuf[buflen] = 0;
         siemens_dat.read(bytebuf, buflen);
-        std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>,wchar_t> convert;
-        std::wstring output = convert.from_bytes(bytebuf);
+        std::wstring output = utf_to_utf<wchar_t>(bytebuf,bytebuf+buflen);
         buffers[b].buf = ws2s(output);
         delete [] bytebuf;
     }
@@ -725,7 +726,7 @@ int main(int argc, char *argv[] )
     {
         if (buffers[b].name.compare("Meas") == 0)
         {
-            std::string config_buffer = buffers[b].buf;
+            std::string config_buffer = std::string(&buffers[b].buf[0], buffers[b].buf.size()-2);
             XProtocol::XNode n;
 
             if (debug_xml)
