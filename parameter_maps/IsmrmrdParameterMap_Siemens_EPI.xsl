@@ -241,12 +241,39 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                         <x>
                             <xsl:value-of select="siemens/MEAS/sKSpace/lBaseResolution"/>
                         </x>
-                        <y>
-                            <xsl:value-of select="siemens/MEAS/sKSpace/lPhaseEncodingLines"/>
-                        </y>
-                        <z>
-                            <xsl:value-of select="siemens/YAPS/i3DFTLength"/>
-                        </z>
+
+                        <xsl:choose>
+                            <xsl:when test="siemens/MEAS/sKSpace/uc2DInterpolation" >
+                                <xsl:choose>
+                                    <xsl:when test="siemens/MEAS/sKSpace/uc2DInterpolation = 1">
+                                        <y>
+                                            <xsl:value-of select="floor(siemens/YAPS/iPEFTLength div 2)"/>
+                                        </y>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <y>
+                                            <xsl:value-of select="siemens/YAPS/iPEFTLength"/>
+                                        </y>
+                                    </xsl:otherwise>
+                                </xsl:choose>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <y>
+                                    <xsl:value-of select="siemens/YAPS/iPEFTLength"/>
+                                </y>
+                            </xsl:otherwise>
+                        </xsl:choose>
+
+                        <xsl:choose>
+                            <xsl:when test="not(siemens/YAPS/iNoOfFourierPartitions) or (siemens/YAPS/i3DFTLength = 1)">
+                                <z>1</z>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <z>
+                                    <xsl:value-of select="siemens/YAPS/i3DFTLength"/>
+                                </z>
+                            </xsl:otherwise>
+                        </xsl:choose>
                     </matrixSize>
                     <fieldOfView_mm>
                         <x>
@@ -298,7 +325,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                             <xsl:value-of select="siemens/YAPS/iNoOfFourierLines - 1"/>
                         </maximum>
                         <center>
-                            <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2) - (siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines)"/>
+                            <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2)"/>
                         </center>
                     </kspace_encoding_step_1>
                     <kspace_encoding_step_2>
@@ -312,9 +339,43 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                                 <maximum>
                                     <xsl:value-of select="siemens/YAPS/iNoOfFourierPartitions - 1"/>
                                 </maximum>
-                                <center>
-                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2)"/>
-                                </center>
+                                <xsl:choose>
+                                    <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
+                                        <xsl:choose>
+                                            <xsl:when test="siemens/MEAS/sPat/lAccelFact3D">
+                                                <xsl:choose>
+                                                    <xsl:when test="not(siemens/MEAS/sPat/lAccelFact3D) > 1">
+                                                        <center>
+                                                            <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2) - (siemens/YAPS/lPartitions - siemens/YAPS/iNoOfFourierPartitions)"/>
+                                                        </center>
+                                                    </xsl:when>
+                                                    <xsl:otherwise>
+                                                        <xsl:choose>
+                                                            <xsl:when test="(siemens/MEAS/sKSpace/lPartitions - siemens/YAPS/iNoOfFourierPartitions) > siemens/MEAS/sPat/lAccelFact3D">
+                                                                <center>
+                                                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2) - (siemens/MEAS/sKSpace/lPartitions - siemens/YAPS/iNoOfFourierPartitions)"/>
+                                                                </center>
+                                                            </xsl:when>
+                                                            <xsl:otherwise>
+                                                                <center>
+                                                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2)"/>
+                                                                </center>
+                                                            </xsl:otherwise>
+                                                        </xsl:choose>
+                                                    </xsl:otherwise>
+                                                </xsl:choose>
+                                            </xsl:when>
+                                            <xsl:otherwise>
+                                                <center>
+                                                    <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPartitions div 2) - (siemens/MEAS/sKSpace/lPartitions - siemens/YAPS/iNoOfFourierPartitions)"/>
+                                                </center>
+                                            </xsl:otherwise>
+                                        </xsl:choose>
+                                    </xsl:when>
+                                    <xsl:otherwise>
+                                        <center>0</center>
+                                    </xsl:otherwise>
+                                </xsl:choose>
                             </xsl:otherwise>
                         </xsl:choose>
                     </kspace_encoding_step_2>
