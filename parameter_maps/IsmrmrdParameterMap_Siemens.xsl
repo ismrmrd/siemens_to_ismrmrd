@@ -517,16 +517,16 @@
                                     <xsl:choose>
                                         <xsl:when test="siemens/MEAS/sFastImaging/ucSegmentationMode = 2">
                                             <xsl:choose>
-                                                <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
-                                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments - 1"/>
+                                                <xsl:when test="siemens/MEAS/sFastImaging/lShots">
+                                                    <xsl:value-of select="siemens/MEAS/sFastImaging/lShots - 1"/>
                                                 </xsl:when>
                                                 <xsl:otherwise>0</xsl:otherwise>
                                             </xsl:choose>
                                         </xsl:when>
                                         <xsl:when test="siemens/MEAS/sFastImaging/ucSegmentationMode = 1">
                                             <xsl:choose>
-                                                <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize &gt; 1">
-                                                    <xsl:value-of select="ceiling((siemens/YAPS/iNoOfFourierPartitions * siemens/YAPS/iNoOfFourierLines) div siemens/MEAS/sFastImaging/lSegmentSize)"/>
+                                                <xsl:when test="siemens/MEAS/sFastImaging/lSegments &gt; 1">
+                                                    <xsl:value-of select="ceiling((siemens/YAPS/iNoOfFourierPartitions * siemens/YAPS/iNoOfFourierLines) div siemens/MEAS/sFastImaging/lSegments)"/>
                                                 </xsl:when>
                                                 <xsl:otherwise>0</xsl:otherwise>
                                             </xsl:choose>
@@ -680,7 +680,7 @@
                 </xsl:if>
 
                 <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1) and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">
-                    <xsl:if test="siemens/MEAS/sFastImaging/lSegments > 1">
+                    <xsl:if test="siemens/MEAS/sFastImaging/lShots > 1">
                         <xsl:if test="siemens/MEAS/sPhysioImaging/lPhases > 1">
                             <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
                                 <userParameterLong>
@@ -694,8 +694,8 @@
                                     <name>RetroGatedSegmentSize</name>
                                     <value>
                                         <xsl:choose>
-                                            <xsl:when test="siemens/MEAS/sFastImaging/lSegmentSize">
-                                                <xsl:value-of select="siemens/MEAS/sFastImaging/lSegmentSize"/>
+                                            <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
+                                                <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments"/>
                                             </xsl:when>
                                             <xsl:otherwise>0</xsl:otherwise>
                                         </xsl:choose>
