@@ -39,11 +39,35 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns:xs="http://www.w3.org/2001/XMLSchema">
         
-  <subjectInformation>
-  	<patientName><xsl:value-of select="siemens/HEADER/tPatientName"/></patientName>
-  	<xsl:if test="siemens/YAPS/flUsedPatientWeight > 0"><patientWeight_kg><xsl:value-of select="siemens/YAPS/flUsedPatientWeight"/></patientWeight_kg></xsl:if>
-  </subjectInformation>
-  
+    <!--
+    <subjectInformation>
+        <patientName>
+            <xsl:value-of select="siemens/DICOM/tPatientName"/>
+        </patientName>
+        <xsl:if test="siemens/YAPS/flUsedPatientWeight > 0">
+            <patientWeight_kg>
+                <xsl:value-of select="siemens/YAPS/flUsedPatientWeight"/>
+            </patientWeight_kg>
+        </xsl:if>
+        <patientID>
+            <xsl:value-of select="siemens/IRIS/RECOMPOSE/PatientID"/>
+        </patientID>
+        <patientGender>
+            <xsl:choose>
+                <xsl:when test="siemens/DICOM/lPatientSex = 1">F</xsl:when>
+                <xsl:when test="siemens/DICOM/lPatientSex = 2">M</xsl:when>
+                <xsl:otherwise>O</xsl:otherwise>
+            </xsl:choose>
+        </patientGender>
+    </subjectInformation>
+
+    <studyInformation>
+        <studyInstanceUID>
+            <xsl:value-of select="$studyID" />
+        </studyInstanceUID>
+    </studyInformation>
+    -->
+
   <acquisitionSystemInformation>
   	<systemVendor><xsl:value-of select="siemens/DICOM/Manufacturer"/></systemVendor>
   	<systemModel><xsl:value-of select="siemens/DICOM/ManufacturersModelName"/></systemModel>  	

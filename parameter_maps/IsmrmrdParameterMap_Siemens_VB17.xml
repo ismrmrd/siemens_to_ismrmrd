@@ -37,8 +37,8 @@
         <p><s>MEAS.sPhysioImaging.lSignal2</s>                      <d>siemens.MEAS.sPhysioImaging.lSignal2</d></p>
         <p><s>MEAS.sPhysioImaging.lMethod2</s>                      <d>siemens.MEAS.sPhysioImaging.lMethod2</d></p>
         <p><s>MEAS.sPhysioImaging.lRetroGatedImages</s>             <d>siemens.MEAS.sPhysioImaging.lRetroGatedImages</d></p>
-        <p><s>MEAS.sFastImaging.lShots</s>                          <d>siemens.MEAS.sFastImaging.lSegments</d></p>
-        <p><s>MEAS.sFastImaging.lSegments</s>                       <d>siemens.MEAS.sFastImaging.lSegmentSize</d></p>
+        <p><s>MEAS.sFastImaging.lShots</s>                          <d>siemens.MEAS.sFastImaging.lShots</d></p>
+        <p><s>MEAS.sFastImaging.lSegments</s>                       <d>siemens.MEAS.sFastImaging.lSegments</d></p>
         <p><s>MEAS.sFastImaging.ucSegmentationMode</s>              <d>siemens.MEAS.sFastImaging.ucSegmentationMode</d></p>
         <p><s>MEAS.sPhysioImaging.lPhases</s>                       <d>siemens.MEAS.sPhysioImaging.lPhases</d></p>
         <p><s>MEAS.lRepetitions</s>                                 <d>siemens.MEAS.lRepetitions</d></p>
