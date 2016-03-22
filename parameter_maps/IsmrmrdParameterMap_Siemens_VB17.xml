@@ -68,6 +68,7 @@
         <p><s>IRIS.RECOMPOSE.PatientLOID</s>                        <d>siemens.IRIS.RECOMPOSE.PatientLOID</d></p>
         <p><s>IRIS.RECOMPOSE.PatientBirthDay</s>                    <d>siemens.IRIS.RECOMPOSE.PatientBirthDay</d></p>
         <p><s>DICOM.lPatientSex</s>                                 <d>siemens.DICOM.lPatientSex</d></p>
+        <p><s>DICOM.DeviceSerialNumber</s>                           <d>siemens.DICOM.DeviceSerialNumber</d></p>
 
         <!-- studyInformationType --> 
         <p><s>IRIS.RECOMPOSE.StudyLOID</s>                          <d>siemens.IRIS.RECOMPOSE.StudyLOID</d></p>

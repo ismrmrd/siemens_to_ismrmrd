@@ -46,6 +46,7 @@
 <p><s>DICOM.lFrequency</s>                                                          <d>siemens.DICOM.lFrequency</d></p>
 <p><s>DICOM.Manufacturer</s>                                                    <d>siemens.DICOM.Manufacturer</d></p>
 <p><s>DICOM.ManufacturersModelName</s>                                          <d>siemens.DICOM.ManufacturersModelName</d></p>
+<p><s>DICOM.DeviceSerialNumber</s>                          <d>siemens.DICOM.DeviceSerialNumber</d></p>
 <p><s>MEAS.sWipMemBlock.alFree</s>                                                  <d>siemens.MEAS.sWipMemBlock.alFree</d></p>
 <p><s>MEAS.sWipMemBlock.adFree</s>                                                  <d>siemens.MEAS.sWipMemBlock.adFree</d></p>
 <p><s>HEADER.tPatientName</s>                                                   <d>siemens.HEADER.tPatientName</d></p>
