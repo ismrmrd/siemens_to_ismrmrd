@@ -84,7 +84,7 @@
 
             <measurementInformation>
                 <measurementID>
-                    <xsl:value-of select="concat($patientID, $strSeperator, $studyID, $strSeperator, string(siemens/HEADER/MeasUID))"/>
+                    <xsl:value-of select="concat($patientID, $strSeperator, $studyID, $strSeperator, string(siemens/HEADER/MeasUID), $strSeperator, string(siemens/DICOM/DeviceSerialNumber))"/>
                 </measurementID>
                 <patientPosition>
                     <xsl:value-of select="siemens/YAPS/tPatientPosition"/>
