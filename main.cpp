@@ -27,6 +27,7 @@
 #include "ismrmrd/ismrmrd.h"
 #include "ismrmrd/dataset.h"
 #include "ismrmrd/version.h"
+#include "ismrmrd/xml.h"
 #include "converter_version.h"
 
 #include <boost/program_options.hpp>
@@ -169,6 +170,84 @@ bool is_number(const std::string& s)
     return ret;
 }
 
+std::string get_time_string(size_t hours, size_t mins, size_t secs)
+{
+    std::stringstream str;
+    str << std::setw(2) << std::setfill('0') << hours << ":"
+        << std::setw(2) << std::setfill('0') << mins << ":"
+        << std::setw(2) << std::setfill('0') << secs;
+
+    std::string ret = str.str();
+
+    return ret;
+}
+
+bool fill_ismrmrd_header(std::string& header, const std::string& study_date, const std::string& study_time)
+{
+    try
+    {
+        ISMRMRD::IsmrmrdHeader h;
+        ISMRMRD::deserialize(header.c_str(), h);
+
+        // ---------------------------------
+        // fill more info into the ismrmrd header
+        // ---------------------------------
+        // study
+        bool study_date_needed = false;
+        bool study_time_needed = false;
+
+        if ( h.studyInformation )
+        {
+            if ( !h.studyInformation->studyDate )
+            {
+                study_date_needed = true;
+            }
+
+            if ( !h.studyInformation->studyTime )
+            {
+                study_time_needed = true;
+            }
+        }
+        else
+        {
+            study_date_needed = true;
+            study_time_needed = true;
+        }
+
+        if(study_date_needed || study_time_needed)
+        {
+            ISMRMRD::StudyInformation study;
+
+            if(study_date_needed && !study_date.empty())
+            {
+                study.studyDate.set(study_date);
+                std::cout << "Study date: " << study_date << std::endl;
+            }
+
+            if(study_time_needed && !study_time.empty())
+            {
+                study.studyTime.set(study_time);
+                std::cout << "Study time: " << study_time << std::endl;
+            }
+
+            h.studyInformation.set(study);
+        }
+
+        // ---------------------------------
+        // go back to string
+        // ---------------------------------
+        std::ostringstream str_filled;
+        ISMRMRD::serialize(h, str_filled);
+
+        header = str_filled.str();
+    }
+    catch(...)
+    {
+        return false;
+    }
+
+    return true;
+}
 
 std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfile)
 {
@@ -343,6 +422,8 @@ int main(int argc, char *argv[] )
     std::string ismrmrd_group;
     std::string date_time = get_date_time_string();
 
+    std::string study_date_user_supplied;
+
     bool debug_xml = false;
     bool flash_pat_ref_scan = false;
     bool header_only = false;
@@ -369,6 +450,7 @@ int main(int argc, char *argv[] )
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
         ("headerOnly,H",            po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
+        ("studyDate",               po::value<std::string>(&study_date_user_supplied), "<User can supply study date, in the format of yyyy-mm-dd>")
         ;
 
     po::options_description display_options("Allowed options");
@@ -388,6 +470,7 @@ int main(int argc, char *argv[] )
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
         ("headerOnly,H",            "<HEADER ONLY flag (create xml header only)>")
+        ("studyDate",               "<User can supply study date, in the format of yyyy-mm-dd>")
         ;
 
     po::variables_map vm;
@@ -1157,15 +1240,16 @@ int main(int argc, char *argv[] )
 
     xml_config = std::string((char*)out_ptr,xslt_length);
 
-    if (debug_xml)
-    {
-        std::ofstream o("processed.xml");
-        o.write(xml_config.c_str(), xml_config.size());
-    }
-
     if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0)
     {
         std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
+
+        if (debug_xml)
+        {
+            std::ofstream o("processed.xml");
+            o.write(xml_config.c_str(), xml_config.size());
+        }
+
         return -1;
     }
 
@@ -1241,17 +1325,24 @@ int main(int argc, char *argv[] )
     }
 #endif //WIN32
 
-    //This means we should only create XML header and exit
-    if (header_only) {
-      std::ofstream header_out_file(ismrmrd_file.c_str());
-      header_out_file << xml_config;
-      return -1;
-    }
+    //// if some of the ismrmrd header fields are not filled, here is a place to take some further actions
+    //if(!fill_ismrmrd_header(xml_config) )
+    //{
+    //    std::cerr << "Failed to further fill XML header" << std::endl;
+    //}
 
-    // Create an ISMRMRD dataset
-    ISMRMRD::Dataset ismrmrd_dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
-    ISMRMRD::AcquisitionHeader acq_head_base;
-    ismrmrd_dataset.writeHeader(xml_config);
+    ////This means we should only create XML header and exit
+    //if (header_only) {
+    //  std::ofstream header_out_file(ismrmrd_file.c_str());
+    //  header_out_file << xml_config;
+    //  return -1;
+    //}
+
+    //// Create an ISMRMRD dataset
+    //ISMRMRD::Dataset ismrmrd_dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
+    //ismrmrd_dataset.writeHeader(xml_config);
+
+    boost::shared_ptr<ISMRMRD::Dataset> ismrmrd_dataset;
 
     //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profiles
     ISMRMRD::NDArray<float> traj;
@@ -1393,6 +1484,51 @@ int main(int argc, char *argv[] )
              continue;
          }
 
+         if(first_call)
+         {
+             uint32_t time_stamp = scanhead.ulTimeStamp;
+
+             // convert to acqusition date and time
+             double timeInSeconds = time_stamp * 2.5 / 1e3;
+
+             size_t hours = (size_t)(timeInSeconds/3600);
+             size_t mins =  (size_t)((timeInSeconds - hours*3600) / 60);
+             size_t secs =  (size_t)(timeInSeconds- hours*3600 - mins*60);
+
+             std::string study_time = get_time_string(hours, mins, secs);
+
+             // if some of the ismrmrd header fields are not filled, here is a place to take some further actions
+             if(!fill_ismrmrd_header(xml_config, study_date_user_supplied, study_time) )
+             {
+                 std::cerr << "Failed to further fill XML header" << std::endl;
+             }
+
+#ifndef WIN32
+             if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0)
+             {
+                 std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
+                 return -1;
+             }
+#endif // WIN32
+
+             if (debug_xml)
+             {
+                 std::ofstream o("processed.xml");
+                 o.write(xml_config.c_str(), xml_config.size());
+             }
+
+             //This means we should only create XML header and exit
+             if (header_only) {
+                 std::ofstream header_out_file(ismrmrd_file.c_str());
+                 header_out_file << xml_config;
+                 return -1;
+             }
+
+             // Create an ISMRMRD dataset
+             ismrmrd_dataset = boost::shared_ptr<ISMRMRD::Dataset>(new ISMRMRD::Dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true));
+             ismrmrd_dataset->writeHeader(xml_config);
+         }
+
          //This check only makes sense in VD line files.
          if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number-1].measId_))
          {
@@ -1401,10 +1537,11 @@ int main(int argc, char *argv[] )
              {
                  std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries[" << measurement_number-1 << "].measId_)" << std::endl;
                  std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
-                 first_call = false;
              }
              scanhead.lMeasUID = ParcFileEntries[measurement_number-1].measId_;
          }
+
+         if ( first_call ) first_call = false;
 
          //Allocate data for channels
          size_t nchannels = scanhead.ushUsedChannels;
@@ -1619,7 +1756,7 @@ int main(int argc, char *argv[] )
                      &channels[c].data[0], ismrmrd_acq->number_of_samples()*sizeof(complex_float_t));
          }
 
-         ismrmrd_dataset.appendAcquisition(*ismrmrd_acq);
+         ismrmrd_dataset->appendAcquisition(*ismrmrd_acq);
 
          if ( scanhead.ulScanCounter % 1000 == 0 ) {
              std::cout << "wrote scan : " << scanhead.ulScanCounter << std::endl;
