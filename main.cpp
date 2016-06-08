@@ -27,6 +27,7 @@
 #include "ismrmrd/ismrmrd.h"
 #include "ismrmrd/dataset.h"
 #include "ismrmrd/version.h"
+#include "ismrmrd/xml.h"
 #include "converter_version.h"
 
 #include <boost/program_options.hpp>
@@ -169,6 +170,89 @@ bool is_number(const std::string& s)
     return ret;
 }
 
+bool fill_ismrmrd_header(std::string& header)
+{
+    try
+    {
+        ISMRMRD::IsmrmrdHeader h;
+        ISMRMRD::deserialize(header.c_str(), h);
+
+        // ---------------------------------
+        // fill more info into the ismrmrd header
+        // ---------------------------------
+        // study
+        bool study_date_needed = false;
+        bool study_time_needed = false;
+
+        if ( h.studyInformation )
+        {
+            if ( !h.studyInformation->studyDate )
+            {
+                study_date_needed = true;
+            }
+
+            if ( !h.studyInformation->studyTime )
+            {
+                study_time_needed = true;
+            }
+        }
+        else
+        {
+            study_date_needed = true;
+            study_time_needed = true;
+        }
+
+        if(study_date_needed || study_time_needed)
+        {
+            ISMRMRD::StudyInformation study;
+
+            time_t rawtime;
+            struct tm * timeinfo;
+            time ( &rawtime );
+            timeinfo = localtime ( &rawtime );
+
+            if(study_date_needed)
+            {
+                std::stringstream str;
+                str << timeinfo->tm_year+1900
+                    << std::setw(2) << std::setfill('0') << timeinfo->tm_mon+1
+                    << std::setw(2) << std::setfill('0') << timeinfo->tm_mday;
+
+                study.studyDate.set(str.str());
+
+                std::cout << "Study date: " << str.str() << std::endl;
+            }
+
+            if(study_time_needed)
+            {
+                std::stringstream str;
+                str << std::setw(2) << std::setfill('0') << timeinfo->tm_hour
+                    << std::setw(2) << std::setfill('0') << timeinfo->tm_min
+                    << std::setw(2) << std::setfill('0') << timeinfo->tm_sec;;
+
+                study.studyTime.set(str.str());
+
+                std::cout << "Study time: " << str.str() << std::endl;
+            }
+
+            h.studyInformation.set(study);
+        }
+
+        // ---------------------------------
+        // go back to string
+        // ---------------------------------
+        std::ostringstream str_filled;
+        ISMRMRD::serialize(h, str_filled);
+
+        header = str_filled.str();
+    }
+    catch(...)
+    {
+        return false;
+    }
+
+    return true;
+}
 
 std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfile)
 {
@@ -1240,6 +1324,12 @@ int main(int argc, char *argv[] )
             std::istreambuf_iterator<char>());
     }
 #endif //WIN32
+
+    // if some of the ismrmrd header fields are not filled, here is a place to take some further actions
+    if(!fill_ismrmrd_header(xml_config) )
+    {
+        std::cerr << "Failed to further fill XML header" << std::endl;
+    }
 
     //This means we should only create XML header and exit
     if (header_only) {
