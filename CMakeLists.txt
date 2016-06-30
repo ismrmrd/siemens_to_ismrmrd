@@ -19,73 +19,58 @@ message ("PROJECT CMAKE DIR: " ${SIEMENS_TO_ISMRMRD_CMAKE_DIR})
 message ("PROJECT SOURCE DIR: " ${PROJECT_SOURCE_DIR})
 
 #Set the build type to Release if not specified
-IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release CACHE STRING
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING
       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
-ENDIF(NOT CMAKE_BUILD_TYPE)
+endif(NOT CMAKE_BUILD_TYPE)
 
 if (WIN32)
     ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
     # ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /MP")
-    SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
-    SET (CMAKE_EXE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
-    SET (CMAKE_SHARED_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
-    SET (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
-    SET (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /MP")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
+    set (CMAKE_EXE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
+    set (CMAKE_SHARED_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
+    set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
+    set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
 
     ADD_DEFINITIONS(-D__BUILD_CONVERTER_TINYXML__)
 
-endif (WIN32)
-
-###############################################################
-#Bootstrap search for libraries (We need to find cmake modules in ismrmrd)
-###############################################################
-find_path(ISMRMRD_CMAKE_MODULES FindIsmrmrd.cmake HINTS
-  $ENV{ISMRMRD_HOME}/share/ismrmrd/cmake
-  ${CMAKE_INSTALL_PREFIX}/share/ismrmrd/cmake
-  /usr/local/share/ismrmrd/cmake)
-
-if (NOT ISMRMRD_CMAKE_MODULES)
-   #TODO: Check if path found otherwise create error
-   message(FATAL_ERROR "ISMRMRD_CMAKE_MODULES cannot be found. Try to set ISMRMRD_HOME environment variable.")
-else (NOT ISMRMRD_CMAKE_MODULES)
-   message("ISMRMRD_CMAKE_MODULES found.")
-endif(NOT ISMRMRD_CMAKE_MODULES)
-
-set(CMAKE_MODULE_PATH ${ISMRMRD_CMAKE_MODULES})
-###############################################################
+endif()
 
 if(WIN32)
     set(Boost_NO_BOOST_CMAKE ON)
-endif(WIN32)
+endif()
 
- # Added for static linking!!!
- if (BUILD_DYNAMIC)
+# Added for static linking!!!
+if (BUILD_DYNAMIC)
     set(Boost_USE_STATIC_LIBS OFF)
     message("Building dynamically linked application.")
- else (BUILD_DYNAMIC)
+else()
    set(Boost_USE_STATIC_LIBS ON)
    message("Building statically linked application.")
- endif(BUILD_DYNAMIC)
+endif()
  
 find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
-find_package(Ismrmrd REQUIRED)
+if(CMAKE_INSTALL_PREFIX)
+  list(APPEND CMAKE_INSTALL_PREFIX "/usr/local")
+endif()  
+find_package(ISMRMRD REQUIRED)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
-IF (NOT WIN32)
+if (NOT WIN32)
     find_package(LibXml2 REQUIRED)
     find_package(LibXslt REQUIRED)
 
     INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
-ELSE(NOT WIN32)
+else()
     INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
-ENDIF(NOT WIN32)
+endif()
 
 if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
-endif(WIN32)
+endif()
 
 INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR} )
 
@@ -130,11 +115,11 @@ add_executable(siemens_to_ismrmrd
                ${schema_files}
                )
 
-IF (WIN32)
+if (WIN32)
     set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
-ELSE(WIN32)
+else()
     target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
-ENDIF(WIN32)
+endif()
 
 target_link_libraries(siemens_to_ismrmrd
                         ${ISMRMRD_LIBRARIES}
@@ -150,4 +135,4 @@ if(CPACK_GENERATOR)
   configure_file("${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/cpack_options.cmake.in" ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE} @ONLY)
   set(CPACK_PROJECT_CONFIG_FILE ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE})
   include (CPack)
-endif(CPACK_GENERATOR)
+endif()
