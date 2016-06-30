@@ -53,9 +53,6 @@ else()
 endif()
  
 find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
-if(CMAKE_INSTALL_PREFIX)
-  list(APPEND CMAKE_INSTALL_PREFIX "/usr/local")
-endif()  
 find_package(ISMRMRD REQUIRED)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
