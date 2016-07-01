@@ -23,7 +23,7 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release CACHE STRING
       "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel."
       FORCE)
-endif(NOT CMAKE_BUILD_TYPE)
+endif()
 
 if (WIN32)
     ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
@@ -34,9 +34,7 @@ if (WIN32)
     set (CMAKE_SHARED_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
-
-    ADD_DEFINITIONS(-D__BUILD_CONVERTER_TINYXML__)
-
+    add_definition(-D__BUILD_CONVERTER_TINYXML__)
 endif()
 
 if(WIN32)
@@ -60,16 +58,17 @@ if (NOT WIN32)
     find_package(LibXml2 REQUIRED)
     find_package(LibXslt REQUIRED)
 
-    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
+    include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
 else()
-    INCLUDE_DIRECTORIES(${Boost_INCLUDE_DIR})
+    include_directories(${Boost_INCLUDE_DIR})
 endif()
 
 if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
 endif()
 
-INCLUDE_DIRECTORIES( ${ISMRMRD_INCLUDE_DIR} )
+include_directories( ${ISMRMRD_INCLUDE_DIR} )
+link_directories( ${ISMRMRD_LIB_DIR} )
 
 add_executable(embed base64.cpp embed.cpp)
 
