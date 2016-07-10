@@ -249,6 +249,30 @@ bool fill_ismrmrd_header(std::string& header, const std::string& study_date, con
     return true;
 }
 
+void append_buffers_to_xml_header(MeasurementHeaderBuffer* buffers, size_t num_buffers, std::string& header)
+{
+    ISMRMRD::IsmrmrdHeader h;
+    ISMRMRD::deserialize(header.c_str(), h);
+
+    for (unsigned int b = 0; b < num_buffers; b++) {
+        ISMRMRD::UserParameterString p;
+        p.value = base64_encode(reinterpret_cast<const unsigned char*>(buffers[b].buf.c_str()), buffers[b].buf.size());
+        p.name = std::string("SiemensBuffer_") + buffers[b].name;
+        if (!h.userParameters.is_present()) {
+            ISMRMRD::UserParameters up;
+            h.userParameters = up;
+        }
+        h.userParameters().userParameterBase64.push_back(p);
+    }
+
+    // ---------------------------------
+    // go back to string
+    // ---------------------------------
+    std::ostringstream str_filled;
+    ISMRMRD::serialize(h, str_filled);    
+    header = str_filled.str();
+}
+
 std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfile)
 {
     TiXmlDocument out_doc;
@@ -427,6 +451,7 @@ int main(int argc, char *argv[] )
     bool debug_xml = false;
     bool flash_pat_ref_scan = false;
     bool header_only = false;
+    bool append_buffers = false;
 
     bool list = false;
     std::string to_extract;
@@ -450,6 +475,7 @@ int main(int argc, char *argv[] )
         ("debug,X",                 po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F",           po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
         ("headerOnly,H",            po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
+        ("bufferAppend,B",          po::value<bool>(&append_buffers)->implicit_value(true), "<Append Siemens protocol buffers (bas64) to user parameters>")
         ("studyDate",               po::value<std::string>(&study_date_user_supplied), "<User can supply study date, in the format of yyyy-mm-dd>")
         ;
 
@@ -1173,9 +1199,6 @@ int main(int argc, char *argv[] )
         }
     }
 
-    // Free memory used for MeasurementHeaderBuffers
-    delete [] buffers;
-
     // whether this scan is a adjustment scan
     bool isAdjustCoilSens = false;
     if ( protocol_name == "AdjCoilSens" )
@@ -1325,22 +1348,14 @@ int main(int argc, char *argv[] )
     }
 #endif //WIN32
 
-    //// if some of the ismrmrd header fields are not filled, here is a place to take some further actions
-    //if(!fill_ismrmrd_header(xml_config) )
-    //{
-    //    std::cerr << "Failed to further fill XML header" << std::endl;
-    //}
 
-    ////This means we should only create XML header and exit
-    //if (header_only) {
-    //  std::ofstream header_out_file(ismrmrd_file.c_str());
-    //  header_out_file << xml_config;
-    //  return -1;
-    //}
+    //Append buffers to xml_config if requested
+    if (append_buffers) {
+        append_buffers_to_xml_header(buffers, num_buffers, xml_config);
+    }
 
-    //// Create an ISMRMRD dataset
-    //ISMRMRD::Dataset ismrmrd_dataset(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
-    //ismrmrd_dataset.writeHeader(xml_config);
+    // Free memory used for MeasurementHeaderBuffers
+    delete [] buffers;
 
     boost::shared_ptr<ISMRMRD::Dataset> ismrmrd_dataset;
 
