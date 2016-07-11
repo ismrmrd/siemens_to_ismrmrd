@@ -80,7 +80,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     <measurementDependency>
                         <dependencyType>RFMap</dependencyType>
                         <measurementID>
-                            <xsl:value-of select="siemens/YAPS/ReconMeasDependencies/RFMap"/>
+                            <xsl:value-of select="concat(string(siemens/DICOM/DeviceSerialNumber), $strSeperator, $patientID, $strSeperator, $studyID, $strSeperator, string(siemens/YAPS/ReconMeasDependencies/RFMap))"/>
                         </measurementID>
                     </measurementDependency>
                 </xsl:if>
@@ -89,7 +89,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     <measurementDependency>
                         <dependencyType>SenMap</dependencyType>
                         <measurementID>
-                            <xsl:value-of select="siemens/YAPS/ReconMeasDependencies/SenMap"/>
+                            <xsl:value-of select="concat(string(siemens/DICOM/DeviceSerialNumber), $strSeperator, $patientID, $strSeperator, $studyID, $strSeperator, string(siemens/YAPS/ReconMeasDependencies/SenMap))"/>
                         </measurementID>
                     </measurementDependency>
                 </xsl:if>
@@ -98,7 +98,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                     <measurementDependency>
                         <dependencyType>Noise</dependencyType>
                         <measurementID>
-                            <xsl:value-of select="siemens/YAPS/ReconMeasDependencies/Noise"/>
+                            <xsl:value-of select="concat(string(siemens/DICOM/DeviceSerialNumber), $strSeperator, $patientID, $strSeperator, $studyID, $strSeperator, string(siemens/YAPS/ReconMeasDependencies/Noise))"/>
                         </measurementID>
                     </measurementDependency>
                 </xsl:if>
