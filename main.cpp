@@ -496,6 +496,7 @@ int main(int argc, char *argv[] )
         ("debug,X",                 "<Debug XML flag>")
         ("flashPatRef,F",           "<FLASH PAT REF flag>")
         ("headerOnly,H",            "<HEADER ONLY flag (create xml header only)>")
+        ("bufferAppend,B",          "<Append protocol buffers>")
         ("studyDate",               "<User can supply study date, in the format of yyyy-mm-dd>")
         ;
 
