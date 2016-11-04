@@ -52,6 +52,7 @@ endif()
  
 find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
 find_package(ISMRMRD REQUIRED)
+find_package(HDF5 1.8 REQUIRED COMPONENTS C)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
 if (NOT WIN32)
@@ -67,7 +68,7 @@ if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
 endif()
 
-include_directories( ${ISMRMRD_INCLUDE_DIR} )
+include_directories( ${ISMRMRD_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} )
 link_directories( ${ISMRMRD_LIB_DIR} )
 
 add_executable(embed base64.cpp embed.cpp)
