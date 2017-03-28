@@ -26,8 +26,9 @@
     <xsl:variable name="partialFourierPhase">
         <xsl:choose>
             <xsl:when test="siemens/MEAS/sKSpace/ucPhasePartialFourier = 1">0.5</xsl:when>
-            <xsl:when test="siemens/MEAS/sKSpace/ucPhasePartialFourier = 2">0.75</xsl:when>
-            <xsl:when test="siemens/MEAS/sKSpace/ucPhasePartialFourier = 4">0.875</xsl:when>
+            <xsl:when test="siemens/MEAS/sKSpace/ucPhasePartialFourier = 2">0.625</xsl:when>
+            <xsl:when test="siemens/MEAS/sKSpace/ucPhasePartialFourier = 4">0.75</xsl:when>
+            <xsl:when test="siemens/MEAS/sKSpace/ucPhasePartialFourier = 8">0.875</xsl:when>
             <xsl:otherwise>1.0</xsl:otherwise>
         </xsl:choose>
     </xsl:variable>
