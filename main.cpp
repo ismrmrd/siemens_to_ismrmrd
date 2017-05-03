@@ -1614,6 +1614,7 @@ int main(int argc, char *argv[] )
          ismrmrd_acq->scan_counter()             = scanhead.ulScanCounter;
          ismrmrd_acq->acquisition_time_stamp()   = scanhead.ulTimeStamp;
          ismrmrd_acq->physiology_time_stamp()[0] = scanhead.ulPMUTimeStamp;
+         ismrmrd_acq->physiology_time_stamp()[1] = scanhead.ulTimeSinceLastRF;
          ismrmrd_acq->available_channels()       = (uint16_t)max_channels;
          // uint64_t channel_mask[16];     //Mask to indicate which channels are active. Support for 1024 channels
          ismrmrd_acq->discard_pre()             = scanhead.sCutOff.ushPre;
