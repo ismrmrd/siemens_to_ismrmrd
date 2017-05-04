@@ -1685,7 +1685,8 @@ int main(int argc, char *argv[] )
          ismrmrd_acq->user_int()[4]   = scanhead.aushIceProgramPara[4];
          ismrmrd_acq->user_int()[5]   = scanhead.aushIceProgramPara[5];
          ismrmrd_acq->user_int()[6]   = scanhead.aushIceProgramPara[6];
-         ismrmrd_acq->user_int()[7]   = scanhead.aushIceProgramPara[7];
+         // TODO: in the newer version of ismrmrd, add field to store time_since_perp_pulse
+         ismrmrd_acq->user_int()[7] = scanhead.ulTimeSinceLastRF;
 
          ismrmrd_acq->user_float()[0] = scanhead.aushIceProgramPara[8];
          ismrmrd_acq->user_float()[1] = scanhead.aushIceProgramPara[9];
