@@ -1,11 +1,27 @@
 #ifndef SIEMENSRAW_H_
 #define SIEMENSRAW_H_
 
-#include <stdint.h>
 #include <iostream>
 #include <fstream>
 #include <map>
 #include <string>
+
+#if _MSC_VER < 1700 /* MS compiler */
+    #ifndef HAS_INT_TYPE
+        #ifndef _STDINT
+            typedef signed char        int8_t;
+            typedef short              int16_t;
+            typedef int                int32_t;
+            typedef long long          int64_t;
+            typedef unsigned char      uint8_t;
+            typedef unsigned short     uint16_t;
+            typedef unsigned int       uint32_t;
+            typedef unsigned long long uint64_t;
+        #endif // _STDINT
+    #endif
+#else /* non MS C or C++ compiler */
+    #include <stdint.h>
+#endif /* _MSC_VER */
 
 #define MDH_NUMBEROFEVALINFOMASK   2
 
