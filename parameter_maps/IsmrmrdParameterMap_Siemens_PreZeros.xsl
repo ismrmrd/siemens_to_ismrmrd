@@ -74,12 +74,11 @@
                     </xsl:choose>
                 </patientGender>
             </subjectInformation>
-
+            
             <studyInformation>
             <studyInstanceUID>
                     <xsl:value-of select="$studyID" />
                 </studyInstanceUID>
-
             </studyInformation>
             -->
 
@@ -413,7 +412,7 @@
                             <xsl:value-of select="siemens/YAPS/iNoOfFourierLines - 1"/>
                         </maximum>
                         <center>
-                            <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2)"/>
+                            <xsl:value-of select="floor(siemens/MEAS/sKSpace/lPhaseEncodingLines div 2) - (siemens/MEAS/sKSpace/lPhaseEncodingLines - siemens/YAPS/iNoOfFourierLines)"/>
                         </center>
                     </kspace_encoding_step_1>
                     <kspace_encoding_step_2>
@@ -680,31 +679,31 @@
                     </userParameterLong>
                 </xsl:if>
 
-                <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1) and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">
+                <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1)  and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">
                     <xsl:if test="siemens/MEAS/sFastImaging/lShots > 1">
-                        <xsl:if test="siemens/MEAS/sPhysioImaging/lPhases > 1">
-                            <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
-                                <userParameterLong>
-                                    <name>RetroGatedImages</name>
-                                    <value>
-                                        <xsl:value-of select="siemens/MEAS/sPhysioImaging/lRetroGatedImages" />
-                                    </value>
-                                </userParameterLong>
+                    <xsl:if test="siemens/MEAS/sPhysioImaging/lPhases > 1">
+                        <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
+                            <userParameterLong>
+                                <name>RetroGatedImages</name>
+                                <value>
+                                    <xsl:value-of select="siemens/MEAS/sPhysioImaging/lRetroGatedImages" />
+                                </value>
+                            </userParameterLong>
 
-                                <userParameterLong>
-                                    <name>RetroGatedSegmentSize</name>
-                                    <value>
-                                        <xsl:choose>
-                                            <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
-                                                <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments"/>
-                                            </xsl:when>
-                                            <xsl:otherwise>0</xsl:otherwise>
-                                        </xsl:choose>
-                                    </value>
-                                </userParameterLong>
-                            </xsl:if>
+                            <userParameterLong>
+                                <name>RetroGatedSegmentSize</name>
+                                <value>
+                                    <xsl:choose>
+                                        <xsl:when test="siemens/MEAS/sFastImaging/lSegments">
+                                            <xsl:value-of select="siemens/MEAS/sFastImaging/lSegments"/>
+                                        </xsl:when>
+                                        <xsl:otherwise>0</xsl:otherwise>
+                                    </xsl:choose>
+                                </value>
+                            </userParameterLong>
                         </xsl:if>
                     </xsl:if>
+                </xsl:if>
                 </xsl:if>
 
                 <xsl:if test="siemens/MEAS/sPat/lRefLinesPE">
