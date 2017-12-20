@@ -13,6 +13,7 @@
         <p><s>MEAS.sKSpace.ucSlicePartialFourier</s>                <d>siemens.MEAS.sKSpace.ucSlicePartialFourier</d></p>
         <p><s>MEAS.sKSpace.lRadialViews</s>                         <d>siemens.MEAS.sKSpace.lRadialViews</d></p>
         <p><s>MEAS.sKSpace.uc2DInterpolation</s>                    <d>siemens.MEAS.sKSpace.uc2DInterpolation</d></p>
+        <p><s>MEAS.sKSpace.ucMultiSliceMode</s>                    <d>siemens.MEAS.sKSpace.ucMultiSliceMode</d></p>
         <p><s>MEAS.sPat.ucPATMode</s>                               <d>siemens.MEAS.sPat.ucPATMode</d></p>
         <p><s>MEAS.sPat.ucRefScanMode</s>                           <d>siemens.MEAS.sPat.ucRefScanMode</d></p>
         <p><s>MEAS.sPat.lAccelFactPE</s>                            <d>siemens.MEAS.sPat.lAccelFactPE</d></p>
@@ -44,6 +45,7 @@
         <p><s>MEAS.lAverages</s>                                    <d>siemens.MEAS.lAverages</d></p>
         <p><s>MEAS.lProtonDensMap</s>                               <d>siemens.MEAS.lProtonDensMap</d></p>
         <p><s>MEAS.ucSequenceType</s>                               <d>siemens.MEAS.ucSequenceType</d></p>
+        <p><s>MEAS.ucOneSeriesForAllMeas</s>                               <d>siemens.MEAS.ucOneSeriesForAllMeas</d></p>
         <p><s>MEAS.sWipMemBlock.alFree</s>                          <d>siemens.MEAS.sWipMemBlock.alFree</d></p>
         <p><s>MEAS.sWipMemBlock.adFree</s>                          <d>siemens.MEAS.sWipMemBlock.adFree</d></p>
 
