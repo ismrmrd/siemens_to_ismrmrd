@@ -707,6 +707,15 @@
                     </xsl:if>
                 </xsl:if>
 
+                <xsl:if test="(siemens/MEAS/ucOneSeriesForAllMeas = 2) or (siemens/MEAS/ucOneSeriesForAllMeas = 8)">
+                    <userParameterLong>
+                        <name>MultiSeriesForSlices</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/ucOneSeriesForAllMeas" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
+
                 <xsl:if test="siemens/MEAS/sPat/lRefLinesPE">
                     <userParameterLong>
                         <name>EmbeddedRefLinesE1</name>

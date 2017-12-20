@@ -1646,6 +1646,13 @@ int main(int argc, char *argv[] )
                                              ismrmrd_acq->read_dir(),
                                              ismrmrd_acq->slice_dir());
 
+         //std::cout << "scanhead.ulScanCounter         = " << scanhead.ulScanCounter << std::endl;
+         //std::cout << "quat         = [" << quat[0] << " " << quat[1] << " " << quat[2] << " " << quat[3] << "]" << std::endl;
+         //std::cout << "phase_dir    = [" << ismrmrd_acq->phase_dir()[0] << " " << ismrmrd_acq->phase_dir()[1] << " " << ismrmrd_acq->phase_dir()[2] << "]" << std::endl;
+         //std::cout << "read_dir     = [" << ismrmrd_acq->read_dir()[0] << " " << ismrmrd_acq->read_dir()[1] << " " << ismrmrd_acq->read_dir()[2] << "]" << std::endl;
+         //std::cout << "slice_dir    = [" << ismrmrd_acq->slice_dir()[0] << " " << ismrmrd_acq->slice_dir()[1] << " " << ismrmrd_acq->slice_dir()[2] << "]" << std::endl;
+         //std::cout << "--------------------------------------------------------" << std::endl;
+
          ismrmrd_acq->patient_table_position()[0]  = (float)scanhead.lPTABPosX;
          ismrmrd_acq->patient_table_position()[1]  = (float)scanhead.lPTABPosY;
          ismrmrd_acq->patient_table_position()[2]  = (float)scanhead.lPTABPosZ;
