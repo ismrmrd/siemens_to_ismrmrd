@@ -680,7 +680,7 @@
                 </xsl:if>
 
                 <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1)  and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">
-                    <xsl:if test="siemens/MEAS/sFastImaging/lShots > 1">
+                    <xsl:if test="siemens/MEAS/sFastImaging/lShots >= 1">
                     <xsl:if test="siemens/MEAS/sPhysioImaging/lPhases > 1">
                         <xsl:if test="siemens/MEAS/sPhysioImaging/lRetroGatedImages > 0">
                             <userParameterLong>
