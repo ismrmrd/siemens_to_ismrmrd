@@ -379,11 +379,15 @@ std::string ProcessParameterMap(const XProtocol::XNode& node, const char* mapfil
 
 
 /// compute noise dwell time in us for dependency and built-in noise in VD/VB lines
-double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isAdjustCoilSens, bool isVB)
+double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB)
 {
     if ( isAdjustCoilSens )
     {
         return 5.0;
+    }
+    else if (isAdjQuietCoilSens)
+    {
+        return 4.0;
     }
     else if ( isVB )
     {
@@ -1202,9 +1206,15 @@ int main(int argc, char *argv[] )
 
     // whether this scan is a adjustment scan
     bool isAdjustCoilSens = false;
-    if ( protocol_name == "AdjCoilSens" )
+    if ( protocol_name == "AdjCoilSens" || protocol_name == "AdjQuietCoilSens" )
     {
         isAdjustCoilSens = true;
+    }
+
+    bool isAdjQuietCoilSens = false;
+    if (protocol_name == "AdjQuietCoilSens")
+    {
+        isAdjQuietCoilSens = true;
     }
 
     // whether this scan is from VB line
@@ -1620,14 +1630,17 @@ int main(int argc, char *argv[] )
          ismrmrd_acq->discard_post()            = scanhead.sCutOff.ushPost;
          ismrmrd_acq->center_sample()           = scanhead.ushKSpaceCentreColumn;
 
+         // std::cout << "isAdjustCoilSens, isVB : " << isAdjustCoilSens << " " << isVB << std::endl;
+
          if ( scanhead.aulEvalInfoMask[0] & (1ULL << 25) )
          { //This is noise
-             ismrmrd_acq->sample_time_us() =  compute_noise_sample_in_us(scanhead.ushSamplesInScan, isAdjustCoilSens, isVB);
+             ismrmrd_acq->sample_time_us() =  compute_noise_sample_in_us(scanhead.ushSamplesInScan, isAdjustCoilSens, isAdjQuietCoilSens, isVB);
          }
          else
          {
              ismrmrd_acq->sample_time_us() = dwell_time_0 / 1000.0f;
          }
+         // std::cout << "ismrmrd_acq->sample_time_us(): " << ismrmrd_acq->sample_time_us() << std::endl;
 
          ismrmrd_acq->position()[0] = scanhead.sSliceData.sSlicePosVec.flSag;
          ismrmrd_acq->position()[1] = scanhead.sSliceData.sSlicePosVec.flCor;
