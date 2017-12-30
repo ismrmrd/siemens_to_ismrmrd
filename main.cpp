@@ -1206,7 +1206,7 @@ int main(int argc, char *argv[] )
 
     // whether this scan is a adjustment scan
     bool isAdjustCoilSens = false;
-    if ( protocol_name == "AdjCoilSens" || protocol_name == "AdjQuietCoilSens" )
+    if ( protocol_name == "AdjCoilSens" )
     {
         isAdjustCoilSens = true;
     }
