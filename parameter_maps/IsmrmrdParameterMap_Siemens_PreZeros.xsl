@@ -742,6 +742,55 @@
                     </userParameterLong>
                 </xsl:if>
 
+                <xsl:if test="siemens/MEAS/sPrepPulses/adT2PrepDuration[1]">
+                  <userParameterDouble>
+                      <name>T2PrepDuration_0</name>
+                      <value>
+                          <xsl:value-of select="siemens/MEAS/sPrepPulses/adT2PrepDuration[1]" />
+                      </value>
+                  </userParameterDouble>
+                </xsl:if>
+                <xsl:if test="siemens/MEAS/sPrepPulses/adT2PrepDuration[2]">
+                  <userParameterDouble>
+                      <name>T2PrepDuration_1</name>
+                      <value>
+                          <xsl:value-of select="siemens/MEAS/sPrepPulses/adT2PrepDuration[2]" />
+                      </value>
+                  </userParameterDouble>
+                </xsl:if>
+                <xsl:if test="siemens/MEAS/sPrepPulses/adT2PrepDuration[3]">
+                  <userParameterDouble>
+                      <name>T2PrepDuration_2</name>
+                      <value>
+                          <xsl:value-of select="siemens/MEAS/sPrepPulses/adT2PrepDuration[3]" />
+                      </value>
+                  </userParameterDouble>
+                </xsl:if>
+                <xsl:if test="siemens/MEAS/sPrepPulses/adT2PrepDuration[4]">
+                  <userParameterDouble>
+                      <name>T2PrepDuration_3</name>
+                      <value>
+                          <xsl:value-of select="siemens/MEAS/sPrepPulses/adT2PrepDuration[4]" />
+                      </value>
+                  </userParameterDouble>
+                </xsl:if>
+                <xsl:if test="siemens/MEAS/sPrepPulses/adT2PrepDuration[5]">
+                  <userParameterDouble>
+                      <name>T2PrepDuration_4</name>
+                      <value>
+                          <xsl:value-of select="siemens/MEAS/sPrepPulses/adT2PrepDuration[5]" />
+                      </value>
+                  </userParameterDouble>
+                </xsl:if>
+                <xsl:if test="siemens/MEAS/sPrepPulses/adT2PrepDuration[6]">
+                  <userParameterDouble>
+                      <name>T2PrepDuration_5</name>
+                      <value>
+                          <xsl:value-of select="siemens/MEAS/sPrepPulses/adT2PrepDuration[6]" />
+                      </value>
+                  </userParameterDouble>
+                </xsl:if>
+
                 <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[1]">
                   <userParameterDouble>
                       <name>MaxwellCoefficient_0</name>
