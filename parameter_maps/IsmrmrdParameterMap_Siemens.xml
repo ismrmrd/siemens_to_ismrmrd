@@ -14,6 +14,7 @@
         <p><s>MEAS.sKSpace.lRadialViews</s>                         <d>siemens.MEAS.sKSpace.lRadialViews</d></p>
         <p><s>MEAS.sKSpace.uc2DInterpolation</s>                    <d>siemens.MEAS.sKSpace.uc2DInterpolation</d></p>
         <p><s>MEAS.sKSpace.ucMultiSliceMode</s>                    <d>siemens.MEAS.sKSpace.ucMultiSliceMode</d></p>
+        <p><s>MEAS.sPrepPulses.adT2PrepDuration</s>                    <d>siemens.MEAS.sPrepPulses.adT2PrepDuration</d></p>
         <p><s>MEAS.sPat.ucPATMode</s>                               <d>siemens.MEAS.sPat.ucPATMode</d></p>
         <p><s>MEAS.sPat.ucRefScanMode</s>                           <d>siemens.MEAS.sPat.ucRefScanMode</d></p>
         <p><s>MEAS.sPat.lAccelFactPE</s>                            <d>siemens.MEAS.sPat.lAccelFactPE</d></p>
