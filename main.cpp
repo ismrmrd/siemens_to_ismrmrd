@@ -458,9 +458,6 @@ std::string ws2s(const std::wstring& wstr)
 }
 
 
-ISMRMRD::Waveform read_waveform(std::ifstream& siemens_dat,const sScanHeader& header ){
-
-}
 
 int main(int argc, char *argv[] )
 {
@@ -628,7 +625,8 @@ int main(int argc, char *argv[] )
             std::ifstream f(usermap_xsl.c_str());
             if (!f)
             {
-                throw std::runtime_error("Parameter XSL stylesheet: " << usermap_xsl << " does not exist.");
+                std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
+                return -1;
             }
             std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
             std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
@@ -640,7 +638,8 @@ int main(int argc, char *argv[] )
         // If the user specified both an embedded and user-supplied stylesheet
         if (usermap_xsl.length() > 0)
         {
-            throw std::runtime_error("Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet");
+            std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet" << std::endl;
+            return -1;
         }
 
         // The user specified an embedded stylesheet only
@@ -672,14 +671,15 @@ int main(int argc, char *argv[] )
     else if (ParcRaidHead.hdSize_ != 0)
     {
         //This is a VB line data file
-        throw std::runtime_error("Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported.");
+        std::cerr << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported." << std::endl;
+        return -1;
     }
 
     if (!VBFILE && measurement_number > ParcRaidHead.count_)
     {
         std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements." << std::endl;
         std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
-//        return -1;
+        return -1;
     }
 
     //if it is a VB scan
@@ -687,7 +687,7 @@ int main(int argc, char *argv[] )
     {
         std::cout << "The file you are trying to convert is a VB file and it has only one measurement." << std::endl;
         std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
-//        return -1;
+        return -1;
     }
 
     std::string parammap_file_content;
@@ -708,7 +708,8 @@ int main(int argc, char *argv[] )
                 std::ifstream f(usermap_file.c_str());
                 if (!f)
                 {
-//                    throw std::runtime_error("Parameter map file: " << usermap_file << " does not exist.");
+                    std::cerr << "Parameter map file: " << usermap_file << " does not exist." << std::endl;
+                    return -1;
                 }
 
                 std::cout << "Parameter map file is: " << usermap_file << std::endl;
@@ -721,7 +722,8 @@ int main(int argc, char *argv[] )
             // If the user specified both an embedded and user-supplied parameter map file
             if (usermap_file.length() > 0)
             {
-//                throw std::runtime_error("Cannot specify a user-supplied parameter map XML file AND embedded XML file");
+                std::cerr << "Cannot specify a user-supplied parameter map XML file AND embedded XML file" << std::endl;
+                return -1;
             }
             // The user specified an embedded parameter map file only
             parammap_file_content = load_embedded(parammap_file);
@@ -745,7 +747,8 @@ int main(int argc, char *argv[] )
                 std::ifstream f(usermap_file.c_str());
                 if (!f)
                 {
-//                    throw std::runtime_error("Parameter map file: " << usermap_file << " does not exist.");
+                    std::cerr << "Parameter map file: " << usermap_file << " does not exist." << std::endl;
+                    return -1;
                 }
 
                 std::cout << "Parameter map file is: " << usermap_file << std::endl;
@@ -758,7 +761,8 @@ int main(int argc, char *argv[] )
             // If the user specified both an embedded and user-supplied parameter map file
             if (usermap_file.length() > 0)
             {
-//                throw std::runtime_error("Cannot specify a user-supplied parameter map XML file AND embedded XML file");
+                std::cerr << "Cannot specify a user-supplied parameter map XML file AND embedded XML file" << std::endl;
+                return -1;
             }
             // The user specified an embedded parameter map file only
             parammap_file_content = load_embedded(parammap_file);
@@ -886,7 +890,7 @@ int main(int argc, char *argv[] )
         //Check if this is synch data, if so, it must be handled differently.
          if (scanhead.aulEvalInfoMask[0] & ( 1 << 5))
          {
-             extract_syncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length);
+             extract_syncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length,scanhead);
 
              continue;
          }
@@ -913,7 +917,8 @@ int main(int argc, char *argv[] )
 #ifndef WIN32
              if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0)
              {
-//                 throw std::runtime_error("Generated XML is not valid according to the ISMRMRD schema");
+                 std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
+                 return -1;
              }
 #endif // WIN32
 
@@ -927,7 +932,7 @@ int main(int argc, char *argv[] )
              if (header_only) {
                  std::ofstream header_out_file(ismrmrd_file.c_str());
                  header_out_file << xml_config;
-//                 return -1;
+                 return -1;
              }
 
              // Create an ISMRMRD dataset
@@ -983,7 +988,7 @@ int main(int argc, char *argv[] )
 
          if (!siemens_dat)
          {
-//             std::cerr << "Error reading data at acquisition " << acquisitions << "." << std::endl;
+             std::cerr << "Error reading data at acquisition " << acquisitions << "." << std::endl;
              break;
          }
 
@@ -992,7 +997,7 @@ int main(int argc, char *argv[] )
 
          if (scanhead.aulEvalInfoMask[0] & 1)
          {
-//             std::cout << "Last scan reached..." << std::endl;
+             std::cout << "Last scan reached..." << std::endl;
              break;
          }
 
@@ -1011,7 +1016,8 @@ int main(int argc, char *argv[] )
 
      if (!siemens_dat)
      {
-//         throw std::runtime_error("WARNING: Unexpected error.  Please check the result.");
+         std::cerr << "WARNING: Unexpected error.  Please check the result." << std::endl;
+         return -1;
      }
 
     //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
@@ -1892,21 +1898,64 @@ ISMRMRD::Acquisition getAcquisition(bool flash_pat_ref_scan, Trajectory trajecto
 }
 
 void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
-                      unsigned long sync_data_packets, uint32_t dma_length) {
+                      unsigned long sync_data_packets, uint32_t dma_length,sScanHeader header) {
     uint32_t last_scan_counter = acquisitions - 1;
 
     size_t len = 0;
     if (VBFILE)
-             {
-                 len = dma_length-sizeof(sMDH);
-             }
-             else
-             {
-                 len = dma_length-sizeof(sScanHeader);
-             }
+    {
+        len = dma_length-sizeof(sMDH);
+        //Is VB magic? For now let's assume it's not, and that this is just Siemens secret sauce.
+        siemens_dat.seekg(len,siemens_dat.cur);
+    }
+    else
+    {
+        len = dma_length-sizeof(sScanHeader);
+        auto cur_pos = siemens_dat.tellg();
+         uint32_t packetSize;
+        siemens_dat >> packetSize;
+        char packedID[52];
+        siemens_dat.read(packedID,52);
+        std::cout << "PIE " << packedID << std::endl;
+        if (packedID == ""){ //packedID is empty, so not useful?
+            siemens_dat.seekg(cur_pos+len);
+            return;
+        }
 
-    std::vector<uint8_t> syncdata(len);
-    siemens_dat.read(reinterpret_cast<char*>(&syncdata[0]), len);
+        uint32_t swappedFlag, timestamp, packerNr, duration;
+        siemens_dat >> swappedFlag >> timestamp >> packerNr >> duration;
+
+        PMU_Type magic;
+        siemens_dat.read((char*)&magic,sizeof(uint32_t));
+
+        //Read in all the PMU data first, to figure out if we have multiple ECGs.
+        std::vector<std::vector<uint32_t>> data;
+        std::vector<PMU_Type > tags;
+        std::vector<uint32_t> periods;
+        while (magic !=  PMU_Type::END){
+
+            //Read and store period
+            uint32_t period;
+            siemens_dat >> period;
+            periods.push_back(period);
+
+            //Allocate and read data
+            data.emplace_back(duration/period);
+            siemens_dat.read((char*)data.back().data(),data.back().size()*sizeof(uint32_t));
+
+            //Add tag and read next tag
+            tags.push_back(magic);
+
+            siemens_dat.read((char*)&magic,sizeof(uint32_t));
+        }
+
+
+
+
+
+
+    }
+
 
     sync_data_packets++;
 }
