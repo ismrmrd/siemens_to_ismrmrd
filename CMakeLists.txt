@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 project(SIEMENS-TO-ISMRMRD)
 
 # --- Provide good defaults for searching for packages (i.e. ismrmrd)
-set(CMAKE_PREFIX_PATH "")
+set(CMAKE_PREFIX_PATH "/usr")
 if(CMAKE_PREFIX_PATH)
   list(APPEND CMAKE_PREFIX_PATH "/usr/local")
 endif()
@@ -50,11 +50,14 @@ if (WIN32)
     set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     add_definitions(-D__BUILD_CONVERTER_TINYXML__)
-endif()
+    else()
 
-if(WIN32)
-    set(Boost_NO_BOOST_CMAKE ON)
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 endif()
+set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+set(Boost_NO_BOOST_CMAKE ON)
 
 # Added for static linking!!!
 if (BUILD_DYNAMIC)
@@ -64,8 +67,8 @@ else()
    set(Boost_USE_STATIC_LIBS ON)
    message("Building statically linked application.")
 endif()
- 
-find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
+
+find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
 find_package(ISMRMRD REQUIRED)
 find_package(HDF5 1.8 REQUIRED COMPONENTS C)
 
