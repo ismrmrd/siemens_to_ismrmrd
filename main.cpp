@@ -80,7 +80,7 @@ void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp
 
 
 void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
-                      unsigned long sync_data_packets, uint32_t dma_length);
+                      unsigned long sync_data_packets, uint32_t dma_length, sScanHeader sscan);
 
 ISMRMRD::Acquisition getAcquisition(bool flash_pat_ref_scan, Trajectory trajectory, long dwell_time_0, long max_channels,
                                      bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB,
@@ -888,12 +888,7 @@ int main(int argc, char *argv[] )
          uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
         //Check if this is synch data, if so, it must be handled differently.
-         if (scanhead.aulEvalInfoMask[0] & ( 1 << 5))
-         {
-             extract_syncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length,scanhead);
 
-             continue;
-         }
 
          if(first_call)
          {
@@ -938,6 +933,12 @@ int main(int argc, char *argv[] )
              // Create an ISMRMRD dataset
              ismrmrd_dataset = boost::make_shared<ISMRMRD::Dataset>(ismrmrd_file.c_str(), ismrmrd_group.c_str());
              ismrmrd_dataset->writeHeader(xml_config);
+         }
+          if (scanhead.aulEvalInfoMask[0] & ( 1 << 5))
+         {
+             extract_syncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length,scanhead);
+
+             continue;
          }
 
          //This check only makes sense in VD line files.
@@ -1897,11 +1898,26 @@ ISMRMRD::Acquisition getAcquisition(bool flash_pat_ref_scan, Trajectory trajecto
     return ismrmrd_acq;
 }
 
+std::tuple<std::vector<uint32_t>,std::vector<uint32_t>> unpack_pmu(const std::vector<PMUdata>& data) {
+
+    auto tup = std::make_tuple(std::vector<uint32_t>(),std::vector<uint32_t>());
+    std::get<0>(tup).reserve(data.size());
+    std::get<1>(tup).reserve(data.size());
+
+    for (auto d : data) {
+
+        std::get<0>(tup).push_back(d.data);
+        std::get<1>(tup).push_back(d.trigger);
+    }
+    return tup;
+}
+
+
 void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
                       unsigned long sync_data_packets, uint32_t dma_length,sScanHeader header) {
     uint32_t last_scan_counter = acquisitions - 1;
 
-    size_t len = 0;
+    long int len = 0;
     if (VBFILE)
     {
         len = dma_length-sizeof(sMDH);
@@ -1929,25 +1945,69 @@ void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acq
         siemens_dat.read((char*)&magic,sizeof(uint32_t));
 
         //Read in all the PMU data first, to figure out if we have multiple ECGs.
-        std::vector<std::vector<uint32_t>> data;
-        std::vector<PMU_Type > tags;
-        std::vector<uint32_t> periods;
+        std::map<PMU_Type, std::tuple<std::vector<PMUdata>,uint32_t >> pmu_map;
+        std::set<PMU_Type> ecg_types = {PMU_Type::ECG1,PMU_Type::ECG2,PMU_Type::ECG3,PMU_Type::ECG4};
+        std::map<PMU_Type, std::tuple<std::vector<PMUdata>,uint32_t >> ecg_map;
         while (magic !=  PMU_Type::END){
-
             //Read and store period
             uint32_t period;
             siemens_dat >> period;
-            periods.push_back(period);
 
             //Allocate and read data
-            data.emplace_back(duration/period);
-            siemens_dat.read((char*)data.back().data(),data.back().size()*sizeof(uint32_t));
-
-            //Add tag and read next tag
-            tags.push_back(magic);
-
+            std::vector<PMUdata> data(duration/period);
+            siemens_dat.read((char*)data.data(),data.size()*sizeof(PMUdata));
+            //Split into ECG and PMU sets.
+            if (ecg_types.count(magic)){
+                ecg_map[magic] = std::make_tuple(std::move(data),period);
+            } else {
+                pmu_map[magic] = std::make_tuple(std::move(data), period);
+            }
+            //Read next tag
             siemens_dat.read((char*)&magic,sizeof(uint32_t));
         }
+
+        //Have to handle ECG seperately.
+
+        if (ecg_map.size() > 0) {
+
+            size_t channels = ecg_map.size();
+            size_t number_of_elements = std::get<0>(ecg_map.begin()->second).size();
+
+            auto ecg_waveform = ISMRMRD::Waveform(number_of_elements,channels);
+            uint32_t* ecg_waveform_data = ecg_waveform.data;
+
+            auto trigger_waveform = ISMRMRD::Waveform(number_of_elements,channels);
+            uint32_t* trigger_data = trigger_waveform.data;
+            //Copy in the data
+            for (auto key_val : ecg_map) {
+                auto tup = unpack_pmu(std::get<0>(key_val.second));
+                auto& data = std::get<0>(tup);
+                auto& trigger = std::get<1>(tup);
+
+                std::copy(data.begin(),data.end(),ecg_waveform_data);
+                ecg_waveform_data += data.size();
+
+                std::copy(trigger.begin(),trigger.end(),trigger_data);
+                trigger_data += trigger.size();
+
+            }
+        }
+
+
+        for (auto key_val : pmu_map) {
+            auto tup = unpack_pmu(std::get<0>(key_val.second));
+            auto& data = std::get<0>(tup);
+            auto& trigger = std::get<1>(tup);
+
+            auto waveform = ISMRMRD::Waveform(data.size(),1);
+            std::copy(data.begin(),data.end(),waveform.data);
+
+            auto trigger_waveform = ISMRMRD::Waveform(trigger.size(),1);
+            std::copy(trigger.begin(),trigger.end(),trigger_waveform.data);
+        }
+        //Figure out number of ECG channels
+
+
 
 
 
@@ -1955,7 +2015,5 @@ void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acq
 
 
     }
-
-
-    sync_data_packets++;
 }
+
