@@ -79,8 +79,8 @@ void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp
     double** weights);
 
 
-void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
-                      unsigned long sync_data_packets, uint32_t dma_length, sScanHeader sscan);
+void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions, unsigned long sync_data_packets,
+                 uint32_t dma_length, sScanHeader sscan, ISMRMRD::IsmrmrdHeader &header);
 
 ISMRMRD::Acquisition getAcquisition(bool flash_pat_ref_scan, Trajectory trajectory, long dwell_time_0, long max_channels,
                                      bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB,
@@ -206,12 +206,10 @@ std::string get_time_string(size_t hours, size_t mins, size_t secs)
     return ret;
 }
 
-bool fill_ismrmrd_header(std::string& header, const std::string& study_date, const std::string& study_time)
+bool fill_ismrmrd_header(ISMRMRD::IsmrmrdHeader &h, const std::string &study_date, const std::string &study_time)
 {
     try
     {
-        ISMRMRD::IsmrmrdHeader h;
-        ISMRMRD::deserialize(header.c_str(), h);
 
         // ---------------------------------
         // fill more info into the ismrmrd header
@@ -260,10 +258,7 @@ bool fill_ismrmrd_header(std::string& header, const std::string& study_date, con
         // ---------------------------------
         // go back to string
         // ---------------------------------
-        std::ostringstream str_filled;
-        ISMRMRD::serialize(h, str_filled);
 
-        header = str_filled.str();
     }
     catch(...)
     {
@@ -870,6 +865,11 @@ int main(int argc, char *argv[] )
      unsigned long int sync_data_packets = 0;
      bool first_call = true;
 
+
+    ISMRMRD::IsmrmrdHeader header;
+    ISMRMRD::deserialize(xml_config.c_str(),header);
+
+
      while (!(last_mask & 1) && //Last scan not encountered
              (((ParcFileEntries[measurement_number-1].off_+ ParcFileEntries[measurement_number-1].len_)-siemens_dat.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
      {
@@ -887,7 +887,6 @@ int main(int argc, char *argv[] )
          uint32_t dma_length = scanhead.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
          uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
-        //Check if this is synch data, if so, it must be handled differently.
 
 
          if(first_call)
@@ -904,24 +903,11 @@ int main(int argc, char *argv[] )
              std::string study_time = get_time_string(hours, mins, secs);
 
              // if some of the ismrmrd header fields are not filled, here is a place to take some further actions
-             if(!fill_ismrmrd_header(xml_config, study_date_user_supplied, study_time) )
+             if(!fill_ismrmrd_header(header, study_date_user_supplied, study_time) )
              {
-                 std::cerr << "Failed to further fill XML header" << std::endl;
+                 std::cerr << "Failed to further fill ISMRMRD header" << std::endl;
              }
 
-#ifndef WIN32
-             if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0)
-             {
-                 std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
-                 return -1;
-             }
-#endif // WIN32
-
-             if (debug_xml)
-             {
-                 std::ofstream o("processed.xml");
-                 o.write(xml_config.c_str(), xml_config.size());
-             }
 
              //This means we should only create XML header and exit
              if (header_only) {
@@ -932,11 +918,12 @@ int main(int argc, char *argv[] )
 
              // Create an ISMRMRD dataset
              ismrmrd_dataset = boost::make_shared<ISMRMRD::Dataset>(ismrmrd_file.c_str(), ismrmrd_group.c_str());
-             ismrmrd_dataset->writeHeader(xml_config);
          }
+
+         //Check if this is synch data, if so, it must be handled differently.
           if (scanhead.aulEvalInfoMask[0] & ( 1 << 5))
          {
-             extract_syncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length,scanhead);
+             getSyncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length, scanhead, <#initializer#>);
 
              continue;
          }
@@ -1057,6 +1044,30 @@ int main(int argc, char *argv[] )
         std::cerr << "WARNING: End of file was not reached during conversion. There are " <<
                 additional_bytes << " additional bytes at the end of file." << std::endl;
     }
+
+
+
+
+    //Write header
+    std::stringstream ss;
+    ISMRMRD::serialize(header,ss);
+    xml_config = ss.str();
+
+#ifndef WIN32
+     if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0)
+     {
+         std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
+         return -1;
+     }
+#endif // WIN32
+
+     if (debug_xml)
+     {
+         std::ofstream o("processed.xml");
+         o.write(xml_config.c_str(), xml_config.size());
+     }
+
+    ismrmrd_dataset->writeHeader(xml_config);
 
     return 0;
 }
@@ -1913,8 +1924,38 @@ std::tuple<std::vector<uint32_t>,std::vector<uint32_t>> unpack_pmu(const std::ve
 }
 
 
-void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
-                      unsigned long sync_data_packets, uint32_t dma_length,sScanHeader header) {
+uint getWaveformId(ISMRMRD::IsmrmrdHeader & header, PMU_Type type){
+    static std::map<PMU_Type, uint> waveform;
+    if (waveform.count(type)){
+        return waveform[type];
+    } else {
+        ISMRMRD::WaveformInformation info;
+        if (type == PMU_Type::ECG1 || type == PMU_Type::ECG2 || type == PMU_Type::ECG3 || type == PMU_Type::ECG4) {
+            info.waveformType = ISMRMRD::WaveformType::ECG;
+            info.waveformName = "ECG";
+        } else if (type == PMU_Type::PULS){
+            info.waveformType = ISMRMRD::WaveformType::PULSE;
+            info.waveformName = "PULS";
+        } else if (type == PMU_Type::RESP){
+            info.waveformType = ISMRMRD::WaveformType::RESPIRATORY;
+            info.waveformName = "RESP";
+        } else if (type == PMU_Type::EXT1){
+            info.waveformType = ISMRMRD::WaveformType::OTHER;
+            info.waveformName = "EXT1";
+        } else if (type == PMU_Type::EXT2){
+            info.waveformType = ISMRMRD::WaveformType::OTHER;
+            info.waveformName = "EXT2";
+        }
+        header.waveformInformation.push_back(info);
+        waveform[type] = header.waveformInformation.size()-1;
+
+    }
+
+}
+
+
+void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions, unsigned long sync_data_packets,
+                 uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header) {
     uint32_t last_scan_counter = acquisitions - 1;
 
     long int len = 0;
@@ -1932,7 +1973,6 @@ void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acq
         siemens_dat >> packetSize;
         char packedID[52];
         siemens_dat.read(packedID,52);
-        std::cout << "PIE " << packedID << std::endl;
         if (packedID == ""){ //packedID is empty, so not useful?
             siemens_dat.seekg(cur_pos+len);
             return;
@@ -1968,46 +2008,64 @@ void extract_syncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acq
 
         //Have to handle ECG seperately.
 
-        if (ecg_map.size() > 0) {
+        std::vector<ISMRMRD::Waveform> waveforms;
+        if (ecg_map.size() > 0 || pmu_map.size() > 0) {
 
-            size_t channels = ecg_map.size();
-            size_t number_of_elements = std::get<0>(ecg_map.begin()->second).size();
+            if (ecg_map.size() > 0) {
 
-            auto ecg_waveform = ISMRMRD::Waveform(number_of_elements,channels);
-            uint32_t* ecg_waveform_data = ecg_waveform.data;
+                size_t channels = ecg_map.size();
+                size_t number_of_elements = std::get<0>(ecg_map.begin()->second).size();
 
-            auto trigger_waveform = ISMRMRD::Waveform(number_of_elements,channels);
-            uint32_t* trigger_data = trigger_waveform.data;
-            //Copy in the data
-            for (auto key_val : ecg_map) {
-                auto tup = unpack_pmu(std::get<0>(key_val.second));
-                auto& data = std::get<0>(tup);
-                auto& trigger = std::get<1>(tup);
+                auto ecg_waveform = ISMRMRD::Waveform(number_of_elements, channels);
+                uint32_t *ecg_waveform_data = ecg_waveform.data;
 
-                std::copy(data.begin(),data.end(),ecg_waveform_data);
-                ecg_waveform_data += data.size();
+                auto trigger_waveform = ISMRMRD::Waveform(number_of_elements, channels);
+                uint32_t *trigger_data = trigger_waveform.data;
+                //Copy in the data
+                for (auto key_val : ecg_map) {
+                    auto tup = unpack_pmu(std::get<0>(key_val.second));
+                    auto &data = std::get<0>(tup);
+                    auto &trigger = std::get<1>(tup);
 
-                std::copy(trigger.begin(),trigger.end(),trigger_data);
-                trigger_data += trigger.size();
+                    std::copy(data.begin(), data.end(), ecg_waveform_data);
+                    ecg_waveform_data += data.size();
+
+                    std::copy(trigger.begin(), trigger.end(), trigger_data);
+                    trigger_data += trigger.size();
+
+                }
+
+                waveforms.push_back(ecg_waveform);
+
 
             }
+
+
+            for (auto key_val : pmu_map) {
+                auto tup = unpack_pmu(std::get<0>(key_val.second));
+                auto &data = std::get<0>(tup);
+                auto &trigger = std::get<1>(tup);
+
+                auto waveform = ISMRMRD::Waveform(data.size(), 1);
+                std::copy(data.begin(), data.end(), waveform.data);
+
+                auto trigger_waveform = ISMRMRD::Waveform(trigger.size(), 1);
+                std::copy(trigger.begin(), trigger.end(), trigger_waveform.data);
+
+                waveforms.push_back(waveform);
+            }
+            //Figure out number of ECG channels
+
+
         }
 
 
-        for (auto key_val : pmu_map) {
-            auto tup = unpack_pmu(std::get<0>(key_val.second));
-            auto& data = std::get<0>(tup);
-            auto& trigger = std::get<1>(tup);
-
-            auto waveform = ISMRMRD::Waveform(data.size(),1);
-            std::copy(data.begin(),data.end(),waveform.data);
-
-            auto trigger_waveform = ISMRMRD::Waveform(trigger.size(),1);
-            std::copy(trigger.begin(),trigger.end(),trigger_waveform.data);
+        for (auto & waveform : waveforms){
+            waveform.head.time_stamp = timestamp;
+            waveform.head.measurement_uid = scanheader.lMeasUID;
+            waveform.head.sample_time_us = double(duration)/waveform.head.number_of_samples/1000; //TODO: Check that this actually produces time in microseconds. Duration might not be in physical units.
+            waveform.head.scan_counter = last_scan_counter;
         }
-        //Figure out number of ECG channels
-
-
 
 
 
