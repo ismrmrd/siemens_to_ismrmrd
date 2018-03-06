@@ -923,7 +923,7 @@ int main(int argc, char *argv[] )
          //Check if this is synch data, if so, it must be handled differently.
           if (scanhead.aulEvalInfoMask[0] & ( 1 << 5))
          {
-             getSyncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length, scanhead, <#initializer#>);
+             getSyncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length, scanhead, header);
 
              continue;
          }
@@ -1924,11 +1924,9 @@ std::tuple<std::vector<uint32_t>,std::vector<uint32_t>> unpack_pmu(const std::ve
 }
 
 
-uint getWaveformId(ISMRMRD::IsmrmrdHeader & header, PMU_Type type){
-    static std::map<PMU_Type, uint> waveform;
-    if (waveform.count(type)){
-        return waveform[type];
-    } else {
+int getWaveformId(ISMRMRD::IsmrmrdHeader & header, PMU_Type type){
+    static std::map<PMU_Type, int> waveform;
+    if (!waveform.count(type)){
         ISMRMRD::WaveformInformation info;
         if (type == PMU_Type::ECG1 || type == PMU_Type::ECG2 || type == PMU_Type::ECG3 || type == PMU_Type::ECG4) {
             info.waveformType = ISMRMRD::WaveformType::ECG;
@@ -1950,6 +1948,7 @@ uint getWaveformId(ISMRMRD::IsmrmrdHeader & header, PMU_Type type){
         waveform[type] = header.waveformInformation.size()-1;
 
     }
+	return waveform[type];
 
 }
 
@@ -1958,7 +1957,7 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
                  uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header) {
     uint32_t last_scan_counter = acquisitions - 1;
 
-    long int len = 0;
+    size_t len = 0;
     if (VBFILE)
     {
         len = dma_length-sizeof(sMDH);
@@ -1974,7 +1973,7 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
         char packedID[52];
         siemens_dat.read(packedID,52);
         if (packedID == ""){ //packedID is empty, so not useful?
-            siemens_dat.seekg(cur_pos+len);
+            siemens_dat.seekg(size_t(cur_pos)+len);
             return;
         }
 
@@ -2016,11 +2015,13 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
                 size_t channels = ecg_map.size();
                 size_t number_of_elements = std::get<0>(ecg_map.begin()->second).size();
 
-                auto ecg_waveform = ISMRMRD::Waveform(number_of_elements, channels);
+                auto ecg_waveform = ISMRMRD::Waveform(number_of_elements, channels+1);
+				ecg_waveform.head.waveform_id = getWaveformId(header, PMU_Type::ECG1);
+
                 uint32_t *ecg_waveform_data = ecg_waveform.data;
 
-                auto trigger_waveform = ISMRMRD::Waveform(number_of_elements, channels);
-                uint32_t *trigger_data = trigger_waveform.data;
+				uint32_t * trigger_data = ecg_waveform_data + number_of_elements * channels;
+				std::fill(trigger_data, trigger_data + number_of_elements, 0);
                 //Copy in the data
                 for (auto key_val : ecg_map) {
                     auto tup = unpack_pmu(std::get<0>(key_val.second));
@@ -2030,8 +2031,7 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
                     std::copy(data.begin(), data.end(), ecg_waveform_data);
                     ecg_waveform_data += data.size();
 
-                    std::copy(trigger.begin(), trigger.end(), trigger_data);
-                    trigger_data += trigger.size();
+					for (auto i = 0; i < number_of_elements; i++) trigger_data[i] |= trigger[i];
 
                 }
 
@@ -2046,11 +2046,11 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
                 auto &data = std::get<0>(tup);
                 auto &trigger = std::get<1>(tup);
 
-                auto waveform = ISMRMRD::Waveform(data.size(), 1);
+                auto waveform = ISMRMRD::Waveform(data.size(), 2);
+				waveform.head.waveform_id = getWaveformId(header, key_val.first);
                 std::copy(data.begin(), data.end(), waveform.data);
 
-                auto trigger_waveform = ISMRMRD::Waveform(trigger.size(), 1);
-                std::copy(trigger.begin(), trigger.end(), trigger_waveform.data);
+                std::copy(trigger.begin(), trigger.end(), waveform.data+data.size());
 
                 waveforms.push_back(waveform);
             }
