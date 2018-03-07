@@ -79,8 +79,9 @@ void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp
     double** weights);
 
 
-void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions, unsigned long sync_data_packets,
-                 uint32_t dma_length, sScanHeader sscan, ISMRMRD::IsmrmrdHeader &header);
+std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
+                                           unsigned long sync_data_packets,
+                                           uint32_t dma_length, sScanHeader sscan, ISMRMRD::IsmrmrdHeader &header);
 
 ISMRMRD::Acquisition getAcquisition(bool flash_pat_ref_scan, Trajectory trajectory, long dwell_time_0, long max_channels,
                                      bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB,
@@ -597,7 +598,7 @@ int main(int argc, char *argv[] )
     }
 
     // Check if Siemens file is valid
-    std::ifstream infile(siemens_dat_filename.c_str());
+    std::ifstream infile(siemens_dat_filename.c_str(),std::ios::binary);
     if (!infile) {
         std::cerr << "Provided Siemens file can not be open or does not exist." << std::endl;
         std::cerr << display_options << "\n";
@@ -923,7 +924,9 @@ int main(int argc, char *argv[] )
          //Check if this is synch data, if so, it must be handled differently.
           if (scanhead.aulEvalInfoMask[0] & ( 1 << 5))
          {
-             getSyncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length, scanhead, header);
+             auto waveforms  = getSyncdata(siemens_dat, VBFILE, acquisitions, sync_data_packets, dma_length, scanhead, header);
+             for (auto& w : waveforms)
+                     ismrmrd_dataset->appendWaveform(w);
 
              continue;
          }
@@ -1924,37 +1927,54 @@ std::tuple<std::vector<uint32_t>,std::vector<uint32_t>> unpack_pmu(const std::ve
 }
 
 
-int getWaveformId(ISMRMRD::IsmrmrdHeader & header, PMU_Type type){
-    static std::map<PMU_Type, int> waveform;
-    if (!waveform.count(type)){
+void makeWaveformHeader(ISMRMRD::IsmrmrdHeader & header){
+
+    if (!header.waveformInformation.size()) {
         ISMRMRD::WaveformInformation info;
-        if (type == PMU_Type::ECG1 || type == PMU_Type::ECG2 || type == PMU_Type::ECG3 || type == PMU_Type::ECG4) {
-            info.waveformType = ISMRMRD::WaveformType::ECG;
-            info.waveformName = "ECG";
-        } else if (type == PMU_Type::PULS){
-            info.waveformType = ISMRMRD::WaveformType::PULSE;
-            info.waveformName = "PULS";
-        } else if (type == PMU_Type::RESP){
-            info.waveformType = ISMRMRD::WaveformType::RESPIRATORY;
-            info.waveformName = "RESP";
-        } else if (type == PMU_Type::EXT1){
-            info.waveformType = ISMRMRD::WaveformType::OTHER;
-            info.waveformName = "EXT1";
-        } else if (type == PMU_Type::EXT2){
-            info.waveformType = ISMRMRD::WaveformType::OTHER;
-            info.waveformName = "EXT2";
-        }
+        ISMRMRD::UserParameterLong userParam;
+        userParam.name = "TriggerChannel";
+        userParam.value = 4; //Trigger is stored in 5th channel for ECG
+        info.waveformName = "ECG";
+        info.waveformType = ISMRMRD::WaveformType::ECG;
+        info.userParameters = ISMRMRD::UserParameters();
+        info.userParameters.get().userParameterLong.push_back(userParam);
         header.waveformInformation.push_back(info);
-        waveform[type] = header.waveformInformation.size()-1;
+
+
+        info.waveformName = "PULS";
+        info.waveformType = ISMRMRD::WaveformType::PULSE;
+        info.userParameters.get().userParameterLong[0].value = 1; //Trigger is storend in 2nd channel everything else
+        header.waveformInformation.push_back(info);
+
+        info.waveformName = "RESP";
+        info.waveformType = ISMRMRD::WaveformType::RESPIRATORY;
+        header.waveformInformation.push_back(info);
+
+        info.waveformName = "EXT1";
+        info.waveformType = ISMRMRD::WaveformType::OTHER;
+        header.waveformInformation.push_back(info);
+
+        info.waveformName = "EXT2";
+        info.waveformType = ISMRMRD::WaveformType::OTHER;
+        header.waveformInformation.push_back(info);
 
     }
-	return waveform[type];
+
+
 
 }
+const std::map<PMU_Type, int> waveformId = {{PMU_Type::ECG1,0},{PMU_Type::ECG2,0},{PMU_Type::ECG3,0},{PMU_Type::ECG4,0},
+                                            {PMU_Type::PULS,1},
+                                            {PMU_Type::RESP,2},
+                                            {PMU_Type::EXT1,3},
+                                            {PMU_Type::EXT2,4}};
 
+std::set<PMU_Type> PMU_Types = {PMU_Type::ECG1,PMU_Type::ECG2,PMU_Type::ECG3,PMU_Type::ECG4,PMU_Type::PULS,
+                                PMU_Type::RESP, PMU_Type::EXT1,PMU_Type::EXT2,PMU_Type::END};
 
-void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions, unsigned long sync_data_packets,
-                 uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header) {
+std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
+                                           unsigned long sync_data_packets,
+                                           uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header) {
     uint32_t last_scan_counter = acquisitions - 1;
 
     size_t len = 0;
@@ -1963,26 +1983,40 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
         len = dma_length-sizeof(sMDH);
         //Is VB magic? For now let's assume it's not, and that this is just Siemens secret sauce.
         siemens_dat.seekg(len,siemens_dat.cur);
+        return std::vector<ISMRMRD::Waveform>();
     }
     else
     {
         len = dma_length-sizeof(sScanHeader);
+
+//        siemens_dat.seekg(len,siemens_dat.cur);
+//        return std::vector<ISMRMRD::Waveform>();
         auto cur_pos = siemens_dat.tellg();
          uint32_t packetSize;
-        siemens_dat >> packetSize;
+        siemens_dat.read((char*)&packetSize,sizeof(uint32_t));
         char packedID[52];
         siemens_dat.read(packedID,52);
-        if (packedID == ""){ //packedID is empty, so not useful?
-            siemens_dat.seekg(size_t(cur_pos)+len);
-            return;
+        if (strcmp(packedID,"") == 0){ //packedID is empty, so not useful?
+            std::cout <<"Skipping" << std::endl;
+//            size_t skip = std::ceil((packetSize+60)/double(32))*32-packetSize-60;
+//            siemens_dat.seekg(skip,siemens_dat.cur);
+            std::cout << siemens_dat.tellg()-cur_pos << std::endl;
+            siemens_dat.seekg(cur_pos);
+            siemens_dat.seekg(len,siemens_dat.cur);
+            return std::vector<ISMRMRD::Waveform>();
+
         }
 
-        uint32_t swappedFlag, timestamp, packerNr, duration;
-        siemens_dat >> swappedFlag >> timestamp >> packerNr >> duration;
+        uint32_t swappedFlag, timestamp0,timestamp, packerNr, duration;
+
+        siemens_dat.read((char*)&swappedFlag,sizeof(uint32_t));
+        siemens_dat.read((char*)&timestamp0,sizeof(uint32_t));
+        siemens_dat.read((char*)&timestamp,sizeof(uint32_t));
+        siemens_dat.read((char*)&packerNr,sizeof(uint32_t));
+        siemens_dat.read((char*)&duration,sizeof(uint32_t));
 
         PMU_Type magic;
         siemens_dat.read((char*)&magic,sizeof(uint32_t));
-
         //Read in all the PMU data first, to figure out if we have multiple ECGs.
         std::map<PMU_Type, std::tuple<std::vector<PMUdata>,uint32_t >> pmu_map;
         std::set<PMU_Type> ecg_types = {PMU_Type::ECG1,PMU_Type::ECG2,PMU_Type::ECG3,PMU_Type::ECG4};
@@ -1990,7 +2024,8 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
         while (magic !=  PMU_Type::END){
             //Read and store period
             uint32_t period;
-            siemens_dat >> period;
+
+            siemens_dat.read((char*)&period,sizeof(uint32_t));
 
             //Allocate and read data
             std::vector<PMUdata> data(duration/period);
@@ -2003,6 +2038,10 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
             }
             //Read next tag
             siemens_dat.read((char*)&magic,sizeof(uint32_t));
+            if (!PMU_Types.count(magic))
+                throw std::runtime_error("Malformed file");
+
+
         }
 
         //Have to handle ECG seperately.
@@ -2016,7 +2055,7 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
                 size_t number_of_elements = std::get<0>(ecg_map.begin()->second).size();
 
                 auto ecg_waveform = ISMRMRD::Waveform(number_of_elements, channels+1);
-				ecg_waveform.head.waveform_id = getWaveformId(header, PMU_Type::ECG1);
+				ecg_waveform.head.waveform_id = waveformId.at(PMU_Type::ECG1);
 
                 uint32_t *ecg_waveform_data = ecg_waveform.data;
 
@@ -2047,7 +2086,7 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
                 auto &trigger = std::get<1>(tup);
 
                 auto waveform = ISMRMRD::Waveform(data.size(), 2);
-				waveform.head.waveform_id = getWaveformId(header, key_val.first);
+				waveform.head.waveform_id = waveformId.at(key_val.first);
                 std::copy(data.begin(), data.end(), waveform.data);
 
                 std::copy(trigger.begin(), trigger.end(), waveform.data+data.size());
@@ -2066,6 +2105,9 @@ void getSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisit
             waveform.head.sample_time_us = double(duration)/waveform.head.number_of_samples/1000; //TODO: Check that this actually produces time in microseconds. Duration might not be in physical units.
             waveform.head.scan_counter = last_scan_counter;
         }
+
+        if (waveforms.size()) makeWaveformHeader(header); //Add the header if needed
+        return waveforms;
 
 
 
