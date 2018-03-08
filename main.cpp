@@ -1,4 +1,4 @@
-#ifndef WIN32
+//#ifndef WIN32
 #include <libxml/parser.h>
 #include <libxml/xmlschemas.h>
 #include <libxml/xmlmemory.h>
@@ -11,14 +11,15 @@
 #include <libxslt/xsltInternals.h>
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
-#endif //WIN32
+//#endif //WIN32
 
+/*
 #ifdef WIN32
     #include <windows.h>
     #include <Shlwapi.h>
     #pragma comment(lib, "shlwapi.lib")
 #endif // WIN32
-
+*/
 #include "siemensraw.h"
 #include "base64.h"
 #include "XNode.h"
@@ -100,7 +101,7 @@ void create_xml_parameters(bool debug_xml, bool append_buffers, const std::strin
 void get_trajectory(const std::vector<std::string> &wip_double, const Trajectory &trajectory, long dwell_time_0,
                     long radial_views, ISMRMRD::NDArray<float> &traj, std::vector<size_t> &traj_dim);
 
-#ifndef WIN32
+
 int xml_file_is_valid(std::string& xml, std::string& schema_file)
 {
     xmlDocPtr doc;
@@ -153,7 +154,7 @@ int xml_file_is_valid(std::string& xml, std::string& schema_file)
     /* force the return value to be non-negative on success */
     return is_valid ? 1 : 0;
 }
-#endif //WIN32
+
 
 
 std::string get_date_time_string()
@@ -1553,7 +1554,7 @@ void create_xml_parameters(bool debug_xml, bool append_buffers, const std::strin
         o.write(xml_config.c_str(), xml_config.size());
     }
 
-#ifndef WIN32
+
     xsltStylesheetPtr cur = NULL;
 
     xmlDocPtr doc, res, xml_doc;
@@ -1611,70 +1612,6 @@ void create_xml_parameters(bool debug_xml, bool append_buffers, const std::strin
 
     xsltCleanupGlobals();
     xmlCleanupParser();
-
-#else // ifndef WIN32
-    std::string syscmd;
-    int xsltproc_res(0);
-
-    std::string xml_post("xml_post.xml"), xml_pre("xml_pre.xml");
-
-    // Full path to the executable (including the executable file)
-    char fullPath[MAX_PATH];
-
-    // Full path to the executable (without executable file)
-    char *rightPath;
-
-    // Will contain exe path
-    HMODULE hModule = GetModuleHandle(NULL);
-    if (hModule != NULL)
-    {
-        // When passing NULL to GetModuleHandle, it returns handle of exe itself
-        GetModuleFileName(hModule, fullPath, (sizeof(fullPath)));
-
-        rightPath = fullPath;
-
-        PathRemoveFileSpec(rightPath);
-    }
-    else
-    {
-        std::cout << "The path to the executable is NULL" << std::endl;
-    }
-
-    std::ofstream xslf("xsl_file");
-    xslf.write(parammap_xsl_content.c_str(), parammap_xsl_content.size());
-    xslf.close();
-
-    syscmd = std::string(rightPath) + std::string("\\") + std::string("xsltproc --output xml_post.xml \"") + std::string("xsl_file") + std::string("\" xml_pre.xml");
-
-    std::ofstream o(xml_pre.c_str());
-    o.write(xml_config.c_str(), xml_config.size());
-    o.close();
-
-    xsltproc_res = system(syscmd.c_str());
-
-    std::ifstream t(xml_post.c_str());
-    xml_config = std::string((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-
-    if ( xsltproc_res != 0 )
-    {
-        std::cerr << "Failed to call up xsltproc : \t" << syscmd << std::endl;
-
-        std::ofstream o(xml_pre.c_str());
-        o.write(xml_config.c_str(), xml_config.size());
-        o.close();
-
-        xsltproc_res = system(syscmd.c_str());
-
-        if ( xsltproc_res != 0 )
-        {
-            throw std::runtime_error("Failed to generate XML header");
-        }
-
-        std::ifstream t(xml_post.c_str());
-        xml_config = std::string((std::istreambuf_iterator<char>(t)),
-            std::istreambuf_iterator<char>());
-    }
-#endif //WIN32
 
 
     //Append buffers to xml_config if requested
@@ -1994,9 +1931,15 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
         auto cur_pos = siemens_dat.tellg();
          uint32_t packetSize;
         siemens_dat.read((char*)&packetSize,sizeof(uint32_t));
-        char packedID[52];
-        siemens_dat.read(packedID,52);
-        if (strcmp(packedID,"") == 0){ //packedID is empty, so not useful?
+		std::string packedID;
+		{
+			char packedIDArr[52];
+			siemens_dat.read(packedIDArr, 52);
+			packedID = packedIDArr;
+
+		}
+		
+        if (packedID.find("PMU") == packedID.npos ){ //packedID indicates this isn't PMU data, so let's jump ship.
             std::cout <<"Skipping" << std::endl;
 //            size_t skip = std::ceil((packetSize+60)/double(32))*32-packetSize-60;
 //            siemens_dat.seekg(skip,siemens_dat.cur);
@@ -2047,6 +1990,7 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
         //Have to handle ECG seperately.
 
         std::vector<ISMRMRD::Waveform> waveforms;
+		waveforms.reserve(5);
         if (ecg_map.size() > 0 || pmu_map.size() > 0) {
 
             if (ecg_map.size() > 0) {
@@ -2074,7 +2018,7 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
 
                 }
 
-                waveforms.push_back(ecg_waveform);
+                waveforms.push_back(std::move(ecg_waveform));
 
 
             }
@@ -2091,7 +2035,7 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
 
                 std::copy(trigger.begin(), trigger.end(), waveform.data+data.size());
 
-                waveforms.push_back(waveform);
+                waveforms.push_back(std::move(waveform));
             }
             //Figure out number of ECG channels
 
@@ -2107,6 +2051,9 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
         }
 
         if (waveforms.size()) makeWaveformHeader(header); //Add the header if needed
+
+		siemens_dat.seekg(cur_pos);
+		siemens_dat.seekg(len, siemens_dat.cur);
         return waveforms;
 
 

@@ -60,27 +60,27 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 set(Boost_NO_BOOST_CMAKE ON)
 
 # Added for static linking!!!
-if (BUILD_DYNAMIC)
-    set(Boost_USE_STATIC_LIBS OFF)
-    message("Building dynamically linked application.")
-else()
-   set(Boost_USE_STATIC_LIBS ON)
-   message("Building statically linked application.")
-endif()
+#if (BUILD_DYNAMIC)
+#    set(Boost_USE_STATIC_LIBS OFF)
+#    message("Building dynamically linked application.")
+#else()
+#   set(Boost_USE_STATIC_LIBS ON)
+#   message("Building statically linked application.")
+#endif()
 
 find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
 find_package(ISMRMRD REQUIRED)
 find_package(HDF5 1.8 REQUIRED COMPONENTS C)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
-if (NOT WIN32)
+#if (NOT WIN32)
     find_package(LibXml2 REQUIRED)
     find_package(LibXslt REQUIRED)
 
     include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
-else()
-    include_directories(${Boost_INCLUDE_DIR})
-endif()
+#else()
+#    include_directories(${Boost_INCLUDE_DIR})
+#endif()
 
 if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
@@ -134,11 +134,8 @@ add_executable(siemens_to_ismrmrd
                ${schema_files}
                )
 
-if (WIN32)
-    set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
-else()
-    target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
-endif()
+target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
+
 
 target_link_libraries(siemens_to_ismrmrd
                         ${ISMRMRD_LIBRARIES}
