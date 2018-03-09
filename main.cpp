@@ -1867,33 +1867,43 @@ std::tuple<std::vector<uint32_t>,std::vector<uint32_t>> unpack_pmu(const std::ve
 void makeWaveformHeader(ISMRMRD::IsmrmrdHeader & header){
 
     if (!header.waveformInformation.size()) {
-        ISMRMRD::WaveformInformation info;
-        ISMRMRD::UserParameterLong userParam;
-        userParam.name = "TriggerChannel";
-        userParam.value = 4; //Trigger is stored in 5th channel for ECG
-        info.waveformName = "ECG";
-        info.waveformType = ISMRMRD::WaveformType::ECG;
-        info.userParameters = ISMRMRD::UserParameters();
-        info.userParameters.get().userParameterLong.push_back(userParam);
-        header.waveformInformation.push_back(info);
+        for (int learning_phase = false; learning_phase <= true; learning_phase++) {
+            ISMRMRD::WaveformInformation info;
+            ISMRMRD::UserParameterLong userParam;
+            ISMRMRD::UserParameterString userParamString;
+            userParamString.name = "Phase";
+            if (learning_phase){
+                userParamString.value = "Learning";
+            } else {
+                userParamString.value = "Acquisition";
+            }
+
+            userParam.name = "TriggerChannel";
+            userParam.value = 4; //Trigger is stored in 5th channel for ECG
+            info.waveformName = "ECG";
+            info.waveformType = ISMRMRD::WaveformType::ECG;
+            info.userParameters = ISMRMRD::UserParameters();
+            info.userParameters.get().userParameterLong.push_back(userParam);
+            header.waveformInformation.push_back(info);
 
 
-        info.waveformName = "PULS";
-        info.waveformType = ISMRMRD::WaveformType::PULSE;
-        info.userParameters.get().userParameterLong[0].value = 1; //Trigger is storend in 2nd channel everything else
-        header.waveformInformation.push_back(info);
+            info.waveformName = "PULS";
+            info.waveformType = ISMRMRD::WaveformType::PULSE;
+            info.userParameters.get().userParameterLong[0].value = 1; //Trigger is storend in 2nd channel everything else
+            header.waveformInformation.push_back(info);
 
-        info.waveformName = "RESP";
-        info.waveformType = ISMRMRD::WaveformType::RESPIRATORY;
-        header.waveformInformation.push_back(info);
+            info.waveformName = "RESP";
+            info.waveformType = ISMRMRD::WaveformType::RESPIRATORY;
+            header.waveformInformation.push_back(info);
 
-        info.waveformName = "EXT1";
-        info.waveformType = ISMRMRD::WaveformType::OTHER;
-        header.waveformInformation.push_back(info);
+            info.waveformName = "EXT1";
+            info.waveformType = ISMRMRD::WaveformType::OTHER;
+            header.waveformInformation.push_back(info);
 
-        info.waveformName = "EXT2";
-        info.waveformType = ISMRMRD::WaveformType::OTHER;
-        header.waveformInformation.push_back(info);
+            info.waveformName = "EXT2";
+            info.waveformType = ISMRMRD::WaveformType::OTHER;
+            header.waveformInformation.push_back(info);
+        }
 
     }
 
@@ -1905,6 +1915,13 @@ const std::map<PMU_Type, int> waveformId = {{PMU_Type::ECG1,0},{PMU_Type::ECG2,0
                                             {PMU_Type::RESP,2},
                                             {PMU_Type::EXT1,3},
                                             {PMU_Type::EXT2,4}};
+
+//It appears Siemens hard-codes sample times for their PMU systems, which sounds suspicious
+//const std::map<PMU_Type, float> sample_time_us = {{PMU_Type::ECG1,2500},{PMU_Type::ECG2,2500},{PMU_Type::ECG3,2500},{PMU_Type::ECG4,2500},
+//                                               {PMU_Type::PULS,5000},
+//                                               {PMU_Type::RESP,20000},
+//                                               {PMU_Type::EXT1,20000},
+//                                               {PMU_Type::EXT2,20000}};
 
 std::set<PMU_Type> PMU_Types = {PMU_Type::ECG1,PMU_Type::ECG2,PMU_Type::ECG3,PMU_Type::ECG4,PMU_Type::PULS,
                                 PMU_Type::RESP, PMU_Type::EXT1,PMU_Type::EXT2,PMU_Type::END};
@@ -1940,15 +1957,13 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
 		}
 		
         if (packedID.find("PMU") == packedID.npos ){ //packedID indicates this isn't PMU data, so let's jump ship.
-            std::cout <<"Skipping" << std::endl;
-//            size_t skip = std::ceil((packetSize+60)/double(32))*32-packetSize-60;
-//            siemens_dat.seekg(skip,siemens_dat.cur);
-            std::cout << siemens_dat.tellg()-cur_pos << std::endl;
             siemens_dat.seekg(cur_pos);
             siemens_dat.seekg(len,siemens_dat.cur);
             return std::vector<ISMRMRD::Waveform>();
 
         }
+
+        bool learning_phase = packedID.find("PMULearnPhase") != packedID.npos;
 
         uint32_t swappedFlag, timestamp0,timestamp, packerNr, duration;
 
@@ -1999,7 +2014,7 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
                 size_t number_of_elements = std::get<0>(ecg_map.begin()->second).size();
 
                 auto ecg_waveform = ISMRMRD::Waveform(number_of_elements, channels+1);
-				ecg_waveform.head.waveform_id = waveformId.at(PMU_Type::ECG1);
+				ecg_waveform.head.waveform_id = waveformId.at(PMU_Type::ECG1)+5*learning_phase;
 
                 uint32_t *ecg_waveform_data = ecg_waveform.data;
 
@@ -2018,6 +2033,7 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
 
                 }
 
+//                ecg_waveform.head.sample_time_us = sample_time_us.at(PMU_Type::ECG1);
                 waveforms.push_back(std::move(ecg_waveform));
 
 
@@ -2030,11 +2046,12 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
                 auto &trigger = std::get<1>(tup);
 
                 auto waveform = ISMRMRD::Waveform(data.size(), 2);
-				waveform.head.waveform_id = waveformId.at(key_val.first);
+				waveform.head.waveform_id = waveformId.at(key_val.first)+5*learning_phase;
                 std::copy(data.begin(), data.end(), waveform.data);
 
                 std::copy(trigger.begin(), trigger.end(), waveform.data+data.size());
 
+//                waveform.head.sample_time_us = sample_time_us.at(key_val.first);
                 waveforms.push_back(std::move(waveform));
             }
             //Figure out number of ECG channels
@@ -2046,8 +2063,8 @@ std::vector<ISMRMRD::Waveform> getSyncdata(std::ifstream &siemens_dat, bool VBFI
         for (auto & waveform : waveforms){
             waveform.head.time_stamp = timestamp;
             waveform.head.measurement_uid = scanheader.lMeasUID;
-            waveform.head.sample_time_us = double(duration)/waveform.head.number_of_samples/1000; //TODO: Check that this actually produces time in microseconds. Duration might not be in physical units.
             waveform.head.scan_counter = last_scan_counter;
+            waveform.head.sample_time_us = double(duration*100)/waveform.head.number_of_samples;
         }
 
         if (waveforms.size()) makeWaveformHeader(header); //Add the header if needed
