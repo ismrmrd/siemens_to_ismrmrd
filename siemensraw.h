@@ -17,8 +17,22 @@
 #define MDH_DMA_LENGTH_MASK   (0x01FFFFFFL)
 #define MDH_PACK_BIT_MASK     (0x02000000L)
 #define MDH_ENABLE_FLAGS_MASK (0xFC000000L)
+#define MDH_SYNCDATA (0x00000020L)
 
-enum Trajectory {
+enum class PMU_Type {
+	END =  0x01FF0000,
+	ECG1 = 0x01010000,
+	ECG2 = 0x01020000,
+	ECG3 = 0x01030000,
+	ECG4 = 0x01040000,
+	PULS = 0x01050000,
+	RESP = 0x01060000,
+	EXT1 = 0x01070000,
+	EXT2 = 0x01080000
+
+};
+
+enum class Trajectory {
   TRAJECTORY_CARTESIAN = 0x01,
   TRAJECTORY_RADIAL    = 0x02,
   TRAJECTORY_SPIRAL    = 0x04,
@@ -59,6 +73,10 @@ struct mdhSD {
 };
 
 */
+struct PMUdata {
+	uint16_t data;
+	uint16_t trigger;
+};
 
 struct mdhSliceData {
   mdhSlicePosVec sSlicePosVec;
