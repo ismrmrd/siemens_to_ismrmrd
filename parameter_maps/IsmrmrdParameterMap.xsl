@@ -119,7 +119,7 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 		<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">cartesian</xsl:when>
 		<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 2">radial</xsl:when>
 		<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 4">spiral</xsl:when>
-		<!--<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 8">propellor</xsl:when>--> <!-- "propellor is not valid for ismrmrd -->
+		<xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 8">propellor</xsl:when>
 		<xsl:otherwise>other</xsl:otherwise>
       </xsl:choose>
     </trajectory>

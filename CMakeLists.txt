@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.6)
 project(SIEMENS-TO-ISMRMRD)
 
 # --- Provide good defaults for searching for packages (i.e. ismrmrd)
-set(CMAKE_PREFIX_PATH "/usr")
+set(CMAKE_PREFIX_PATH "")
 if(CMAKE_PREFIX_PATH)
   list(APPEND CMAKE_PREFIX_PATH "/usr/local")
 endif()
@@ -50,37 +50,34 @@ if (WIN32)
     set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     add_definitions(-D__BUILD_CONVERTER_TINYXML__)
-    else()
-
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 endif()
-set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-set(Boost_NO_BOOST_CMAKE ON)
+
+if(WIN32)
+    set(Boost_NO_BOOST_CMAKE ON)
+endif()
 
 # Added for static linking!!!
-#if (BUILD_DYNAMIC)
-#    set(Boost_USE_STATIC_LIBS OFF)
-#    message("Building dynamically linked application.")
-#else()
-#   set(Boost_USE_STATIC_LIBS ON)
-#   message("Building statically linked application.")
-#endif()
-
-find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
+if (BUILD_DYNAMIC)
+    set(Boost_USE_STATIC_LIBS OFF)
+    message("Building dynamically linked application.")
+else()
+   set(Boost_USE_STATIC_LIBS ON)
+   message("Building statically linked application.")
+endif()
+ 
+find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
 find_package(ISMRMRD REQUIRED)
 find_package(HDF5 1.8 REQUIRED COMPONENTS C)
 
 #On windows we will call xsltproc via a system call and the libraries are not needed for compile.
-#if (NOT WIN32)
+if (NOT WIN32)
     find_package(LibXml2 REQUIRED)
     find_package(LibXslt REQUIRED)
 
     include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
-#else()
-#    include_directories(${Boost_INCLUDE_DIR})
-#endif()
+else()
+    include_directories(${Boost_INCLUDE_DIR})
+endif()
 
 if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
@@ -134,8 +131,11 @@ add_executable(siemens_to_ismrmrd
                ${schema_files}
                )
 
-target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
-
+if (WIN32)
+    set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
+else()
+    target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
+endif()
 
 target_link_libraries(siemens_to_ismrmrd
                         ${ISMRMRD_LIBRARIES}
