@@ -50,41 +50,27 @@ if (WIN32)
     set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     add_definitions(-D__BUILD_CONVERTER_TINYXML__)
-    else()
-
+else()
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 endif()
-set(Boost_USE_STATIC_LIBS OFF)
+
+# Added for static linking!!!
+if (BUILD_DYNAMIC)
+    set(Boost_USE_STATIC_LIBS OFF)
+    message("Building dynamically linked application.")
+else()
+   set(Boost_USE_STATIC_LIBS ON)
+   message("Building statically linked application.")
+endif()
+
+# set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 set(Boost_NO_BOOST_CMAKE ON)
 
-# Added for static linking!!!
-#if (BUILD_DYNAMIC)
-#    set(Boost_USE_STATIC_LIBS OFF)
-#    message("Building dynamically linked application.")
-#else()
-#   set(Boost_USE_STATIC_LIBS ON)
-#   message("Building statically linked application.")
-#endif()
-
 find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
 find_package(ISMRMRD REQUIRED)
 find_package(HDF5 1.8 REQUIRED COMPONENTS C)
-
-#On windows we will call xsltproc via a system call and the libraries are not needed for compile.
-#if (NOT WIN32)
-    find_package(LibXml2 REQUIRED)
-    find_package(LibXslt REQUIRED)
-
-    include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
-#else()
-#    include_directories(${Boost_INCLUDE_DIR})
-#endif()
-
-if(WIN32)
-    link_directories(${Boost_LIBRARY_DIRS})
-endif()
 
 include_directories( ${ISMRMRD_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} )
 link_directories( ${ISMRMRD_LIB_DIR} )
@@ -119,6 +105,14 @@ add_custom_command(
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 )
 
+find_package(LibXml2 REQUIRED)
+find_package(LibXslt REQUIRED)
+
+include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
+
+if(WIN32)
+    link_directories(${Boost_LIBRARY_DIRS})
+endif()
 
 add_executable(siemens_to_ismrmrd 
                main.cpp 
@@ -136,19 +130,18 @@ add_executable(siemens_to_ismrmrd
 
 target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
 
-
 target_link_libraries(siemens_to_ismrmrd
                         ${ISMRMRD_LIBRARIES}
                         ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
 
-# Create package                                                                                                            
+# Create package
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 include(${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/siemens_to_ismrmrd_cpack.cmake)
 if(CPACK_GENERATOR)
-  message(STATUS "Found CPack generators: ${CPACK_GENERATOR}")
-  configure_file("${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/cpack_options.cmake.in" ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE} @ONLY)
-  set(CPACK_PROJECT_CONFIG_FILE ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE})
-  include (CPack)
+    message(STATUS "Found CPack generators: ${CPACK_GENERATOR}")
+    configure_file("${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/cpack_options.cmake.in" ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE} @ONLY)
+    set(CPACK_PROJECT_CONFIG_FILE ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE})
+    include (CPack)
 endif()
