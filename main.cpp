@@ -711,10 +711,11 @@ int main(int argc, char *argv[] )
     long dwell_time_0;
     long max_channels;
     long radial_views;
+    long* global_table_pos;
     std::string baseLineString;
     std::string protocol_name;
     std::string xml_config = readXmlConfig(debug_xml, parammap_file_content, num_buffers, buffers, wip_double, trajectory, dwell_time_0,
-                                           max_channels, radial_views, baseLineString, protocol_name);
+                                           max_channels, radial_views, global_table_pos, baseLineString, protocol_name);
 
     // whether this scan is a adjustment scan
     bool isAdjustCoilSens = false;
@@ -876,7 +877,7 @@ int main(int argc, char *argv[] )
             break;
         }
 
-        ismrmrd_dataset->appendAcquisition(getAcquisition(flash_pat_ref_scan, trajectory, dwell_time_0, max_channels, isAdjustCoilSens,
+        ismrmrd_dataset->appendAcquisition(getAcquisition(flash_pat_ref_scan, trajectory, dwell_time_0, global_table_pos, max_channels, isAdjustCoilSens,
                                                           isAdjQuietCoilSens, isVB, traj, scanhead, channels));
 
     }//End of the while loop
@@ -1007,7 +1008,7 @@ void readScanHeader(std::ifstream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHea
 }
 
 ISMRMRD::Acquisition
-getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell_time_0, long max_channels,
+getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell_time_0, long* global_table_pos, long max_channels,
                bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB, ISMRMRD::NDArray<float> &traj,
                const sScanHeader &scanhead, const std::vector<ChannelHeaderAndData> &channels) {
     ISMRMRD::Acquisition ismrmrd_acq;
@@ -1036,9 +1037,9 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     }
     // std::cout << "ismrmrd_acq.sample_time_us(): " << ismrmrd_acq.sample_time_us() << std::endl;
 
-    ismrmrd_acq.position()[0] = scanhead.sSliceData.sSlicePosVec.flSag;
-    ismrmrd_acq.position()[1] = scanhead.sSliceData.sSlicePosVec.flCor;
-    ismrmrd_acq.position()[2] = scanhead.sSliceData.sSlicePosVec.flTra;
+    ismrmrd_acq.position()[0] = scanhead.sSliceData.sSlicePosVec.flSag + global_table_pos[0];
+    ismrmrd_acq.position()[1] = scanhead.sSliceData.sSlicePosVec.flCor + global_table_pos[1];
+    ismrmrd_acq.position()[2] = scanhead.sSliceData.sSlicePosVec.flTra + global_table_pos[2];
 
     // Convert Siemens quaternions to direction cosines.
     // In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
@@ -1576,10 +1577,11 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
 std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_content, uint32_t num_buffers,
                           std::vector<MeasurementHeaderBuffer> &buffers, std::vector<std::string> &wip_double,
                           Trajectory &trajectory, long &dwell_time_0, long &max_channels, long &radial_views,
-                          std::string &baseLineString, std::string &protocol_name) {
+                          long *global_table_pos, std::string &baseLineString, std::string &protocol_name) {
     dwell_time_0= 0;
     max_channels= 0;
     radial_views= 0;
+    global_table_pos = new long [3];
     protocol_name= "";
     std::vector<std::string> wip_long;
     long center_line = 0;
@@ -1917,6 +1919,60 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
                 }
             }
 
+            //Get some parameters - global table position
+            {
+                const XProtocol::XNode* n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosSag"), n);
+                std::vector<std::string> temp;
+                if (n2) {
+                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
+                    if (temp.size() != 1)
+                    {
+                        global_table_pos[0] = 0;
+                    }
+                    else
+                    {
+                        global_table_pos[0] = atoi(temp[0].c_str());
+                    }
+                }
+                else {
+                    std::cout << "DICOM.lGlobalTablePosSag not found" << std::endl;
+                    global_table_pos[0] = 0;
+                }
+                
+                n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosCor"), n);
+                if (n2) {
+                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
+                    if (temp.size() != 1)
+                    {
+                        global_table_pos[1] = 0;
+                    }
+                    else
+                    {
+                        global_table_pos[1] = atoi(temp[0].c_str());
+                    }
+                }
+                else {
+                    std::cout << "DICOM.lGlobalTablePosCor not found" << std::endl;
+                    global_table_pos[1] = 0;
+                }
+                
+                n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosTra"), n);
+                if (n2) {
+                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
+                    if (temp.size() != 1)
+                    {
+                        global_table_pos[2] = 0;
+                    }
+                    else
+                    {
+                        global_table_pos[2] = atoi(temp[0].c_str());
+                    }
+                }
+                else {
+                    std::cout << "DICOM.lGlobalTablePosTra not found" << std::endl;
+                    global_table_pos[2] = 0;
+                }                                        
+            }
             //Get some parameters - protocol name
             {
                 const XProtocol::XNode* n2 = apply_visitor(XProtocol::getChildNodeByName("HEADER.tProtocolName"), n);
