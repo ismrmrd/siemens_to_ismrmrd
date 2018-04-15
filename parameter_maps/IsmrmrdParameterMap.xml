@@ -51,105 +51,105 @@
 <p><s>MEAS.sWipMemBlock.adFree</s>                                                  <d>siemens.MEAS.sWipMemBlock.adFree</d></p>
 <p><s>HEADER.tPatientName</s>                                                   <d>siemens.HEADER.tPatientName</d></p>
 	<!-- Coil information -->
-	<p><s>MEAS.asCoilSelectMeas.0.asList.0.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.0.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.0.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.1.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.1.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.1.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.2.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.2.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.2.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.3.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.3.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.3.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.4.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.4.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.4.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.5.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.5.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.5.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.6.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.6.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.6.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.7.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.7.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.7.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.8.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.8.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.8.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.9.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.9.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.9.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.10.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.10.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.10.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.11.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.11.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.11.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.12.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.12.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.12.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.13.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.13.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.13.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.14.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.14.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.14.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.15.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.15.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.15.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.16.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.16.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.16.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.17.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.17.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.17.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.18.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.18.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.18.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.19.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.19.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.19.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.20.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.20.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.20.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.21.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.21.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.21.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.22.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.22.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.22.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.23.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.23.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.23.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.24.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.24.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.24.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.25.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.25.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.25.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.26.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.26.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.26.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.27.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.27.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.27.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.28.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.28.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.28.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.29.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.29.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.29.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.30.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.30.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.30.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.31.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.31.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.31.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.32.sCoilElementID.tCoilID</s>                <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.32.sCoilElementID.tElement</s>               <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
-	<p><s>MEAS.asCoilSelectMeas.0.asList.32.lElementSelected</s>                      <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.0.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.0.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.0.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.0.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.0.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.0.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.1.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.1.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.1.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.1.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.1.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.1.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.2.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.2.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.2.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.2.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.2.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.2.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.3.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.3.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.3.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.3.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.3.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.3.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.4.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.4.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.4.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.4.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.4.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.4.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.5.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.5.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.5.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.5.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.5.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.5.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.6.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.6.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.6.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.6.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.6.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.6.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.7.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.7.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.7.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.7.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.7.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.7.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.8.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.8.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.8.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.8.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.8.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.8.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.9.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.9.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.9.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.9.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.9.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.9.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.10.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.10.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.10.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.10.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.10.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.10.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.11.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.11.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.11.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.11.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.11.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.11.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.12.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.12.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.12.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.12.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.12.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.12.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.sCoilElementID.lCoilCopy</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Coil.lCoilCopy</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.sCoilElementID.tElement</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Elem.tElement</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
+        <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+
 </parameters>
 
 
