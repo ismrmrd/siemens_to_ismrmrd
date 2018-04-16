@@ -467,6 +467,8 @@ int main(int argc, char *argv[] )
 
     std::string study_date_user_supplied;
 
+    bool convert_waveform = false;
+
     bool debug_xml = false;
     bool flash_pat_ref_scan = false;
     bool header_only = false;
@@ -483,7 +485,8 @@ int main(int argc, char *argv[] )
             ("version,v",               "Prints converter version and ISMRMRD version")
             ("file,f",                  po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file>")
             ("measNum,z",               po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-    ("pMap,m",                  po::value<std::string>(&parammap_file), "<Parameter map XML file>")
+            ("waveform,w",              "<Convert waveform in measurement data if any>")
+            ("pMap,m",                  po::value<std::string>(&parammap_file), "<Parameter map XML file>")
             ("pMapStyle,x",             po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
             ("user-map",                po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
             ("user-stylesheet",         po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
@@ -504,6 +507,7 @@ int main(int argc, char *argv[] )
             ("version,v",               "Prints converter version and ISMRMRD version")
             ("file,f",                  "<SIEMENS dat file>")
             ("measNum,z",               "<Measurement number>")
+            ("waveform,w",              "<Convert waveform if any>")
             ("pMap,m",                  "<Parameter map XML>")
             ("pMapStyle,x",             "<Parameter stylesheet XSL>")
             ("user-map",                "<Provide a parameter map XML file>")
@@ -537,6 +541,11 @@ int main(int argc, char *argv[] )
             std::cout << "Converter version is: " << SIEMENS_TO_ISMRMRD_VERSION_MAJOR << "." << SIEMENS_TO_ISMRMRD_VERSION_MINOR << "." << SIEMENS_TO_ISMRMRD_VERSION_PATCH << "\n";
             std::cout << "Built against ISMRMRD version: " << ISMRMRD_VERSION_MAJOR << "." << ISMRMRD_VERSION_MINOR << "." << ISMRMRD_VERSION_PATCH << "\n";
             return 1;
+        }
+
+        if (vm.count("waveform"))
+        {
+            convert_waveform = true;
         }
     }
 
@@ -740,6 +749,10 @@ int main(int argc, char *argv[] )
     }
 
     std::cout << "Baseline: " << baseLineString << std::endl;
+    if(convert_waveform)
+    {
+        std::cout << "Waveform data will be converted" << std::endl;
+    }
 
     if (debug_xml)
     {
@@ -790,12 +803,34 @@ int main(int argc, char *argv[] )
         //Check if this is synch data, if so, it must be handled differently.
         if (scanhead.aulEvalInfoMask[0] & ( 1 << 5))
         {
-            uint32_t last_scan_counter = acquisitions-1;
+            if(convert_waveform)
+            {
+                uint32_t last_scan_counter = acquisitions-1;
 
-            auto waveforms = readSyncdata(siemens_dat, VBFILE,acquisitions, dma_length,scanhead,header,last_scan_counter);
-            for (auto& w : waveforms)
-                ismrmrd_dataset->appendWaveform(w);
-            sync_data_packets++;
+                auto waveforms = readSyncdata(siemens_dat, VBFILE,acquisitions, dma_length,scanhead,header,last_scan_counter);
+                for (auto& w : waveforms)
+                    ismrmrd_dataset->appendWaveform(w);
+                sync_data_packets++;
+            }
+            else
+            {
+                uint32_t last_scan_counter = acquisitions - 1;
+
+                size_t len = 0;
+                if (VBFILE)
+                {
+                    len = dma_length - sizeof(sMDH);
+                }
+                else
+                {
+                    len = dma_length - sizeof(sScanHeader);
+                }
+
+                std::vector<uint8_t> syncdata(len);
+                siemens_dat.read(reinterpret_cast<char*>(&syncdata[0]), len);
+
+                sync_data_packets++;
+            }
             continue;
         }
 
