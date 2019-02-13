@@ -28,7 +28,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 
 		using phoenix::at_c;
 		using phoenix::push_back;
-
+		
 		node = (param_map | param_array | param_generic)       [_val = _1];
 
 		burn_properties =
@@ -79,7 +79,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				>> quoted_string[at_c<0>(_val) = _1]
 				                 >> '>' >> '{'
 				                 >> *burn_properties
-				                 >> *((quoted_string[push_back(at_c<2>(_val),_1)]) | (strict_double[push_back(at_c<2>(_val),_1)]) | (long_[push_back(at_c<2>(_val),_1)]) | (lit("<Line>  {") >> *(char_ -'}') >> '}'))
+				                 >> *((quoted_string[push_back(at_c<2>(_val),_1)])| (strict_double[push_back(at_c<2>(_val),_1)]) | (long_[push_back(at_c<2>(_val),_1)]) | (lit("<Line>  {") >> *(char_ -'}') >> '}'))
 				                 >> '}'
 				                 ;
 
@@ -89,6 +89,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				>> ((*array_value[push_back(at_c<1>(_val),_1)] >> '}') |
 						(*quoted_string[push_back(at_c<0>(_val), _1)] >> '}') |
 						(*strict_double[push_back(at_c<0>(_val),_1 )] >> '}' ) |
+						(*double_[push_back(at_c<0>(_val),_1 )] >> '}' ) |  //Malte... dont know if it makes sense to have strict double and doubke same goes above
 						(*long_[push_back(at_c<0>(_val),_1 )] >> '}' ))
 						;
 
@@ -162,7 +163,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 	qi::rule<Iterator, void(), ascii::space_type> burn_param_card_layout;
 	qi::rule<Iterator, void(), ascii::space_type> burn_dependency;
 	qi::rule<Iterator, void(), ascii::space_type> burn_protocol_composer;
-	qi::real_parser<double, qi::real_policies<double> > strict_double;  //Malte Changed from strict_real_policies
+	qi::real_parser<double, qi::strict_real_policies<double> > strict_double;  //Malte Changed from  real_policies
 
 
 };
