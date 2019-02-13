@@ -4,6 +4,8 @@
 
 #include <boost/bind.hpp>
 
+#define NUMARIS_NX //Malte
+
 namespace XProtocol
 {
 
@@ -33,7 +35,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				(  (lit("<Default>") >> double_)
 						| (lit("<Default>") >> long_)
 						| (lit("<Default>") >> quoted_string)
-						| (lit("<Precision>") >> long_)
+						| (lit("<Precision>") >> long_) //@Malte this has gone
 						| (lit("<MinSize>") >> long_)
 						| (lit("<MaxSize>") >> long_)
 						| (lit("<Comment>") >> quoted_string)
@@ -41,7 +43,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 						| (lit("<Tooltip>") >> quoted_string)
 						| (lit("<Class>") >> quoted_string)
 						| (lit("<Label>") >> quoted_string)
-						| (lit("<Comment>") >> quoted_string)
+						//| (lit("<Comment>") >> quoted_string) @malte twice ?
 						| (lit("<Unit>") >> quoted_string)
 						| (lit("<InFile>") >> quoted_string)
 						| (lit("<Dll>") >> quoted_string)
@@ -62,16 +64,14 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				;
 
 		burn_dependency =
-				((lit("<Dependency.") | lit("<ProtocolComposer."))
-						>> quoted_string
-						>> '>'
+				((lit("<Dependency.") | lit("<ProtocolComposer.")) >> quoted_string >> '>'
 						>> '{'
 						>>  lexeme[+(char_ - '}')] >> '}')
 						;
 
 		quoted_string =
 				'"' >> lexeme[*(char_ - '"') [_val += _1]] >> '"';
-
+		
 		param_generic =
 				'<'
 				>> lexeme[+(char_ - '.')[at_c<1>(_val) += _1]] >> '.'
@@ -97,8 +97,12 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				                    >>  quoted_string[at_c<0>(_val) = _1]
 //				                    >> quoted_string[std::cout << "ARRAY: " << at_c<1>(_val) << ", " << _1 << std::endl]
 				                                      >> '>' >> '{'
-				                                      >> *((lit("<Visible>") >> quoted_string) | (lit("<MinSize>") >> long_) | (lit("<Label>") >> quoted_string) | (lit("<MaxSize>") >> long_) | (lit("<Comment>") >> quoted_string)) //Burn this
-				                                      >> lit("<Default>")
+#ifndef NUMARIS_NX	
+													  >> *((lit("<Visible>") >> quoted_string) | (lit("<MinSize>") >> long_) | (lit("<Label>") >> quoted_string) | (lit("<MaxSize>") >> long_) | (lit("<Comment>") >> quoted_string)) //Burn this
+#else
+				                                      >> *((lit("<Visible>") >> quoted_string) | (lit("<DefaultSize>") >> long_) | (lit("<Label>") >> quoted_string) | (lit("<MaxSize>") >> long_) | (lit("<Comment>") >> quoted_string)) //@Malte DefaultSize was MinSize//Burn this
+#endif				                                      
+													  >> lit("<Default>")
 				                                      >> node[at_c<2>(_val)  = _1]
 				                                              >> *array_value[push_back(at_c<3>(_val),_1)]
 				                                                              >> '}'
@@ -115,28 +119,33 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 						          >> +node [push_back(at_c<2>(_val), _1)]
 						                    >> '}'
 						                    ;
-
+		
 		xprot =
 				lit("<XProtocol>")[at_c<1>(_val) = std::string("XProtocol")]
 				                   >> '{'
 				                   >> * (lit("<Name>") >> quoted_string)                                   //Burn this
-				                   >> * (lit("<ID>") >> long_)                                             //Burn this
-				                   >> * (lit("<Userversion>") >> lexeme[*(char_ - '\n')])                  //Burn this
+				                   >> * (lit("<ID>") >> long_)                                            //Burn this
+#ifndef NUMARIS_NX				                   
+								   >> * (lit("<Userversion>") >> lexeme[*(char_ - '\n')])                //Burn this
+#else
+									>> * (lit("<Userversion>") >> long_) 
+#endif
 				                   >> * (lit("<EVAStringTable>") >> '{' >> lexeme[+(char_ - '}')] >> '}') //Burn this
 				                   >> +node [push_back(at_c<2>(_val), _1)]
 				                             >> *burn_param_card_layout
 				                             >> *burn_dependency
 				                             >> '}';
-//		BOOST_SPIRIT_DEBUG_NODE(node);
-//		BOOST_SPIRIT_DEBUG_NODE(param_map);
-//		BOOST_SPIRIT_DEBUG_NODE(param_array);
-//		BOOST_SPIRIT_DEBUG_NODE(param_generic);
-//		BOOST_SPIRIT_DEBUG_NODE(quoted_string);
+											 
+		//BOOST_SPIRIT_DEBUG_NODE(node);
+		//BOOST_SPIRIT_DEBUG_NODE(param_map);
+		//BOOST_SPIRIT_DEBUG_NODE(param_array);
+		//BOOST_SPIRIT_DEBUG_NODE(param_generic);
+		//BOOST_SPIRIT_DEBUG_NODE(quoted_string);
 
-//		BOOST_SPIRIT_DEBUG_NODE(array_value);
-//		BOOST_SPIRIT_DEBUG_NODE(burn_properties);
-//		BOOST_SPIRIT_DEBUG_NODE(burn_dependency);
-//		BOOST_SPIRIT_DEBUG_NODE(burn_param_card_layout);
+		//BOOST_SPIRIT_DEBUG_NODE(array_value);
+		//BOOST_SPIRIT_DEBUG_NODE(burn_properties);
+		//BOOST_SPIRIT_DEBUG_NODE(burn_dependency);
+		//BOOST_SPIRIT_DEBUG_NODE(burn_param_card_layout);
 
 
 
@@ -153,7 +162,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 	qi::rule<Iterator, void(), ascii::space_type> burn_param_card_layout;
 	qi::rule<Iterator, void(), ascii::space_type> burn_dependency;
 	qi::rule<Iterator, void(), ascii::space_type> burn_protocol_composer;
-	qi::real_parser<double, qi::strict_real_policies<double> > strict_double;
+	qi::real_parser<double, qi::real_policies<double> > strict_double;  //Malte Changed from strict_real_policies
 
 
 };
