@@ -1433,12 +1433,6 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
 
     cur = xsltParseStylesheetDoc(xml_doc);
     doc = xmlParseMemory(xml_config.c_str(), xml_config.size());
-    xmlNodePtr testo = xmlDocGetRootElement(doc);
-    while (testo !=NULL)
-    {
-        std::cout << testo->name << std::endl;
-        testo = testo->next;
-    }
     res = xsltApplyStylesheet(cur, doc, params);
 
     xmlChar *out_ptr = NULL;

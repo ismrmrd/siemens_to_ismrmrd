@@ -40,6 +40,12 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif()
 
+option(USE_NUMARIS_NX "Use the Numaris Nx software" Off)
+if (USE_NUMARIS_NX)
+    message("Using Numaris Nx Software")
+    add_definitions(-DNUMARIS_NX)
+endif()
+
 if (WIN32)
     ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
     # ADD_DEFINITIONS(-DUNICODE -D_UNICODE)

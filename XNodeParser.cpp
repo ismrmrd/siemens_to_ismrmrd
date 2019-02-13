@@ -4,8 +4,6 @@
 
 #include <boost/bind.hpp>
 
-#define NUMARIS_NX //Malte
-
 namespace XProtocol
 {
 
@@ -35,7 +33,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				(  (lit("<Default>") >> double_)
 						| (lit("<Default>") >> long_)
 						| (lit("<Default>") >> quoted_string)
-						| (lit("<Precision>") >> long_) //@Malte this has gone
+						| (lit("<Precision>") >> long_)
 						| (lit("<MinSize>") >> long_)
 						| (lit("<MaxSize>") >> long_)
 						| (lit("<Comment>") >> quoted_string)
@@ -89,7 +87,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				>> ((*array_value[push_back(at_c<1>(_val),_1)] >> '}') |
 						(*quoted_string[push_back(at_c<0>(_val), _1)] >> '}') |
 						(*strict_double[push_back(at_c<0>(_val),_1 )] >> '}' ) |
-						(*double_[push_back(at_c<0>(_val),_1 )] >> '}' ) |  //Malte... dont know if it makes sense to have strict double and doubke same goes above
+						(*double_[push_back(at_c<0>(_val),_1 )] >> '}' ) |  //@Malte
 						(*long_[push_back(at_c<0>(_val),_1 )] >> '}' ))
 						;
 
@@ -163,7 +161,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 	qi::rule<Iterator, void(), ascii::space_type> burn_param_card_layout;
 	qi::rule<Iterator, void(), ascii::space_type> burn_dependency;
 	qi::rule<Iterator, void(), ascii::space_type> burn_protocol_composer;
-	qi::real_parser<double, qi::strict_real_policies<double> > strict_double;  //Malte Changed from  real_policies
+	qi::real_parser<double, qi::strict_real_policies<double> > strict_double;
 
 
 };
