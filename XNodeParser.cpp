@@ -41,7 +41,6 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 						| (lit("<Tooltip>") >> quoted_string)
 						| (lit("<Class>") >> quoted_string)
 						| (lit("<Label>") >> quoted_string)
-						| (lit("<Comment>") >> quoted_string)
 						| (lit("<Unit>") >> quoted_string)
 						| (lit("<InFile>") >> quoted_string)
 						| (lit("<Dll>") >> quoted_string)
@@ -88,8 +87,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				>> *burn_properties
 				>> ((*array_value[push_back(at_c<1>(_val),_1)] >> '}') |
 						(*quoted_string[push_back(at_c<0>(_val), _1)] >> '}') |
-						(*strict_double[push_back(at_c<0>(_val),_1 )] >> '}' ) |
-						(*long_[push_back(at_c<0>(_val),_1 )] >> '}' ))
+						(*double_   [push_back(at_c<0>(_val),_1 )] >> '}' ) )
 						;
 
 		param_array =
@@ -97,7 +95,7 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				                    >>  quoted_string[at_c<0>(_val) = _1]
 //				                    >> quoted_string[std::cout << "ARRAY: " << at_c<1>(_val) << ", " << _1 << std::endl]
 				                                      >> '>' >> '{'
-				                                      >> *((lit("<Visible>") >> quoted_string) | (lit("<MinSize>") >> long_) | (lit("<Label>") >> quoted_string) | (lit("<MaxSize>") >> long_) | (lit("<Comment>") >> quoted_string)) //Burn this
+				                                      >> *((lit("<Visible>") >> quoted_string) | (lit("<DefaultSize>") >> long_) | (lit("<MinSize>") >> long_) | (lit("<Label>") >> quoted_string) | (lit("<MaxSize>") >> long_) | (lit("<Comment>") >> quoted_string)) //Burn this
 				                                      >> lit("<Default>")
 				                                      >> node[at_c<2>(_val)  = _1]
 				                                              >> *array_value[push_back(at_c<3>(_val),_1)]
@@ -127,12 +125,12 @@ struct XNodeGrammar : qi::grammar<Iterator, XNodeParamMap(), ascii::space_type>
 				                             >> *burn_param_card_layout
 				                             >> *burn_dependency
 				                             >> '}';
-//		BOOST_SPIRIT_DEBUG_NODE(node);
+//		BOOST_SPIRIT_DEBUG_NODEnode);
 //		BOOST_SPIRIT_DEBUG_NODE(param_map);
 //		BOOST_SPIRIT_DEBUG_NODE(param_array);
-//		BOOST_SPIRIT_DEBUG_NODE(param_generic);
+    //		BOOST_SPIRIT_DEBUG_NODE(param_generic);
 //		BOOST_SPIRIT_DEBUG_NODE(quoted_string);
-
+//        BOOST_SPIRIT_DEBUG_NODE(xprot);
 //		BOOST_SPIRIT_DEBUG_NODE(array_value);
 //		BOOST_SPIRIT_DEBUG_NODE(burn_properties);
 //		BOOST_SPIRIT_DEBUG_NODE(burn_dependency);
@@ -170,7 +168,7 @@ int ParseXProtocol(const std::string& input, XNode& output)
 
 	if (!r || (iter != end))
 	{
-//	    std::cout << input << std::endl;
+	    std::cout << input << std::endl;
 		return -1;
 	}
 
