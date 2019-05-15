@@ -817,7 +817,7 @@
                   </userParameterDouble>
                 </xsl:if>
 
-                <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[3]">
+                <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[2]">
                   <userParameterDouble>
                     <name>MaxwellCoefficient_1</name>
                     <value>
