@@ -79,9 +79,10 @@ add_custom_command(
     OUTPUT defaults.cpp
     COMMAND embed ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_B0REF.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_PreZeros.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
@@ -92,8 +93,9 @@ add_custom_command(
     DEPENDS embed ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_B0REF.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_PreZeros.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
@@ -110,11 +112,11 @@ if(WIN32)
     link_directories(${Boost_LIBRARY_DIRS})
 endif()
 
-add_executable(siemens_to_ismrmrd 
-               main.cpp 
-               siemensraw.cpp 
-               XNode.cpp 
-               XNodeParser.cpp 
+add_executable(siemens_to_ismrmrd
+               main.cpp
+               siemensraw.cpp
+               XNode.cpp
+               XNodeParser.cpp
                vds.cpp
                defaults.cpp
                base64.cpp
