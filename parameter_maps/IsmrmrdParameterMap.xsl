@@ -5,19 +5,33 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 
 <xsl:output method="xml" indent="yes"/>
 
-<xsl:variable name="phaseOversampling">
-  <xsl:choose>
-    <xsl:when test="not(siemens/IRIS/DERIVED/phaseOversampling)">0</xsl:when>
-    <xsl:otherwise><xsl:value-of select="siemens/IRIS/DERIVED/phaseOversampling"/></xsl:otherwise>
-  </xsl:choose>
-</xsl:variable>
+    <xsl:variable name="phaseOversampling">
+        <xsl:choose>
+		    <xsl:when test="not(siemens/IRIS/DERIVED/phaseOversampling)">
+            	<xsl:choose>
+                    <xsl:when test="string(number(siemens/IRIS/DERIVED/phaseOversampling)) = 'NaN'">0</xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="siemens/IRIS/DERIVED/phaseOversampling"/>
+                    </xsl:otherwise>
+            	</xsl:choose>
+         	</xsl:when>
+         	<xsl:otherwise>0</xsl:otherwise>
+	    </xsl:choose>
+    </xsl:variable>
 
-<xsl:variable name="sliceOversampling">
-  <xsl:choose>
-    <xsl:when test="not(siemens/MEAS/sKSpace/dSliceOversamplingForDialog)">0</xsl:when>
-    <xsl:otherwise><xsl:value-of select="siemens/MEAS/sKSpace/dSliceOversamplingForDialog"/></xsl:otherwise>
-  </xsl:choose>
-</xsl:variable>
+    <xsl:variable name="sliceOversampling">
+        <xsl:choose>
+		    <xsl:when test="not(siemens/MEAS/sKSpace/dSliceOversamplingForDialog)">
+            	<xsl:choose>
+                    <xsl:when test="string(number(siemens/MEAS/sKSpace/dSliceOversamplingForDialog)) = 'NaN'">0</xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="siemens/MEAS/sKSpace/dSliceOversamplingForDialog"/>
+                    </xsl:otherwise>
+            	</xsl:choose>
+         	</xsl:when>
+         	<xsl:otherwise>0</xsl:otherwise>
+	    </xsl:choose>
+    </xsl:variable>
 
 <xsl:variable name="partialFourierPhase">
   <xsl:choose>
