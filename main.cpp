@@ -82,7 +82,7 @@ std::vector<MeasurementHeaderBuffer> readMeasurementHeaderBuffers(std::ifstream 
 std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_content, uint32_t num_buffers,
                           std::vector<MeasurementHeaderBuffer> &buffers, std::vector<std::string> &wip_double,
                           Trajectory &trajectory, long &dwell_time_0, long &max_channels, long &radial_views, long* global_table_pos,
-                          std::string &baseLineString, std::string &protocol_name);
+                          std::string &baseLine_string, std::string &protocol_name, std::string& software_version);
 
 std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, std::string &schema_file_name_content,
                      const std::string xml_config);
@@ -398,7 +398,7 @@ std::string ws2s(const std::wstring &wstr) {
     return ret;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     std::string siemens_dat_filename;
     unsigned int measurement_number;
 
@@ -428,47 +428,47 @@ int main(int argc, char *argv[]) {
 
     po::options_description desc("Allowed options");
     desc.add_options()
-            ("help,h", "Produce HELP message")
-            ("version,v", "Prints converter version and ISMRMRD version")
-            ("file,f", po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file>")
-            ("measNum,z", po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
-            ("pMap,m", po::value<std::string>(&parammap_file), "<Parameter map XML file>")
-            ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
-            ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
-            ("user-stylesheet", po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
-            ("output,o", po::value<std::string>(&ismrmrd_file)->default_value("output.h5"), "<ISMRMRD output file>")
-            ("outputGroup,g", po::value<std::string>(&ismrmrd_group)->default_value("dataset"),
-             "<ISMRMRD output group>")
+        ("help,h", "Produce HELP message")
+        ("version,v", "Prints converter version and ISMRMRD version")
+        ("file,f", po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file>")
+        ("measNum,z", po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
+        ("pMap,m", po::value<std::string>(&parammap_file), "<Parameter map XML file>")
+        ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
+        ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
+        ("user-stylesheet", po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
+        ("output,o", po::value<std::string>(&ismrmrd_file)->default_value("output.h5"), "<ISMRMRD output file>")
+        ("outputGroup,g", po::value<std::string>(&ismrmrd_group)->default_value("dataset"),
+            "<ISMRMRD output group>")
             ("list,l", po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
-            ("extract,e", po::value<std::string>(&to_extract), "<Extract embedded file>")
-            ("debug,X", po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
-            ("flashPatRef,F", po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
-            ("headerOnly,H", po::value<bool>(&header_only)->implicit_value(true),
-             "<HEADER ONLY flag (create xml header only)>")
+        ("extract,e", po::value<std::string>(&to_extract), "<Extract embedded file>")
+        ("debug,X", po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
+        ("flashPatRef,F", po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
+        ("headerOnly,H", po::value<bool>(&header_only)->implicit_value(true),
+            "<HEADER ONLY flag (create xml header only)>")
             ("bufferAppend,B", po::value<bool>(&append_buffers)->implicit_value(true),
-             "<Append Siemens protocol buffers (bas64) to user parameters>")
-            ("studyDate", po::value<std::string>(&study_date_user_supplied),
-             "<User can supply study date, in the format of yyyy-mm-dd>");
+                "<Append Siemens protocol buffers (bas64) to user parameters>")
+                ("studyDate", po::value<std::string>(&study_date_user_supplied),
+                    "<User can supply study date, in the format of yyyy-mm-dd>");
 
     po::options_description display_options("Allowed options");
     display_options.add_options()
-            ("help,h", "Produce HELP message")
-            ("version,v", "Prints converter version and ISMRMRD version")
-            ("file,f", "<SIEMENS dat file>")
-            ("measNum,z", "<Measurement number>")
-            ("pMap,m", "<Parameter map XML>")
-            ("pMapStyle,x", "<Parameter stylesheet XSL>")
-            ("user-map", "<Provide a parameter map XML file>")
-            ("user-stylesheet", "<Provide a parameter stylesheet XSL file>")
-            ("output,o", "<ISMRMRD output file>")
-            ("outputGroup,g", "<ISMRMRD output group>")
-            ("list,l", "<List embedded files>")
-            ("extract,e", "<Extract embedded file>")
-            ("debug,X", "<Debug XML flag>")
-            ("flashPatRef,F", "<FLASH PAT REF flag>")
-            ("headerOnly,H", "<HEADER ONLY flag (create xml header only)>")
-            ("bufferAppend,B", "<Append protocol buffers>")
-            ("studyDate", "<User can supply study date, in the format of yyyy-mm-dd>");
+        ("help,h", "Produce HELP message")
+        ("version,v", "Prints converter version and ISMRMRD version")
+        ("file,f", "<SIEMENS dat file>")
+        ("measNum,z", "<Measurement number>")
+        ("pMap,m", "<Parameter map XML>")
+        ("pMapStyle,x", "<Parameter stylesheet XSL>")
+        ("user-map", "<Provide a parameter map XML file>")
+        ("user-stylesheet", "<Provide a parameter stylesheet XSL file>")
+        ("output,o", "<ISMRMRD output file>")
+        ("outputGroup,g", "<ISMRMRD output group>")
+        ("list,l", "<List embedded files>")
+        ("extract,e", "<Extract embedded file>")
+        ("debug,X", "<Debug XML flag>")
+        ("flashPatRef,F", "<FLASH PAT REF flag>")
+        ("headerOnly,H", "<HEADER ONLY flag (create xml header only)>")
+        ("bufferAppend,B", "<Append protocol buffers>")
+        ("studyDate", "<User can supply study date, in the format of yyyy-mm-dd>");
 
     po::variables_map vm;
 
@@ -483,14 +483,14 @@ int main(int argc, char *argv[]) {
 
         if (vm.count("version")) {
             std::cout << "Converter version is: " << SIEMENS_TO_ISMRMRD_VERSION_MAJOR << "."
-                      << SIEMENS_TO_ISMRMRD_VERSION_MINOR << "." << SIEMENS_TO_ISMRMRD_VERSION_PATCH << "\n";
+                << SIEMENS_TO_ISMRMRD_VERSION_MINOR << "." << SIEMENS_TO_ISMRMRD_VERSION_PATCH << "\n";
             std::cout << "Built against ISMRMRD version: " << ISMRMRD_VERSION_MAJOR << "." << ISMRMRD_VERSION_MINOR
-                      << "." << ISMRMRD_VERSION_PATCH << "\n";
+                << "." << ISMRMRD_VERSION_PATCH << "\n";
             return 1;
         }
     }
 
-    catch (po::error &e) {
+    catch (po::error& e) {
         std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
         std::cerr << display_options << std::endl;
         return -1;
@@ -542,44 +542,13 @@ int main(int argc, char *argv[]) {
     }
     std::cout << "Siemens file is: " << siemens_dat_filename << std::endl;
 
-    std::string parammap_xsl_content;
-    if (parammap_xsl.length() == 0) {
-        // If the user did not specify any stylesheet
-        if (usermap_xsl.length() == 0) {
-            parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
-            std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens.xsl" << std::endl;
-        }
-            // If the user specified only a user-supplied stylesheet
-        else {
-            std::ifstream f(usermap_xsl.c_str());
-            if (!f) {
-                std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
-                return -1;
-            }
-            std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
-            std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-            parammap_xsl_content = str_f;
-        }
-    } else {
-        // If the user specified both an embedded and user-supplied stylesheet
-        if (usermap_xsl.length() > 0) {
-            std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet"
-                      << std::endl;
-            return -1;
-        }
-
-        // The user specified an embedded stylesheet only
-        parammap_xsl_content = load_embedded(parammap_xsl);
-        std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
-    }
-
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
 
     std::ifstream siemens_dat(siemens_dat_filename.c_str(), std::ios::binary);
 
     MrParcRaidFileHeader ParcRaidHead;
 
-    siemens_dat.read((char *) (&ParcRaidHead), sizeof(MrParcRaidFileHeader));
+    siemens_dat.read((char*)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
 
     bool VBFILE = false;
 
@@ -591,16 +560,17 @@ int main(int argc, char *argv[]) {
 
         ParcRaidHead.hdSize_ = ParcRaidHead.count_;
         ParcRaidHead.count_ = 1;
-    } else if (ParcRaidHead.hdSize_ != 0) {
+    }
+    else if (ParcRaidHead.hdSize_ != 0) {
         //This is a VB line data file
         std::cerr << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported."
-                  << std::endl;
+            << std::endl;
         return -1;
     }
 
     if (!VBFILE && measurement_number > ParcRaidHead.count_) {
         std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
-                  << std::endl;
+            << std::endl;
         std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
         return -1;
     }
@@ -623,8 +593,8 @@ int main(int argc, char *argv[]) {
 
     uint32_t dma_length = 0, num_buffers = 0;
 
-    siemens_dat.read((char *) (&dma_length), sizeof(uint32_t));
-    siemens_dat.read((char *) (&num_buffers), sizeof(uint32_t));
+    siemens_dat.read((char*)(&dma_length), sizeof(uint32_t));
+    siemens_dat.read((char*)(&num_buffers), sizeof(uint32_t));
 
     //std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
 
@@ -632,7 +602,7 @@ int main(int argc, char *argv[]) {
 
     //We need to be on a 32 byte boundary after reading the buffers
     long long int position_in_meas =
-            (long long int) (siemens_dat.tellg()) - ParcFileEntries[measurement_number - 1].off_;
+        (long long int) (siemens_dat.tellg()) - ParcFileEntries[measurement_number - 1].off_;
     if (position_in_meas % 32 != 0) {
         siemens_dat.seekg(32 - (position_in_meas % 32), std::ios::cur);
     }
@@ -644,12 +614,13 @@ int main(int argc, char *argv[]) {
     long dwell_time_0;
     long max_channels;
     long radial_views;
-    long* global_table_pos = new long [3];
+    long* global_table_pos = new long[3];
     std::string baseLineString;
     std::string protocol_name;
+    std::string software_version;
     std::string xml_config = readXmlConfig(debug_xml, parammap_file_content, num_buffers, buffers, wip_double,
-                                           trajectory, dwell_time_0,
-                                          max_channels, radial_views, global_table_pos, baseLineString, protocol_name);
+        trajectory, dwell_time_0,
+        max_channels, radial_views, global_table_pos, baseLineString, protocol_name, software_version);
 
     // whether this scan is a adjustment scan
     bool isAdjustCoilSens = false;
@@ -672,12 +643,58 @@ int main(int argc, char *argv[]) {
     }
 
     std::cout << "Baseline: " << baseLineString << std::endl;
+    std::cout << "Software version: " << software_version << std::endl;
+
+    bool isNX = false;
+    if ((baseLineString.find("NXVA") != std::string::npos) || (software_version.find("XA11") != std::string::npos) )
+    {
+        isNX = true;
+    }
 
     if (debug_xml) {
         std::ofstream o("xml_raw.xml");
         o.write(xml_config.c_str(), xml_config.size());
     }
 
+    std::string parammap_xsl_content;
+    if (parammap_xsl.length() == 0) {
+        // If the user did not specify any stylesheet
+        if (usermap_xsl.length() == 0) {
+            if (isNX)
+            {
+                parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens_NX.xsl");
+                std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens_NX.xsl" << std::endl;
+            }
+            else
+            {
+                parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
+                std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens.xsl" << std::endl;
+            }
+        }
+        // If the user specified only a user-supplied stylesheet
+        else {
+            std::ifstream f(usermap_xsl.c_str());
+            if (!f) {
+                std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
+                return -1;
+            }
+            std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
+            std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+            parammap_xsl_content = str_f;
+        }
+    }
+    else {
+        // If the user specified both an embedded and user-supplied stylesheet
+        if (usermap_xsl.length() > 0) {
+            std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet"
+                << std::endl;
+            return -1;
+        }
+
+        // The user specified an embedded stylesheet only
+        parammap_xsl_content = load_embedded(parammap_xsl);
+        std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
+    }
 
     ISMRMRD::IsmrmrdHeader header;
     {
@@ -1474,7 +1491,7 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
 std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_content, uint32_t num_buffers,
                           std::vector<MeasurementHeaderBuffer> &buffers, std::vector<std::string> &wip_double,
                           Trajectory &trajectory, long &dwell_time_0, long &max_channels, long &radial_views,
-                          long *global_table_pos, std::string &baseLineString, std::string &protocol_name) {
+                          long *global_table_pos, std::string &baseLineString, std::string &protocol_name, std::string& software_version) {
     dwell_time_0 = 0;
     max_channels = 0;
     radial_views = 0;
@@ -1497,6 +1514,12 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         if (debug_xml) {
             std::ofstream o("config_buffer.xprot");
             o.write(config_buffer.c_str(), config_buffer.size());
+        }
+
+        bool is_NX = false;
+        if(config_buffer.find("syngo MR XA11")!=std::string::npos)
+        {
+            is_NX = true;
         }
 
         if (ParseXProtocol(config_buffer, n) < 0) {
@@ -1843,6 +1866,19 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         if (baseLineString.empty()) {
             std::cout << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString"
                       << std::endl;
+        }
+
+        // Get software version
+        {
+            const XProtocol::XNode* n2 = apply_visitor(
+                XProtocol::getChildNodeByName("Dicom.SoftwareVersions"), n);
+            std::vector<std::string> temp;
+            if (n2) {
+                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
+            }
+            if (temp.size() > 0) {
+                software_version = temp[0];
+            }
         }
 
         //xml_config = ProcessParameterMap(n, parammap_file);
