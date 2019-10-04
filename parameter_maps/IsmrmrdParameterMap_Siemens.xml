@@ -49,6 +49,10 @@
         <p><s>MEAS.ucOneSeriesForAllMeas</s>                                    <d>siemens.MEAS.ucOneSeriesForAllMeas</d></p>
         <p><s>MEAS.sWipMemBlock.alFree</s>                                      <d>siemens.MEAS.sWipMemBlock.alFree</d></p>
         <p><s>MEAS.sWipMemBlock.adFree</s>                                      <d>siemens.MEAS.sWipMemBlock.adFree</d></p>
+        <p><s>MEAS.sInlineCardioEval.alRecoveryDuration</s>                     <d>siemens.MEAS.sInlineCardioEval.alRecoveryDuration</d></p>
+        <p><s>MEAS.sInlineCardioEval.alSamplingDuration</s>                     <d>siemens.MEAS.sInlineCardioEval.alSamplingDuration</d></p>
+        <p><s>MEAS.sInlineCardioEval.lNoOfPreps</s>                             <d>siemens.MEAS.sInlineCardioEval.lNoOfPreps</d></p>
+        <p><s>MEAS.sInlineCardioEval.lInlineEvaMode</s>                         <d>siemens.MEAS.sInlineCardioEval.lInlineEvaMode</d></p>
 
         <p><s>IRIS.DERIVED.phaseOversampling</s>                                <d>siemens.IRIS.DERIVED.phaseOversampling</d></p>
         <p><s>IRIS.DERIVED.ImageColumns</s>                                     <d>siemens.IRIS.DERIVED.imageColumns</d></p>
