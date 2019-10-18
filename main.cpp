@@ -757,6 +757,9 @@ int main(int argc, char* argv[]) {
             size_t mins = (size_t) ((timeInSeconds - hours * 3600) / 60);
             size_t secs = (size_t) (timeInSeconds - hours * 3600 - mins * 60);
 
+            hours = hours % 24;
+            mins  = mins  % 60;
+
             std::string study_time = get_time_string(hours, mins, secs);
 
             // if some of the ismrmrd header fields are not filled, here is a place to take some further actions
