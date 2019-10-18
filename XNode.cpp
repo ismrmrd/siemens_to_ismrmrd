@@ -208,7 +208,7 @@ std::vector<std::string> getStringValueArray::operator()(const XNodeParamValue& 
 		std::stringstream ss;
 		std::string svalue;
 		ss << node.values_[i];
-		ss >> svalue;
+		svalue = ss.str();
 		ret.push_back(svalue);
 	}
 	return ret;

@@ -9,7 +9,12 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
         <xsl:choose>
             <xsl:when test="not(siemens/IRIS/DERIVED/phaseOversampling)">0</xsl:when>
             <xsl:otherwise>
-                <xsl:value-of select="siemens/IRIS/DERIVED/phaseOversampling"/>
+                <xsl:choose>
+                    <xsl:when test="string(number(siemens/IRIS/DERIVED/phaseOversampling)) = 'NaN'">0</xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="siemens/IRIS/DERIVED/phaseOversampling"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:variable>
@@ -18,7 +23,13 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
         <xsl:choose>
             <xsl:when test="not(siemens/MEAS/sKSpace/dSliceOversamplingForDialog)">0</xsl:when>
             <xsl:otherwise>
-                <xsl:value-of select="siemens/MEAS/sKSpace/dSliceOversamplingForDialog"/>
+                <xsl:choose>
+                    <xsl:when test="string(number(siemens/MEAS/sKSpace/dSliceOversamplingForDialog)) = 'NaN'">0
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="siemens/MEAS/sKSpace/dSliceOversamplingForDialog"/>
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:otherwise>
         </xsl:choose>
     </xsl:variable>
@@ -127,25 +138,35 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
 		<!-- Coil Labels -->
 		<xsl:choose>
                   <!-- VD line with dual density -->
-                  <xsl:when test="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected">
-                    <xsl:variable name="NumberOfSelectedCoils">
-                        <xsl:value-of select="count(siemens/MEAS/asCoilSelectMeas/Select/lElementSelected[text() = '1'])" />
-                    </xsl:variable>
-                    <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
-                      <xsl:sort data-type="number" select="." />
-                      <xsl:variable name="CurADC" select="."/>
-                      <xsl:variable name="CurADCIndex" select="position()" />
-                      <xsl:for-each select="../lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
-                        <xsl:if test="$CurADC = .">
-                            <xsl:variable name="CurCoil" select="position()"/>
-			    <coilLabel>
-			      <coilNumber><xsl:value-of select="$CurADCIndex -1"/></coilNumber>
-			      <coilName><xsl:value-of select="../../ID/tCoilID[$CurCoil]"/>:<xsl:value-of select="../../Elem/tElement[$CurCoil]"/></coilName>
-			    </coilLabel>
-                        </xsl:if>
-                      </xsl:for-each>
-                    </xsl:for-each>
-                  </xsl:when>
+                    <xsl:when test="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected">
+                        <xsl:variable name="NumberOfSelectedCoils">
+                            <xsl:value-of select="count(siemens/MEAS/asCoilSelectMeas/Select/lElementSelected[text() = '1'])" />
+                        </xsl:variable>
+                        <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ADC/lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
+                            <xsl:sort data-type="number"
+                                      select="." />
+                            <xsl:variable name="CurADC"
+                                          select="."/>
+                            <xsl:variable name="CurADCIndex"
+                                          select="position()" />
+                            <xsl:for-each select="../lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
+                                <xsl:if test="$CurADC = .">
+                                    <xsl:variable name="CurCoil" select="position()"/>
+                                    <xsl:variable name="CurCoilID" select="../../ID/tCoilID[$CurCoil]"/>
+                                    <xsl:variable name="CurCoilElement" select="../../Elem/tElement[$CurCoil]"/>
+                                    <xsl:variable name="CurCoilCopyID" select="../../Coil/lCoilCopy[$CurCoil]"/>
+                                    <coilLabel>
+                                        <coilNumber>
+                                            <xsl:value-of select="number(../lADCChannelConnected[$CurADCIndex])"/>
+                                        </coilNumber>
+                                        <coilName>
+                                            <xsl:value-of select="$CurCoilID"/>:<xsl:value-of select="string($CurCoilCopyID)"/>:<xsl:value-of select="$CurCoilElement"/>
+                                        </coilName>
+                                    </coilLabel>
+                                </xsl:if>
+                            </xsl:for-each>
+                        </xsl:for-each>
+                    </xsl:when>
                   <xsl:otherwise> <!-- This is probably VB -->
                     <xsl:for-each select="siemens/MEAS/asCoilSelectMeas/ID/tCoilID">
                       <xsl:variable name="CurCoil" select="position()"/>
