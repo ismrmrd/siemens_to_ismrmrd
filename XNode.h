@@ -1,6 +1,8 @@
 #ifndef XNODE_H
 #define XNODE_H
 
+#define  BOOST_SPIRIT_DEBUG
+#define BOOST_SPIRIT_DEBUG_PRINT_SOME 500
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/spirit/include/phoenix_fusion.hpp>
@@ -72,7 +74,7 @@ struct XNodeParamArray
 	bool expand_children();
 };
 
-int ParseXProtocol(std::string& input, XNode& tree);
+int ParseXProtocol(const std::string& input, XNode& tree);
 
 class setNodeValues : public boost::static_visitor<bool> {
 public:

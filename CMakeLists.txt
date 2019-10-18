@@ -2,6 +2,17 @@ cmake_minimum_required(VERSION 2.6)
 
 project(SIEMENS-TO-ISMRMRD)
 
+# --- Provide good defaults for searching for packages (i.e. ismrmrd)
+if(EXISTS $ENV{CMAKE_PREFIX_PATH})
+  list(APPEND CMAKE_PREFIX_PATH $ENV{CMAKE_PREFIX_PATH})
+endif()
+if(EXISTS $ENV{ISMRMRD_HOME})
+  list(APPEND CMAKE_PREFIX_PATH $ENV{ISMRMRD_HOME})
+endif()
+list(REMOVE_DUPLICATES CMAKE_PREFIX_PATH)
+message(STATUS "Looking for packages in : ${CMAKE_PREFIX_PATH}")
+# ---
+
 #VERSIONING
 set(SIEMENS_TO_ISMRMRD_VERSION_MAJOR 1)
 set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 0)
@@ -35,10 +46,8 @@ if (WIN32)
     set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     add_definitions(-D__BUILD_CONVERTER_TINYXML__)
-endif()
-
-if(WIN32)
-    set(Boost_NO_BOOST_CMAKE ON)
+else()
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 endif()
 
 # Added for static linking!!!
@@ -49,24 +58,15 @@ else()
    set(Boost_USE_STATIC_LIBS ON)
    message("Building statically linked application.")
 endif()
- 
-find_package(Boost COMPONENTS thread system program_options filesystem REQUIRED)
+
+# set(Boost_USE_STATIC_LIBS OFF)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+set(Boost_NO_BOOST_CMAKE ON)
+
+find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
 find_package(ISMRMRD REQUIRED)
-find_package(HDF5 1.8 REQUIRED COMPONENTS C)
-
-#On windows we will call xsltproc via a system call and the libraries are not needed for compile.
-if (NOT WIN32)
-    find_package(LibXml2 REQUIRED)
-    find_package(LibXslt REQUIRED)
-
-    include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
-else()
-    include_directories(${Boost_INCLUDE_DIR})
-endif()
-
-if(WIN32)
-    link_directories(${Boost_LIBRARY_DIRS})
-endif()
+find_package(HDF5  REQUIRED COMPONENTS C)
 
 include_directories( ${ISMRMRD_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} )
 link_directories( ${ISMRMRD_LIB_DIR} )
@@ -79,30 +79,46 @@ add_custom_command(
     OUTPUT defaults.cpp
     COMMAND embed ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml 
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_NX.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_B0REF.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_PreZeros.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_T1Mapping_SASHA.xsl
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 defaults.cpp
     VERBATIM
     DEPENDS embed ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_VB17.xml
-                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml 
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xml
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_NX.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_B0REF.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_PreZeros.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI.xsl
                 ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
+                ${CMAKE_CURRENT_SOURCE_DIR}/parameter_maps/IsmrmrdParameterMap_Siemens_T1Mapping_SASHA.xsl
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 )
 
+find_package(LibXml2 REQUIRED)
+find_package(LibXslt REQUIRED)
 
-add_executable(siemens_to_ismrmrd 
-               main.cpp 
-               siemensraw.cpp 
-               XNode.cpp 
-               XNodeParser.cpp 
+include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
+
+if(WIN32)
+    link_directories(${Boost_LIBRARY_DIRS})
+endif()
+
+add_executable(siemens_to_ismrmrd
+               main.cpp
+               siemensraw.cpp
+               XNode.cpp
+               XNodeParser.cpp
                vds.cpp
                defaults.cpp
                base64.cpp
@@ -112,11 +128,7 @@ add_executable(siemens_to_ismrmrd
                ${schema_files}
                )
 
-if (WIN32)
-    set(CMAKE_DEBUG_SUFFIX d CACHE STRING "the debug suffix")
-else()
-    target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
-endif()
+target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
 
 target_link_libraries(siemens_to_ismrmrd
                         ${ISMRMRD_LIBRARIES}
@@ -124,12 +136,12 @@ target_link_libraries(siemens_to_ismrmrd
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
 
-# Create package                                                                                                            
+# Create package
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 include(${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/siemens_to_ismrmrd_cpack.cmake)
 if(CPACK_GENERATOR)
-  message(STATUS "Found CPack generators: ${CPACK_GENERATOR}")
-  configure_file("${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/cpack_options.cmake.in" ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE} @ONLY)
-  set(CPACK_PROJECT_CONFIG_FILE ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE})
-  include (CPack)
+    message(STATUS "Found CPack generators: ${CPACK_GENERATOR}")
+    configure_file("${SIEMENS_TO_ISMRMRD_CMAKE_DIR}/cpack_options.cmake.in" ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE} @ONLY)
+    set(CPACK_PROJECT_CONFIG_FILE ${SIEMENS_TO_ISMRMRD_CPACK_CFG_FILE})
+    include (CPack)
 endif()
