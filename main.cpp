@@ -1045,6 +1045,15 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     ismrmrd_acq.user_float()[6] = scanhead.aushIceProgramPara[14];
     ismrmrd_acq.user_float()[7] = scanhead.aushIceProgramPara[15];
 
+    ismrmrd_acq.user_float()[8] = scanhead.aushIceProgramPara[16];
+    ismrmrd_acq.user_float()[9] = scanhead.aushIceProgramPara[17];
+    ismrmrd_acq.user_float()[10] = scanhead.aushIceProgramPara[18];
+    ismrmrd_acq.user_float()[11] = scanhead.aushIceProgramPara[19];
+    ismrmrd_acq.user_float()[12] = scanhead.aushIceProgramPara[20];
+    ismrmrd_acq.user_float()[13] = scanhead.aushIceProgramPara[21];
+    ismrmrd_acq.user_float()[14] = scanhead.aushIceProgramPara[22];
+    ismrmrd_acq.user_float()[15] = scanhead.aushIceProgramPara[23];
+
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 25))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 28))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_FIRST_IN_SLICE);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 29))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_SLICE);
