@@ -724,6 +724,13 @@
                             <xsl:value-of select="siemens/MEAS/sAngio/sFlowArray/asElm/s0/nVelocity"/>
                         </value>
                     </userParameterLong>
+                  
+                    <userParameterLong>
+                         <name>Flow_Dir</name>
+                         <value>
+                             <xsl:value-of select="siemens/MEAS/sAngio/sFlowArray/asElm/s0/nDir" />
+                         </value>
+                    </userParameterLong>
                 </xsl:if>
 
                 <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1) and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">
