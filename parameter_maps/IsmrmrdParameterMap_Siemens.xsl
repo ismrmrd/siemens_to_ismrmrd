@@ -689,7 +689,7 @@
                         </TI>
                     </xsl:if>
                 </xsl:for-each>
-                <xsl:for-each select="siemens/DICOM/adFlipAngleDegree">
+                <xsl:for-each select="siemens/MEAS/adFlipAngleDegree">
                     <xsl:if test=". &gt; 0">
                         <flipAngle_deg>
                             <xsl:value-of select="."/>

@@ -25,6 +25,7 @@
         <p><s>MEAS.sRXSPEC.alDwellTime</s>                                      <d>siemens.MEAS.sRXSPEC.alDwellTime</d></p>
         <p><s>MEAS.alTR</s>                                                     <d>siemens.MEAS.alTR</d></p>
         <p><s>MEAS.alTE</s>                                                     <d>siemens.MEAS.alTE</d></p>
+        <p><s>MEAS.adFlipAngleDegree</s>                                        <d>siemens.MEAS.adFlipAngleDegree</d></p>
         <p><s>MEAS.lContrasts</s>                                               <d>siemens.MEAS.lContrasts</d></p>
         <p><s>MEAS.alTI</s>                                                     <d>siemens.MEAS.alTI</d></p>
         <p><s>MEAS.sSliceArray.asSlice.0.dReadoutFOV</s>                        <d>siemens.MEAS.sSliceArray.asSlice.s0.dReadoutFOV</d></p>
@@ -98,7 +99,6 @@
         <p><s>DICOM.Modality</s>                                                <d>siemens.DICOM.Modality</d></p>
         <p><s>DICOM.tScanningSequence</s>                                       <d>siemens.DICOM.tScanningSequence</d></p>
         <p><s>DICOM.tMRAcquisitionType</s>                                      <d>siemens.DICOM.tMRAcquisitionType</d></p>
-        <p><s>DICOM.adFlipAngleDegree</s>                                       <d>siemens.DICOM.adFlipAngleDegree</d></p>
         <p><s>DICOM.DeviceSerialNumber</s>                                      <d>siemens.DICOM.DeviceSerialNumber</d></p>
         <p><s>DICOM.SoftwareVersions</s>                                        <d>siemens.DICOM.SoftwareVersions</d></p>
         <!-- EPI parameters -->
