@@ -94,7 +94,7 @@ getTrajectory(const std::vector<std::string> &wip_double, const Trajectory &traj
 
 ISMRMRD::Acquisition
 getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell_time_0, long* global_table_pos, long max_channels,
-               bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB, ISMRMRD::NDArray<float> &traj,
+               bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB, bool isNX, ISMRMRD::NDArray<float> &traj,
                const sScanHeader &scanhead, const std::vector<ChannelHeaderAndData> &channels);
 
 void readScanHeader(std::ifstream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHeader &scanhead);
@@ -356,14 +356,22 @@ std::string ProcessParameterMap(const XProtocol::XNode &node, const char *mapfil
 
 /// compute noise dwell time in us for dependency and built-in noise in VD/VB lines
 double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isAdjustCoilSens, bool isAdjQuietCoilSens,
-                                  bool isVB) {
-    if (isAdjustCoilSens) {
+                                  bool isVB, bool isNX)
+{
+    if (isAdjustCoilSens)
+    {
         return 5.0;
-    } else if (isAdjQuietCoilSens) {
+    }
+    else if (isAdjQuietCoilSens || isNX)
+    {
         return 4.0;
-    } else if (isVB) {
+    }
+    else if (isVB)
+    {
         return (1e6 / num_of_noise_samples_this_acq / 130.0);
-    } else {
+    }
+    else
+    {
         return (((long) (76800.0 / num_of_noise_samples_this_acq)) / 10.0);
     }
 
@@ -644,12 +652,15 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Baseline: " << baseLineString << std::endl;
     std::cout << "Software version: " << software_version << std::endl;
+    std::cout << "Protocol name: " << protocol_name << std::endl;
 
     bool isNX = false;
     if ((baseLineString.find("NXVA") != std::string::npos) || (software_version.find("XA11") != std::string::npos) )
     {
         isNX = true;
     }
+
+    std::cout << "Dwell time: " << dwell_time_0 << std::endl;
 
     if (debug_xml) {
         std::ofstream o("xml_raw.xml");
@@ -819,7 +830,7 @@ int main(int argc, char* argv[]) {
 
         ismrmrd_dataset->appendAcquisition(
                 getAcquisition(flash_pat_ref_scan, trajectory, dwell_time_0, global_table_pos, max_channels, isAdjustCoilSens,
-                               isAdjQuietCoilSens, isVB, traj, scanhead, channels));
+                               isAdjQuietCoilSens, isVB, isNX, traj, scanhead, channels));
 
     }//End of the while loop
     delete [] global_table_pos;
@@ -941,7 +952,7 @@ void readScanHeader(std::ifstream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHea
 
 ISMRMRD::Acquisition
 getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell_time_0, long* global_table_pos, long max_channels,
-               bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB, ISMRMRD::NDArray<float> &traj,
+               bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB, bool isNX, ISMRMRD::NDArray<float> &traj,
                const sScanHeader &scanhead, const std::vector<ChannelHeaderAndData> &channels) {
     ISMRMRD::Acquisition ismrmrd_acq;
     // The number of samples, channels and trajectory dimensions is set below
@@ -959,9 +970,10 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
 
     // std::cout << "isAdjustCoilSens, isVB : " << isAdjustCoilSens << " " << isVB << std::endl;
 
-    if (scanhead.aulEvalInfoMask[0] & (1ULL << 25)) { //This is noise
+    if (scanhead.aulEvalInfoMask[0] & (1ULL << 25))
+    { //This is noise
         ismrmrd_acq.sample_time_us() = compute_noise_sample_in_us(scanhead.ushSamplesInScan, isAdjustCoilSens,
-                                                                  isAdjQuietCoilSens, isVB);
+                                                                  isAdjQuietCoilSens, isVB, isNX);
     } else {
         ismrmrd_acq.sample_time_us() = dwell_time_0 / 1000.0f;
     }
