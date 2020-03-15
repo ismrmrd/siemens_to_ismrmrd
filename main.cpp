@@ -358,11 +358,15 @@ std::string ProcessParameterMap(const XProtocol::XNode &node, const char *mapfil
 double compute_noise_sample_in_us(size_t num_of_noise_samples_this_acq, bool isAdjustCoilSens, bool isAdjQuietCoilSens,
                                   bool isVB, bool isNX)
 {
-    if (isAdjustCoilSens)
+    if(isNX)
     {
         return 5.0;
     }
-    else if (isAdjQuietCoilSens || isNX)
+    else if (isAdjustCoilSens)
+    {
+        return 5.0;
+    }
+    else if (isAdjQuietCoilSens)
     {
         return 4.0;
     }
@@ -974,6 +978,8 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     { //This is noise
         ismrmrd_acq.sample_time_us() = compute_noise_sample_in_us(scanhead.ushSamplesInScan, isAdjustCoilSens,
                                                                   isAdjQuietCoilSens, isVB, isNX);
+
+        std::cout << "Noise sample time us :" << ismrmrd_acq.sample_time_us() << std::endl;
     } else {
         ismrmrd_acq.sample_time_us() = dwell_time_0 / 1000.0f;
     }
