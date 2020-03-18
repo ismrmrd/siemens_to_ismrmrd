@@ -717,7 +717,30 @@
             </sequenceParameters>
 
             <userParameters>
-                <xsl:if test="siemens/MEAS/sAngio/sFlowArray/lSize">
+                <xsl:for-each select="siemens/MEAS/sWipMemBlock/alFree">
+                    <!-- xsl:if test=". &gt; 0" -->
+                      <xsl:variable name="CurLong" select="position()"/>
+                      <userParameterLong>
+                        <name>sWipMemBlock.alFree[<xsl:value-of select="$CurLong - 1" />]</name>
+                        <value>
+                          <xsl:value-of select="."/>
+                        </value>
+                      </userParameterLong>
+                    <!-- /xsl:if -->
+                </xsl:for-each>
+                <xsl:for-each select="siemens/MEAS/sWipMemBlock/adFree">
+                    <!-- xsl:if test=". &gt; 0" -->
+                      <xsl:variable name="CurDouble" select="position()"/>
+                      <userParameterDouble>
+                        <name>sWipMemBlock.adFree[<xsl:value-of select="$CurDouble - 1" />]</name>
+                        <value>
+                          <xsl:value-of select="."/>
+                        </value>
+                      </userParameterDouble>
+                    <!-- /xsl:if -->
+	    	</xsl:for-each>    
+
+		<xsl:if test="siemens/MEAS/sAngio/sFlowArray/lSize">
                     <userParameterLong>
                         <name>VENC_0</name>
                         <value>
@@ -989,7 +1012,7 @@
                     </userParameterDouble>
                 </xsl:if>
 
-            </userParameters>
+	    </userParameters>
 
         </ismrmrdHeader>
     </xsl:template>
