@@ -717,6 +717,7 @@
             </sequenceParameters>
 
             <userParameters>
+		    
                 <xsl:for-each select="siemens/MEAS/sWipMemBlock/alFree">
                     <!-- xsl:if test=". &gt; 0" -->
                       <xsl:variable name="CurLong" select="position()"/>
@@ -728,17 +729,6 @@
                       </userParameterLong>
                     <!-- /xsl:if -->
                 </xsl:for-each>
-                <xsl:for-each select="siemens/MEAS/sWipMemBlock/adFree">
-                    <!-- xsl:if test=". &gt; 0" -->
-                      <xsl:variable name="CurDouble" select="position()"/>
-                      <userParameterDouble>
-                        <name>sWipMemBlock.adFree[<xsl:value-of select="$CurDouble - 1" />]</name>
-                        <value>
-                          <xsl:value-of select="."/>
-                        </value>
-                      </userParameterDouble>
-                    <!-- /xsl:if -->
-	    	</xsl:for-each>    
 
 		<xsl:if test="siemens/MEAS/sAngio/sFlowArray/lSize">
                     <userParameterLong>
@@ -819,6 +809,16 @@
                     </userParameterLong>
                 </xsl:if>
 
+		<xsl:for-each select="siemens/MEAS/sWipMemBlock/adFree">
+			<xsl:variable name="CurDouble" select="position()"/>
+			<userParameterDouble>
+				<name>sWipMemBlock.adFree[<xsl:value-of select="$CurDouble - 1" />]</name>
+				<value>
+				<xsl:value-of select="."/>
+				</value>
+			</userParameterDouble>
+	    	</xsl:for-each>
+		    
                 <xsl:if test="siemens/MEAS/sPrepPulses/adT2PrepDuration[1]">
                     <userParameterDouble>
                         <name>T2PrepDuration_0</name>
