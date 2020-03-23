@@ -809,6 +809,15 @@
                     </userParameterLong>
                 </xsl:if>
 
+		<xsl:if test="siemens/YAPS/lGlobalTablePosTra">
+                  <userParameterLong>
+                    <name>GlobalTablePosTra</name>
+                    <value>
+                        <xsl:value-of select="siemens/YAPS/lGlobalTablePosTra" />
+                    </value>
+                  </userParameterLong>
+                </xsl:if>  
+
 		<xsl:for-each select="siemens/MEAS/sWipMemBlock/adFree">
 			<xsl:variable name="CurDouble" select="position()"/>
 			<userParameterDouble>

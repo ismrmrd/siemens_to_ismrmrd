@@ -122,6 +122,7 @@
 
         <!-- user defined parameter -->
         <p><s>MEAS.sProtConsistencyInfo.tBaselineString</s>                     <d>siemens.MEAS.sProtConsistencyInfo.tBaselineString</d></p>
+	<p><s>YAPS.lGlobalTablePosTra</s>                                       <d>siemens.YAPS.lGlobalTablePosTra</d></p>
 
         <!-- Coil information -->
         <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.0.sCoilElementID.tCoilID</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ID.tCoilID</d></p>
