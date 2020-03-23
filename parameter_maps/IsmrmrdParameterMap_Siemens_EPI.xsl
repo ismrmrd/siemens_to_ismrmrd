@@ -598,6 +598,17 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 </xsl:if>
             </sequenceParameters>
 
+	    <userParameters>
+		<xsl:if test="siemens/YAPS/lGlobalTablePosTra">
+                  <userParameterLong>
+                    <name>GlobalTablePosTra</name>
+                    <value>
+                        <xsl:value-of select="siemens/YAPS/lGlobalTablePosTra" />
+                    </value>
+                  </userParameterLong>
+                </xsl:if>  
+	    </userParameters>
+
         </ismrmrdHeader>
     </xsl:template>
 
