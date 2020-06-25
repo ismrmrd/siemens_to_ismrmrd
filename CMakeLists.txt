@@ -64,7 +64,7 @@ endif()
 # set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
-set(Boost_NO_BOOST_CMAKE ON)
+
 
 find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
 find_package(ISMRMRD REQUIRED)
