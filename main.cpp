@@ -432,6 +432,7 @@ int main(int argc, char* argv[]) {
     bool flash_pat_ref_scan = false;
     bool header_only = false;
     bool append_buffers = false;
+    bool all_measurements = false;
 
     bool list = false;
     std::string to_extract;
@@ -444,6 +445,7 @@ int main(int argc, char* argv[]) {
         ("version,v", "Prints converter version and ISMRMRD version")
         ("file,f", po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file>")
         ("measNum,z", po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
+        ("allMeas,Z", po::value<bool>(&all_measurements)->implicit_value(true), "<All measurements flag>")
         ("pMap,m", po::value<std::string>(&parammap_file), "<Parameter map XML file>")
         ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
         ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
@@ -468,6 +470,7 @@ int main(int argc, char* argv[]) {
         ("version,v", "Prints converter version and ISMRMRD version")
         ("file,f", "<SIEMENS dat file>")
         ("measNum,z", "<Measurement number>")
+        ("allMeas,Z", "<All measurements flag>")
         ("pMap,m", "<Parameter map XML>")
         ("pMapStyle,x", "<Parameter stylesheet XSL>")
         ("user-map", "<Provide a parameter map XML file>")
@@ -580,309 +583,373 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    if (!VBFILE && measurement_number > ParcRaidHead.count_) {
-        std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
-            << std::endl;
-        std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
-        return -1;
-    }
+    // Loop through all measurements in multi-raid
+    std::string ismrmrd_file_orig = ismrmrd_file;
+    unsigned int firstMeas, lastMeas;
 
-    //if it is a VB scan
-    if (VBFILE && measurement_number != 1) {
-        std::cout << "The file you are trying to convert is a VB file and it has only one measurement." << std::endl;
-        std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
-        return -1;
-    }
-
-    std::string parammap_file_content = getparammap_file_content(parammap_file, usermap_file, VBFILE);
-
-    std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
-
-    std::vector<MrParcRaidFileEntry> ParcFileEntries = readParcFileEntries(siemens_dat, ParcRaidHead, VBFILE);
-
-    // find the beginning of the desired measurement
-    siemens_dat.seekg(ParcFileEntries[measurement_number - 1].off_, std::ios::beg);
-
-    uint32_t dma_length = 0, num_buffers = 0;
-
-    siemens_dat.read((char*)(&dma_length), sizeof(uint32_t));
-    siemens_dat.read((char*)(&num_buffers), sizeof(uint32_t));
-
-    //std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
-
-    auto buffers = readMeasurementHeaderBuffers(siemens_dat, num_buffers);
-
-    //We need to be on a 32 byte boundary after reading the buffers
-    long long int position_in_meas =
-        (long long int) (siemens_dat.tellg()) - ParcFileEntries[measurement_number - 1].off_;
-    if (position_in_meas % 32 != 0) {
-        siemens_dat.seekg(32 - (position_in_meas % 32), std::ios::cur);
-    }
-
-    // Measurement header done!
-    //Now we should have the measurement headers, so let's use the Meas header to create the XML parametersstd::string xml_config;
-    std::vector<std::string> wip_double;
-    Trajectory trajectory;
-    long dwell_time_0;
-    long max_channels;
-    long radial_views;
-    long* global_table_pos = new long[3];
-    std::string baseLineString;
-    std::string protocol_name;
-    std::string software_version;
-    std::string xml_config = readXmlConfig(debug_xml, parammap_file_content, num_buffers, buffers, wip_double,
-        trajectory, dwell_time_0,
-        max_channels, radial_views, global_table_pos, baseLineString, protocol_name, software_version);
-
-    // whether this scan is a adjustment scan
-    bool isAdjustCoilSens = false;
-    if (protocol_name == "AdjCoilSens") {
-        isAdjustCoilSens = true;
-    }
-
-    bool isAdjQuietCoilSens = false;
-    if (protocol_name == "AdjQuietCoilSens") {
-        isAdjQuietCoilSens = true;
-    }
-
-    // whether this scan is from VB line
-    bool isVB = false;
-    if ((baseLineString.find("VB17") != std::string::npos)
-        || (baseLineString.find("VB15") != std::string::npos)
-        || (baseLineString.find("VB13") != std::string::npos)
-        || (baseLineString.find("VB11") != std::string::npos)) {
-        isVB = true;
-    }
-
-    std::cout << "Baseline: " << baseLineString << std::endl;
-    std::cout << "Software version: " << software_version << std::endl;
-    std::cout << "Protocol name: " << protocol_name << std::endl;
-
-    bool isNX = false;
-    if ((baseLineString.find("NXVA") != std::string::npos) || (software_version.find("XA11") != std::string::npos) )
+    if (all_measurements)
     {
-        isNX = true;
+        firstMeas = 1;
+        lastMeas  = ParcRaidHead.count_;
+    }
+    else
+    {
+        firstMeas = measurement_number;
+        lastMeas  = measurement_number;
     }
 
-    std::cout << "Dwell time: " << dwell_time_0 << std::endl;
+    for (unsigned int currentMeas = firstMeas; currentMeas <= lastMeas; currentMeas++) {
+        measurement_number = currentMeas;
 
-    if (debug_xml) {
-        std::ofstream o("xml_raw.xml");
-        o.write(xml_config.c_str(), xml_config.size());
-    }
+        if (all_measurements)
+        {
+            // Add the measurement number as a suffix to the filename, excluding the file extension
+            std::vector<std::string> v;
+            boost::algorithm::split(v, ismrmrd_file_orig, boost::is_any_of("."));
 
-    std::string parammap_xsl_content;
-    if (parammap_xsl.length() == 0) {
-        // If the user did not specify any stylesheet
-        if (usermap_xsl.length() == 0) {
-            if (isNX)
+            if (v.size() > 1)
             {
-                parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens_NX.xsl");
-                std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens_NX.xsl" << std::endl;
+                std::stringstream ss;
+                ss << v.at(v.size()-2) << "_" << currentMeas;
+                v.at(v.size()-2) = ss.str();
+                ismrmrd_file = boost::algorithm::join(v, ".");
             }
             else
             {
-                parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
-                std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens.xsl" << std::endl;
+                // No file extension found
+                std::stringstream ss;
+                ss << ismrmrd_file_orig << "_" << currentMeas;
+                ismrmrd_file = ss.str();
+            }
+
+            // Reset file position
+            if (!VBFILE)
+            {
+                siemens_dat.seekg(sizeof(MrParcRaidFileHeader), std::ios::beg);
+            }
+            else
+            {
+                siemens_dat.seekg(0, std::ios::beg);
             }
         }
-        // If the user specified only a user-supplied stylesheet
-        else {
-            std::ifstream f(usermap_xsl.c_str());
-            if (!f) {
-                std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
-                return -1;
-            }
-            std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
-            std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-            parammap_xsl_content = str_f;
+
+        std::cout << "------------------------------------------------" << std::endl;
+        if (all_measurements)
+        {
+            std::cout << "Converting measurement " << currentMeas << "/" << lastMeas << " into file " << ismrmrd_file << std::endl;
         }
-    }
-    else {
-        // If the user specified both an embedded and user-supplied stylesheet
-        if (usermap_xsl.length() > 0) {
-            std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet"
+        else
+        {
+            std::cout << "Converting measurement " << currentMeas << " into file " << ismrmrd_file << std::endl;
+        }
+        std::cout << "------------------------------------------------" << std::endl;
+
+
+
+        if (!VBFILE && measurement_number > ParcRaidHead.count_) {
+            std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
                 << std::endl;
+            std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
             return -1;
         }
 
-        // The user specified an embedded stylesheet only
-        parammap_xsl_content = load_embedded(parammap_xsl);
-        std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
-    }
-
-    ISMRMRD::IsmrmrdHeader header;
-    {
-        std::string config = parseXML(debug_xml, parammap_xsl_content, schema_file_name_content, xml_config);
-        ISMRMRD::deserialize(config.c_str(), header);
-    }
-    //Append buffers to xml_config if requested
-    if (append_buffers) {
-        append_buffers_to_xml_header(buffers, num_buffers, header);
-    }
-
-    // Free memory used for MeasurementHeaderBuffers
-
-
-    auto ismrmrd_dataset = boost::make_shared<ISMRMRD::Dataset>(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
-    //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profilesISMRMRD::NDArray<float> traj;
-    auto traj = getTrajectory(wip_double, trajectory, dwell_time_0, radial_views);
-
-    uint32_t last_mask = 0;
-    unsigned long int acquisitions = 1;
-    unsigned long int sync_data_packets = 0;
-    sMDH mdh;//For VB line
-    bool first_call = true;
-
-    while (!(last_mask & 1) && //Last scan not encountered
-           (((ParcFileEntries[measurement_number - 1].off_ + ParcFileEntries[measurement_number - 1].len_) -
-             siemens_dat.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
-    {
-        size_t position_in_meas = siemens_dat.tellg();
-        sScanHeader scanhead;
-        readScanHeader(siemens_dat, VBFILE, mdh, scanhead);
-
-        if (!siemens_dat) {
-            std::cerr << "Error reading header at acquisition " << acquisitions << "." << std::endl;
-            break;
+        //if it is a VB scan
+        if (VBFILE && measurement_number != 1) {
+            std::cout << "The file you are trying to convert is a VB file and it has only one measurement." << std::endl;
+            std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
+            return -1;
         }
 
-        uint32_t dma_length = scanhead.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
-        uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
+        std::string parammap_file_content = getparammap_file_content(parammap_file, usermap_file, VBFILE);
 
-        //Check if this is synch data, if so, it must be handled differently.
-        if (scanhead.aulEvalInfoMask[0] & (1 << 5)) {
-            uint32_t last_scan_counter = acquisitions - 1;
+        std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
 
-            auto waveforms = readSyncdata(siemens_dat, VBFILE, acquisitions, dma_length, scanhead, header,
-                                          last_scan_counter);
-            for (auto &w : waveforms)
-                ismrmrd_dataset->appendWaveform(w);
-            sync_data_packets++;
-            continue;
+        std::vector<MrParcRaidFileEntry> ParcFileEntries = readParcFileEntries(siemens_dat, ParcRaidHead, VBFILE);
+
+        // find the beginning of the desired measurement
+        siemens_dat.seekg(ParcFileEntries[measurement_number - 1].off_, std::ios::beg);
+
+        uint32_t dma_length = 0, num_buffers = 0;
+
+        siemens_dat.read((char*)(&dma_length), sizeof(uint32_t));
+        siemens_dat.read((char*)(&num_buffers), sizeof(uint32_t));
+
+        //std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
+
+        auto buffers = readMeasurementHeaderBuffers(siemens_dat, num_buffers);
+
+        //We need to be on a 32 byte boundary after reading the buffers
+        long long int position_in_meas =
+            (long long int) (siemens_dat.tellg()) - ParcFileEntries[measurement_number - 1].off_;
+        if (position_in_meas % 32 != 0) {
+            siemens_dat.seekg(32 - (position_in_meas % 32), std::ios::cur);
         }
 
-        if (first_call) {
-            uint32_t time_stamp = scanhead.ulTimeStamp;
+        // Measurement header done!
+        //Now we should have the measurement headers, so let's use the Meas header to create the XML parametersstd::string xml_config;
+        std::vector<std::string> wip_double;
+        Trajectory trajectory;
+        long dwell_time_0;
+        long max_channels;
+        long radial_views;
+        long* global_table_pos = new long[3];
+        std::string baseLineString;
+        std::string protocol_name;
+        std::string software_version;
+        std::string xml_config = readXmlConfig(debug_xml, parammap_file_content, num_buffers, buffers, wip_double,
+            trajectory, dwell_time_0,
+            max_channels, radial_views, global_table_pos, baseLineString, protocol_name, software_version);
 
-            // convert to acqusition date and time
-            double timeInSeconds = time_stamp * 2.5 / 1e3;
+        // whether this scan is a adjustment scan
+        bool isAdjustCoilSens = false;
+        if (protocol_name == "AdjCoilSens") {
+            isAdjustCoilSens = true;
+        }
 
-            size_t hours = (size_t) (timeInSeconds / 3600);
-            size_t mins = (size_t) ((timeInSeconds - hours * 3600) / 60);
-            size_t secs = (size_t) (timeInSeconds - hours * 3600 - mins * 60);
+        bool isAdjQuietCoilSens = false;
+        if (protocol_name == "AdjQuietCoilSens") {
+            isAdjQuietCoilSens = true;
+        }
 
-            hours = hours % 24;
-            mins  = mins  % 60;
+        // whether this scan is from VB line
+        bool isVB = false;
+        if ((baseLineString.find("VB17") != std::string::npos)
+            || (baseLineString.find("VB15") != std::string::npos)
+            || (baseLineString.find("VB13") != std::string::npos)
+            || (baseLineString.find("VB11") != std::string::npos)) {
+            isVB = true;
+        }
 
-            std::string study_time = get_time_string(hours, mins, secs);
+        std::cout << "Baseline: " << baseLineString << std::endl;
+        std::cout << "Software version: " << software_version << std::endl;
+        std::cout << "Protocol name: " << protocol_name << std::endl;
 
-            // if some of the ismrmrd header fields are not filled, here is a place to take some further actions
-            if (!fill_ismrmrd_header(header, study_date_user_supplied, study_time)) {
-                std::cerr << "Failed to further fill XML header" << std::endl;
+        bool isNX = false;
+        if ((baseLineString.find("NXVA") != std::string::npos) || (software_version.find("XA11") != std::string::npos) )
+        {
+            isNX = true;
+        }
+
+        std::cout << "Dwell time: " << dwell_time_0 << std::endl;
+
+        if (debug_xml) {
+            std::ofstream o("xml_raw.xml");
+            o.write(xml_config.c_str(), xml_config.size());
+        }
+
+        std::string parammap_xsl_content;
+        if (parammap_xsl.length() == 0) {
+            // If the user did not specify any stylesheet
+            if (usermap_xsl.length() == 0) {
+                if (isNX)
+                {
+                    parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens_NX.xsl");
+                    std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens_NX.xsl" << std::endl;
+                }
+                else
+                {
+                    parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
+                    std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens.xsl" << std::endl;
+                }
             }
-
-            std::stringstream sstream;
-            ISMRMRD::serialize(header, sstream);
-            xml_config = sstream.str();
-
-            if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0) {
-                std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
+            // If the user specified only a user-supplied stylesheet
+            else {
+                std::ifstream f(usermap_xsl.c_str());
+                if (!f) {
+                    std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
+                    return -1;
+                }
+                std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
+                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+                parammap_xsl_content = str_f;
+            }
+        }
+        else {
+            // If the user specified both an embedded and user-supplied stylesheet
+            if (usermap_xsl.length() > 0) {
+                std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet"
+                    << std::endl;
                 return -1;
             }
 
-            if (debug_xml) {
-                std::ofstream o("processed.xml");
-                o.write(xml_config.c_str(), xml_config.size());
-            }
-
-            //This means we should only create XML header and exit
-            if (header_only) {
-                std::ofstream header_out_file(ismrmrd_file.c_str());
-                header_out_file << xml_config;
-                return -1;
-            }
-
-            // Create an ISMRMRD dataset
+            // The user specified an embedded stylesheet only
+            parammap_xsl_content = load_embedded(parammap_xsl);
+            std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
         }
 
-        //This check only makes sense in VD line files.
-        if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number - 1].measId_)) {
-            //Something must have gone terribly wrong. Bail out.
+        ISMRMRD::IsmrmrdHeader header;
+        {
+            std::string config = parseXML(debug_xml, parammap_xsl_content, schema_file_name_content, xml_config);
+            ISMRMRD::deserialize(config.c_str(), header);
+        }
+        //Append buffers to xml_config if requested
+        if (append_buffers) {
+            append_buffers_to_xml_header(buffers, num_buffers, header);
+        }
+
+        // Free memory used for MeasurementHeaderBuffers
+
+
+        auto ismrmrd_dataset = boost::make_shared<ISMRMRD::Dataset>(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
+        //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profilesISMRMRD::NDArray<float> traj;
+        auto traj = getTrajectory(wip_double, trajectory, dwell_time_0, radial_views);
+
+        uint32_t last_mask = 0;
+        unsigned long int acquisitions = 1;
+        unsigned long int sync_data_packets = 0;
+        sMDH mdh;//For VB line
+        bool first_call = true;
+
+        while (!(last_mask & 1) && //Last scan not encountered
+            (((ParcFileEntries[measurement_number - 1].off_ + ParcFileEntries[measurement_number - 1].len_) -
+                siemens_dat.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
+        {
+            size_t position_in_meas = siemens_dat.tellg();
+            sScanHeader scanhead;
+            readScanHeader(siemens_dat, VBFILE, mdh, scanhead);
+
+            if (!siemens_dat) {
+                std::cerr << "Error reading header at acquisition " << acquisitions << "." << std::endl;
+                break;
+            }
+
+            uint32_t dma_length = scanhead.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
+            uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
+
+            //Check if this is synch data, if so, it must be handled differently.
+            if (scanhead.aulEvalInfoMask[0] & (1 << 5)) {
+                uint32_t last_scan_counter = acquisitions - 1;
+
+                auto waveforms = readSyncdata(siemens_dat, VBFILE, acquisitions, dma_length, scanhead, header,
+                                            last_scan_counter);
+                for (auto &w : waveforms)
+                    ismrmrd_dataset->appendWaveform(w);
+                sync_data_packets++;
+                continue;
+            }
+
             if (first_call) {
-                std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries["
-                          << measurement_number - 1 << "].measId_)" << std::endl;
-                std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
+                uint32_t time_stamp = scanhead.ulTimeStamp;
+
+                // convert to acqusition date and time
+                double timeInSeconds = time_stamp * 2.5 / 1e3;
+
+                size_t hours = (size_t) (timeInSeconds / 3600);
+                size_t mins = (size_t) ((timeInSeconds - hours * 3600) / 60);
+                size_t secs = (size_t) (timeInSeconds - hours * 3600 - mins * 60);
+
+                hours = hours % 24;
+                mins  = mins  % 60;
+
+                std::string study_time = get_time_string(hours, mins, secs);
+
+                // if some of the ismrmrd header fields are not filled, here is a place to take some further actions
+                if (!fill_ismrmrd_header(header, study_date_user_supplied, study_time)) {
+                    std::cerr << "Failed to further fill XML header" << std::endl;
+                }
+
+                std::stringstream sstream;
+                ISMRMRD::serialize(header, sstream);
+                xml_config = sstream.str();
+
+                if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0) {
+                    std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
+                    return -1;
+                }
+
+                if (debug_xml) {
+                    std::ofstream o("processed.xml");
+                    o.write(xml_config.c_str(), xml_config.size());
+                }
+
+                //This means we should only create XML header and exit
+                if (header_only) {
+                    std::ofstream header_out_file(ismrmrd_file.c_str());
+                    header_out_file << xml_config;
+                    return -1;
+                }
+
+                // Create an ISMRMRD dataset
             }
-            scanhead.lMeasUID = ParcFileEntries[measurement_number - 1].measId_;
-        }
 
-        if (first_call) first_call = false;
+            //This check only makes sense in VD line files.
+            if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number - 1].measId_)) {
+                //Something must have gone terribly wrong. Bail out.
+                if (first_call) {
+                    std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries["
+                            << measurement_number - 1 << "].measId_)" << std::endl;
+                    std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
+                }
+                scanhead.lMeasUID = ParcFileEntries[measurement_number - 1].measId_;
+            }
 
-        //Allocate data for channels
-        std::vector<ChannelHeaderAndData> channels = readChannelHeaders(siemens_dat, VBFILE, scanhead);
+            if (first_call) first_call = false;
+
+            //Allocate data for channels
+            std::vector<ChannelHeaderAndData> channels = readChannelHeaders(siemens_dat, VBFILE, scanhead);
+
+            if (!siemens_dat) {
+                std::cerr << "Error reading data at acquisition " << acquisitions << "." << std::endl;
+                break;
+            }
+
+            acquisitions++;
+            last_mask = scanhead.aulEvalInfoMask[0];
+
+            if (scanhead.aulEvalInfoMask[0] & 1) {
+                std::cout << "Last scan reached..." << std::endl;
+                break;
+            }
+
+            ismrmrd_dataset->appendAcquisition(
+                    getAcquisition(flash_pat_ref_scan, trajectory, dwell_time_0, global_table_pos, max_channels, isAdjustCoilSens,
+                                isAdjQuietCoilSens, isVB, isNX, traj, scanhead, channels));
+
+        }//End of the while loop
+        delete [] global_table_pos;
 
         if (!siemens_dat) {
-            std::cerr << "Error reading data at acquisition " << acquisitions << "." << std::endl;
-            break;
+            std::cerr << "WARNING: Unexpected error.  Please check the result." << std::endl;
+            return -1;
         }
 
-        acquisitions++;
-        last_mask = scanhead.aulEvalInfoMask[0];
+        ismrmrd_dataset->writeHeader(xml_config);
 
-        if (scanhead.aulEvalInfoMask[0] & 1) {
-            std::cout << "Last scan reached..." << std::endl;
-            break;
-        }
+        //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
+        std::streamoff mystery_bytes = (std::streamoff) (ParcFileEntries[measurement_number - 1].off_ +
+                                                        ParcFileEntries[measurement_number - 1].len_) -
+                                    siemens_dat.tellg();
 
-        ismrmrd_dataset->appendAcquisition(
-                getAcquisition(flash_pat_ref_scan, trajectory, dwell_time_0, global_table_pos, max_channels, isAdjustCoilSens,
-                               isAdjQuietCoilSens, isVB, isNX, traj, scanhead, channels));
-
-    }//End of the while loop
-    delete [] global_table_pos;
-
-    if (!siemens_dat) {
-        std::cerr << "WARNING: Unexpected error.  Please check the result." << std::endl;
-        return -1;
-    }
-
-    ismrmrd_dataset->writeHeader(xml_config);
-
-    //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
-    std::streamoff mystery_bytes = (std::streamoff) (ParcFileEntries[measurement_number - 1].off_ +
-                                                     ParcFileEntries[measurement_number - 1].len_) -
-                                   siemens_dat.tellg();
-
-    if (mystery_bytes > 0) {
-        if (mystery_bytes != MYSTERY_BYTES_EXPECTED) {
-            // Something in not quite right
-            std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
-            std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].off_ = "
-                      << ParcFileEntries[measurement_number - 1].off_ << std::endl;
-            std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].len_ = "
-                      << ParcFileEntries[measurement_number - 1].len_ << std::endl;
-            std::cerr << "siemens_dat.tellg() = " << siemens_dat.tellg() << std::endl;
-            std::cerr << "Please check the result." << std::endl;
-        } else {
-            // Read the mystery bytes
-            char mystery_data[MYSTERY_BYTES_EXPECTED];
-            siemens_dat.read(reinterpret_cast<char *>(&mystery_data), mystery_bytes);
-            //After this we have to be on a 512 byte boundary
-            if (siemens_dat.tellg() % 512) {
-                siemens_dat.seekg(512 - (siemens_dat.tellg() % 512), std::ios::cur);
+        if (mystery_bytes > 0) {
+            if (mystery_bytes != MYSTERY_BYTES_EXPECTED) {
+                // Something in not quite right
+                std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
+                std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].off_ = "
+                        << ParcFileEntries[measurement_number - 1].off_ << std::endl;
+                std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].len_ = "
+                        << ParcFileEntries[measurement_number - 1].len_ << std::endl;
+                std::cerr << "siemens_dat.tellg() = " << siemens_dat.tellg() << std::endl;
+                std::cerr << "Please check the result." << std::endl;
+            } else {
+                // Read the mystery bytes
+                char mystery_data[MYSTERY_BYTES_EXPECTED];
+                siemens_dat.read(reinterpret_cast<char *>(&mystery_data), mystery_bytes);
+                //After this we have to be on a 512 byte boundary
+                if (siemens_dat.tellg() % 512) {
+                    siemens_dat.seekg(512 - (siemens_dat.tellg() % 512), std::ios::cur);
+                }
             }
         }
-    }
 
-    size_t end_position = siemens_dat.tellg();
-    siemens_dat.seekg(0, std::ios::end);
-    size_t eof_position = siemens_dat.tellg();
-    if (end_position != eof_position && ParcRaidHead.count_ == measurement_number) {
-        size_t additional_bytes = eof_position - end_position;
-        std::cerr << "WARNING: End of file was not reached during conversion. There are " <<
-                  additional_bytes << " additional bytes at the end of file." << std::endl;
-    }
+        size_t end_position = siemens_dat.tellg();
+        siemens_dat.seekg(0, std::ios::end);
+        size_t eof_position = siemens_dat.tellg();
+        if (end_position != eof_position && ParcRaidHead.count_ == measurement_number) {
+            size_t additional_bytes = eof_position - end_position;
+            std::cerr << "WARNING: End of file was not reached during conversion. There are " <<
+                    additional_bytes << " additional bytes at the end of file." << std::endl;
+        }
+    } // Loop through multiple measurements in multi-raid
 
     return 0;
 }
@@ -982,7 +1049,7 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
         ismrmrd_acq.sample_time_us() = compute_noise_sample_in_us(scanhead.ushSamplesInScan, isAdjustCoilSens,
                                                                   isAdjQuietCoilSens, isVB, isNX);
 
-        std::cout << "Noise sample time us :" << ismrmrd_acq.sample_time_us() << std::endl;
+        // std::cout << "Noise sample time us :" << ismrmrd_acq.sample_time_us() << std::endl;
     } else {
         ismrmrd_acq.sample_time_us() = dwell_time_0 / 1000.0f;
     }
@@ -1955,7 +2022,7 @@ readParcFileEntries(std::ifstream &siemens_dat, const MrParcRaidFileHeader &Parc
             siemens_dat.read((char *) (&ParcFileEntries[i]), sizeof(MrParcRaidFileEntry));
 
             if (i < ParcRaidHead.count_) {
-                std::cout << "Protocol name: " << ParcFileEntries[i].protName_ << std::endl;
+                std::cout << "Protocol name [" << i+1 << "]: " << ParcFileEntries[i].protName_ << std::endl;
             }
         }
     }
