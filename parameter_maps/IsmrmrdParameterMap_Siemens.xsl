@@ -1012,6 +1012,20 @@
                     </userParameterDouble>
                 </xsl:if>
 
+                <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1) and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">
+                    <xsl:if test="siemens/MEAS/sPhysioImaging/lSignal1 = 2">
+                        <userParameterString>
+                            <name>RetroGatingMode</name>
+                            <value>ECG</value>
+                        </userParameterString>
+                    </xsl:if>
+                    <xsl:if test="siemens/MEAS/sPhysioImaging/lSignal1 = 4">
+                        <userParameterString>
+                            <name>RetroGatingMode</name>
+                            <value>External</value>
+                        </userParameterString>
+                    </xsl:if>
+                </xsl:if>
 	    </userParameters>
 
         </ismrmrdHeader>
