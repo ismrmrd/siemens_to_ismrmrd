@@ -65,8 +65,6 @@ endif()
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-# May need to be enabled for older Windows and RHEL <= 6
-#set(Boost_NO_BOOST_CMAKE ON)
 
 find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
 find_package(ISMRMRD REQUIRED)
