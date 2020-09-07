@@ -396,6 +396,22 @@ std::string load_embedded(std::string name) {
     return contents;
 }
 
+std::string load_file(std::string file_name) {
+    // Read in file contents
+    std::string contents;
+
+    std::ifstream f(file_name.c_str());
+    if (!f) {
+        std::stringstream sstream;
+        sstream << "file: " << file_name << " does not exist.";
+        throw std::runtime_error(sstream.str());
+    }
+    std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    contents = str_f;
+
+    return contents;
+}
+
 
 std::string ws2s(const std::wstring &wstr) {
     std::string ret(wstr.size(), '0');
@@ -2044,11 +2060,15 @@ std::string get_file_content(const std::string &embed_file, const std::string &u
             boost::algorithm::split(vs_user_files, user_file, boost::is_any_of(","));
             if (vs_user_files.size() == 1) {
                 actual_file = user_file;
+                file_content = load_file(actual_file);
             } else {
                 if (currentMeas-1 < vs_user_files.size()) {
                     actual_file = vs_user_files.at(currentMeas-1);
                     if (actual_file.length() == 0) {
                         actual_file = default_file;
+                        file_content = load_embedded(actual_file);
+                    } else {
+                        file_content = load_file(actual_file);
                     }
                 } else {
                     std::stringstream sstream;
@@ -2058,17 +2078,8 @@ std::string get_file_content(const std::string &embed_file, const std::string &u
             }
         } else {
             actual_file = user_file;
+            file_content = load_file(actual_file);
         }
-
-        // Read in file contents
-        std::ifstream f(actual_file.c_str());
-        if (!f) {
-            std::stringstream sstream;
-            sstream << "file: " << actual_file << " does not exist.";
-            throw std::runtime_error(sstream.str());
-        }
-        std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-        file_content = str_f;
     } else if (embed_file.length() > 0) {
         // Embedded file
         std::string actual_file;
