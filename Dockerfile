@@ -19,11 +19,8 @@ RUN cd /opt/code && \
 
 # siemens_to_ismrmrd converter
 RUN cd /opt/code && \
-    git clone https://github.com/ismrmrd/siemens_to_ismrmrd.git
-
-COPY main.cpp /opt/code/siemens_to_ismrmrd/
-
-RUN cd /opt/code/siemens_to_ismrmrd && \
+    git clone https://github.com/ismrmrd/siemens_to_ismrmrd.git && \
+    cd siemens_to_ismrmrd && \
     mkdir build && \
     cd build && \
     cmake ../ && \
