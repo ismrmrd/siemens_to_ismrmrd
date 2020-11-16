@@ -1087,7 +1087,7 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 25))) fixedE1E2 = false; // noise
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) fixedE1E2 = false; // navigator, rt feedback
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 2))) fixedE1E2 = false; // hp feedback
-    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 51))) fixedE1E2 = false; // dummy
+    if ((scanhead.aulEvalInfoMask[1] & (1ULL << 51-32))) fixedE1E2 = false; // dummy
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 5))) fixedE1E2 = false; // synch data
 
     ismrmrd_acq.idx().average = scanhead.sLC.ushAcquisition;
@@ -1150,14 +1150,14 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_NAVIGATION_DATA);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_RTFEEDBACK_DATA);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 2))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_HPFEEDBACK_DATA);
-    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 51))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
+    if ((scanhead.aulEvalInfoMask[1] & (1ULL << 51-32))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 10)))
         ismrmrd_acq.setFlag(
                 ISMRMRD::ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 5))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
     // if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_REPETITION);
 
-    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 46))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
+    if ((scanhead.aulEvalInfoMask[1] & (1ULL << 46-32))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
 
     if ((flash_pat_ref_scan) & (ismrmrd_acq.isFlagSet(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION))) {
         // For some sequences the PAT Reference data is collected using a different encoding space
