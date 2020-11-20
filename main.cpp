@@ -1055,9 +1055,10 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     }
     // std::cout << "ismrmrd_acq.sample_time_us(): " << ismrmrd_acq.sample_time_us() << std::endl;
 
-    ismrmrd_acq.position()[0] = scanhead.sSliceData.sSlicePosVec.flSag + (float) (global_table_pos[0]);
-    ismrmrd_acq.position()[1] = scanhead.sSliceData.sSlicePosVec.flCor + (float) (global_table_pos[1]);
-    ismrmrd_acq.position()[2] = scanhead.sSliceData.sSlicePosVec.flTra + (float) (global_table_pos[2]);
+    // Position vector to reflect relative to iso (& match IceGadgetron)
+    ismrmrd_acq.position()[0] = scanhead.sSliceData.sSlicePosVec.flSag;// + (float) (global_table_pos[0]);
+    ismrmrd_acq.position()[1] = scanhead.sSliceData.sSlicePosVec.flCor;// + (float) (global_table_pos[1]);
+    ismrmrd_acq.position()[2] = scanhead.sSliceData.sSlicePosVec.flTra;// + (float) (global_table_pos[2]);
 
     // Convert Siemens quaternions to direction cosines.
     // In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S
