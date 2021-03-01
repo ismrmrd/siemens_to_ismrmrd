@@ -72,7 +72,7 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
                                             uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header,
                                             long scan_counter);
 
-std::string getparammap_file_content(const std::string &parammap_file, const std::string &usermap_file, bool VBFILE);
+std::string get_file_content(const std::string &embed_file, const std::string &user_file, const std::string &default_file, std::string &actual_file, const bool all_measurements, const unsigned int currentMeas);
 
 std::vector<MrParcRaidFileEntry>
 readParcFileEntries(std::ifstream &siemens_dat, const MrParcRaidFileHeader &ParcRaidHead, bool VBFILE);
@@ -396,6 +396,22 @@ std::string load_embedded(std::string name) {
     return contents;
 }
 
+std::string load_file(std::string file_name) {
+    // Read in file contents
+    std::string contents;
+
+    std::ifstream f(file_name.c_str());
+    if (!f) {
+        std::stringstream sstream;
+        sstream << "file: " << file_name << " does not exist.";
+        throw std::runtime_error(sstream.str());
+    }
+    std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    contents = str_f;
+
+    return contents;
+}
+
 
 std::string ws2s(const std::wstring &wstr) {
     std::string ret(wstr.size(), '0');
@@ -433,6 +449,7 @@ int main(int argc, char* argv[]) {
     bool header_only = false;
     bool append_buffers = false;
     bool all_measurements = false;
+    bool multi_meas_file = false;
 
     bool list = false;
     std::string to_extract;
@@ -446,6 +463,7 @@ int main(int argc, char* argv[]) {
         ("file,f", po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file>")
         ("measNum,z", po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
         ("allMeas,Z", po::value<bool>(&all_measurements)->implicit_value(true), "<All measurements flag>")
+        ("multiMeasFile,M", po::value<bool>(&multi_meas_file)->implicit_value(true), "<Multiple measurements in single output file flag>")
         ("pMap,m", po::value<std::string>(&parammap_file), "<Parameter map XML file>")
         ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
         ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
@@ -471,6 +489,7 @@ int main(int argc, char* argv[]) {
         ("file,f", "<SIEMENS dat file>")
         ("measNum,z", "<Measurement number>")
         ("allMeas,Z", "<All measurements flag>")
+        ("multiMeasFile,M", "<Multiple measurements in single file flag>")
         ("pMap,m", "<Parameter map XML>")
         ("pMapStyle,x", "<Parameter stylesheet XSL>")
         ("user-map", "<Provide a parameter map XML file>")
@@ -585,6 +604,7 @@ int main(int argc, char* argv[]) {
 
     // Loop through all measurements in multi-raid
     std::string ismrmrd_file_orig = ismrmrd_file;
+    std::string ismrmrd_group_orig = ismrmrd_group;
     unsigned int firstMeas, lastMeas;
 
     if (all_measurements)
@@ -603,23 +623,33 @@ int main(int argc, char* argv[]) {
 
         if (all_measurements)
         {
-            // Add the measurement number as a suffix to the filename, excluding the file extension
-            std::vector<std::string> v;
-            boost::algorithm::split(v, ismrmrd_file_orig, boost::is_any_of("."));
-
-            if (v.size() > 1)
+            if (multi_meas_file)
             {
-                std::stringstream ss;
-                ss << v.at(v.size()-2) << "_" << currentMeas;
-                v.at(v.size()-2) = ss.str();
-                ismrmrd_file = boost::algorithm::join(v, ".");
+                // Add the measurement number as a suffix to the group name
+                ismrmrd_group = ismrmrd_group_orig;
+                ismrmrd_group.append("_");
+                ismrmrd_group.append(std::to_string(currentMeas));
             }
             else
             {
-                // No file extension found
-                std::stringstream ss;
-                ss << ismrmrd_file_orig << "_" << currentMeas;
-                ismrmrd_file = ss.str();
+                // Add the measurement number as a suffix to the filename, excluding the file extension
+                std::vector<std::string> v;
+                boost::algorithm::split(v, ismrmrd_file_orig, boost::is_any_of("."));
+
+                if (v.size() > 1)
+                {
+                    std::stringstream ss;
+                    ss << v.at(v.size()-2) << "_" << currentMeas;
+                    v.at(v.size()-2) = ss.str();
+                    ismrmrd_file = boost::algorithm::join(v, ".");
+                }
+                else
+                {
+                    // No file extension found
+                    std::stringstream ss;
+                    ss << ismrmrd_file_orig << "_" << currentMeas;
+                    ismrmrd_file = ss.str();
+                }
             }
 
             // Reset file position
@@ -633,18 +663,16 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        std::cout << "------------------------------------------------" << std::endl;
+        std::cout << "-----------------------------------------------------------------" << std::endl;
         if (all_measurements)
         {
-            std::cout << "Converting measurement " << currentMeas << "/" << lastMeas << " into file " << ismrmrd_file << std::endl;
+            std::cout << "Converting measurement " << currentMeas << "/" << lastMeas << " into file " << ismrmrd_file << " in group " << ismrmrd_group << std::endl;
         }
         else
         {
-            std::cout << "Converting measurement " << currentMeas << " into file " << ismrmrd_file << std::endl;
+            std::cout << "Converting measurement " << currentMeas << " into file " << ismrmrd_file << " in group " << ismrmrd_group << std::endl;
         }
-        std::cout << "------------------------------------------------" << std::endl;
-
-
+        std::cout << "-----------------------------------------------------------------" << std::endl;
 
         if (!VBFILE && measurement_number > ParcRaidHead.count_) {
             std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
@@ -660,7 +688,16 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        std::string parammap_file_content = getparammap_file_content(parammap_file, usermap_file, VBFILE);
+        // Parameter map
+        std::string default_parammap;
+        if (VBFILE) {
+            default_parammap = "IsmrmrdParameterMap_Siemens_VB17.xml";
+        } else {
+            default_parammap = "IsmrmrdParameterMap_Siemens.xml";
+        }
+        std::string parammap_actual_file;
+        std::string parammap_file_content = get_file_content(parammap_file, usermap_file, default_parammap, parammap_actual_file, all_measurements, currentMeas);
+        std::cout << "Using parameter map: " << parammap_actual_file << std::endl;
 
         std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
 
@@ -737,45 +774,17 @@ int main(int argc, char* argv[]) {
             o.write(xml_config.c_str(), xml_config.size());
         }
 
-        std::string parammap_xsl_content;
-        if (parammap_xsl.length() == 0) {
-            // If the user did not specify any stylesheet
-            if (usermap_xsl.length() == 0) {
-                if (isNX)
-                {
-                    parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens_NX.xsl");
-                    std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens_NX.xsl" << std::endl;
-                }
-                else
-                {
-                    parammap_xsl_content = load_embedded("IsmrmrdParameterMap_Siemens.xsl");
-                    std::cout << "Parameter XSL stylesheet is: IsmrmrdParameterMap_Siemens.xsl" << std::endl;
-                }
-            }
-            // If the user specified only a user-supplied stylesheet
-            else {
-                std::ifstream f(usermap_xsl.c_str());
-                if (!f) {
-                    std::cerr << "Parameter XSL stylesheet: " << usermap_xsl << " does not exist." << std::endl;
-                    return -1;
-                }
-                std::cout << "Parameter XSL stylesheet is: " << usermap_xsl << std::endl;
-                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-                parammap_xsl_content = str_f;
-            }
+        // Parameter style-sheet
+        std::string default_parammap_xsl;
+        if (isNX) {
+            default_parammap_xsl = "IsmrmrdParameterMap_Siemens_NX.xsl";
+        } else {
+            default_parammap_xsl = "IsmrmrdParameterMap_Siemens.xsl";
         }
-        else {
-            // If the user specified both an embedded and user-supplied stylesheet
-            if (usermap_xsl.length() > 0) {
-                std::cerr << "Cannot specify a user-supplied parameter map XSL stylesheet AND embedded stylesheet"
-                    << std::endl;
-                return -1;
-            }
+        std::string parammap_xsl_actual_file;
+        std::string parammap_xsl_content = get_file_content(parammap_xsl, usermap_xsl, default_parammap_xsl, parammap_xsl_actual_file, all_measurements, currentMeas);
+        std::cout << "Using parameter XSL: " << parammap_xsl_actual_file << std::endl;
 
-            // The user specified an embedded stylesheet only
-            parammap_xsl_content = load_embedded(parammap_xsl);
-            std::cout << "Parameter XSL stylesheet is: " << parammap_xsl << std::endl;
-        }
 
         ISMRMRD::IsmrmrdHeader header;
         {
@@ -2029,74 +2038,73 @@ readParcFileEntries(std::ifstream &siemens_dat, const MrParcRaidFileHeader &Parc
     return ParcFileEntries;
 }
 
-std::string getparammap_file_content(const std::string &parammap_file, const std::string &usermap_file, bool VBFILE) {
-    std::string parammap_file_content;
-    if (VBFILE) {
-        if (parammap_file.length() == 0) {
-            // If the user did not specify any parameter map file
-            if (usermap_file.length() == 0) {
-                parammap_file_content = load_embedded("IsmrmrdParameterMap_Siemens_VB17.xml");
-                std::cout << "Parameter map file is: IsmrmrdParameterMap_Siemens_VB17.xml" << std::endl;
-            }
-                // If the user specified only a user-supplied parameter map file
-            else {
-                std::ifstream f(usermap_file.c_str());
-                if (!f) {
+std::string get_file_content(const std::string &embed_file, const std::string &user_file, const std::string &default_file, std::string &actual_file, const bool all_measurements, const unsigned int currentMeas) {
+    // Load parameter map or stylesheet contents
+
+    std::string file_content;
+    if ((embed_file.length() > 0) && (user_file.length() > 0)) {
+        // Both an embedded and user-supplied file
+        std::stringstream sstream;
+        sstream << "Cannot specify both user (" << user_file << ") and embedded (" << embed_file << ") files";
+        throw std::runtime_error(sstream.str());
+    } else if ((embed_file.length() == 0) && (user_file.length() == 0)) {
+        // Neither embedded nor user-supplied file -- use default file
+        actual_file = default_file;
+        file_content = load_embedded(actual_file);
+    } else if (user_file.length() > 0) {
+        // User-specified file
+        if (all_measurements)
+        {
+            // Allow different files for each measurement, delimited by commas
+            std::vector<std::string> vs_user_files;
+            boost::algorithm::split(vs_user_files, user_file, boost::is_any_of(","));
+            if (vs_user_files.size() == 1) {
+                actual_file = user_file;
+                file_content = load_file(actual_file);
+            } else {
+                if (currentMeas-1 < vs_user_files.size()) {
+                    actual_file = vs_user_files.at(currentMeas-1);
+                    if (actual_file.length() == 0) {
+                        actual_file = default_file;
+                        file_content = load_embedded(actual_file);
+                    } else {
+                        file_content = load_file(actual_file);
+                    }
+                } else {
                     std::stringstream sstream;
-                    sstream << "Parameter map file: " << usermap_file << " does not exist.";
+                    sstream << "all_measurements is true and multiple user files are provided (" << user_file << "), but the current measurement " << currentMeas << " exceeds the number of number of user files";
                     throw std::runtime_error(sstream.str());
-
                 }
-
-                std::cout << "Parameter map file is: " << usermap_file << std::endl;
-                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-                parammap_file_content = str_f;
             }
         } else {
-            // If the user specified both an embedded and user-supplied parameter map file
-            if (usermap_file.length() > 0) {
-                std::stringstream sstream;
-                sstream << "Cannot specify a user-supplied parameter map XML file AND embedded XML file";
-                throw std::runtime_error(sstream.str());
-
-            }
-            // The user specified an embedded parameter map file only
-            parammap_file_content = load_embedded(parammap_file);
-            std::cout << "Parameter map file is: " << parammap_file << std::endl;
+            actual_file = user_file;
+            file_content = load_file(actual_file);
         }
-    } else {
-        if (parammap_file.length() == 0) {
-            // If the user did not specify any parameter map file
-            if (usermap_file.length() == 0) {
-                parammap_file_content = load_embedded("IsmrmrdParameterMap_Siemens.xml");
-                std::cout << "Parameter map file is: IsmrmrdParameterMap_Siemens.xml" << std::endl;
-            }
-                // If the user specified only a user-supplied parameter map file
-            else {
-                std::ifstream f(usermap_file.c_str());
-                if (!f) {
+    } else if (embed_file.length() > 0) {
+        // Embedded file
+        std::string actual_file;
+        if (all_measurements) {
+            // Allow different files for each measurement, delimited by commas
+            std::vector<std::string> vs_embed_files;
+            boost::algorithm::split(vs_embed_files, embed_file, boost::is_any_of(","));
+            if (vs_embed_files.size() == 1) {
+                actual_file = embed_file;
+            } else {
+                if (currentMeas-1 < vs_embed_files.size())
+                {
+                    actual_file = vs_embed_files.at(currentMeas-1);
+                } else {
                     std::stringstream sstream;
-                    sstream << "Parameter map file: " << usermap_file << " does not exist.";
+                    sstream << "all_measurements is true and multiple embedded files are provided (" << embed_file << "), but the current measurement " << currentMeas << " exceeds the number of number of embedded files";
                     throw std::runtime_error(sstream.str());
-
                 }
-
-                std::cout << "Parameter map file is: " << usermap_file << std::endl;
-                std::string str_f((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-                parammap_file_content = str_f;
             }
         } else {
-            // If the user specified both an embedded and user-supplied parameter map file
-            if (usermap_file.length() > 0) {
-                std::stringstream sstream;
-                sstream << "Cannot specify a user-supplied parameter map XML file AND embedded XML file";
-                throw std::runtime_error(sstream.str());
-
-            }
-            // The user specified an embedded parameter map file only
-            parammap_file_content = load_embedded(parammap_file);
-            std::cout << "Parameter map file is: " << parammap_file << std::endl;
+            actual_file = embed_file;
         }
+
+        // Read in file contents
+        file_content = load_embedded(actual_file);
     }
-    return parammap_file_content;
+    return file_content;
 }
