@@ -1,0 +1,21 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+  
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: check dependency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Build docker image
+        run: |
+          docker build . --file Dockerfile --tag siemens_to_ismrmrd
