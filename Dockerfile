@@ -7,10 +7,14 @@ RUN apt-get update && apt-get install -y git cmake g++ libhdf5-dev libxml2-dev l
 
 RUN  mkdir -p /opt/code
 
+RUN mkdir -p /opt/code/siemens_to_ismrmrd
+COPY . /opt/code/siemens_to_ismrmrd/
+
 # ISMRMRD library
 RUN cd /opt/code && \
     git clone https://github.com/ismrmrd/ismrmrd.git && \
     cd ismrmrd && \
+    git checkout $(cat /opt/code/siemens_to_ismrmrd/dependencies/ismrmrd | xargs) && \
     mkdir build && \
     cd build && \
     cmake ../ && \
@@ -18,9 +22,7 @@ RUN cd /opt/code && \
     make install
 
 # siemens_to_ismrmrd converter
-RUN cd /opt/code && \
-    git clone https://github.com/ismrmrd/siemens_to_ismrmrd.git && \
-    cd siemens_to_ismrmrd && \
+RUN cd /opt/code/siemens_to_ismrmrd && \
     mkdir build && \
     cd build && \
     cmake ../ && \

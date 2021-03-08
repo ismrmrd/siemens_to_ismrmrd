@@ -1,0 +1,24 @@
+name: Dependency Check
+on:
+  workflow_dispatch:
+
+  schedule:
+    # Running 4 times a day
+    - cron:  '0 */6 * * *'
+
+jobs:
+  build:
+    name: check dependency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Get ISMRMRD hash
+        run: |
+          currentHash=$(curl -s https://api.github.com/repos/ismrmrd/ismrmrd/commits/master | jq -r .sha)
+          echo $currentHash > dependencies/ismrmrd
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v3
+        with:
+          delete-branch: true
