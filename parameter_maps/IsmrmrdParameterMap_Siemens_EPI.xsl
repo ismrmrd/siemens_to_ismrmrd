@@ -185,6 +185,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                 <institutionName>
                     <xsl:value-of select="siemens/DICOM/InstitutionName" />
                 </institutionName>
+                <deviceID>
+                    <xsl:value-of select="siemens/DICOM/DeviceSerialNumber"/>
+                </deviceID>
             </acquisitionSystemInformation>
 
             <experimentalConditions>
