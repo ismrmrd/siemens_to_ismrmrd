@@ -47,7 +47,8 @@
         <p><s>MEAS.lAverages</s>                                                <d>siemens.MEAS.lAverages</d></p>
         <p><s>MEAS.lProtonDensMap</s>                                           <d>siemens.MEAS.lProtonDensMap</d></p>
         <p><s>MEAS.ucSequenceType</s>                                           <d>siemens.MEAS.ucSequenceType</d></p>
-        <p><s>MEAS.ucReconstructionMode</s>                         		<d>siemens.MEAS.ucReconstructionMode</d></p>
+        <p><s>MEAS.ucReconstructionMode</s>                                     <d>siemens.MEAS.ucReconstructionMode</d></p>
+        <p><s>MEAS.ucMotionCorr</s>                                             <d>siemens.MEAS.ucMotionCorr</d></p>
         <p><s>MEAS.ucOneSeriesForAllMeas</s>                                    <d>siemens.MEAS.ucOneSeriesForAllMeas</d></p>
         <p><s>MEAS.sWipMemBlock.alFree</s>                                      <d>siemens.MEAS.sWipMemBlock.alFree</d></p>
         <p><s>MEAS.sWipMemBlock.adFree</s>                                      <d>siemens.MEAS.sWipMemBlock.adFree</d></p>
