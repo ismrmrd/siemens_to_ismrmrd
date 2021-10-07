@@ -122,7 +122,7 @@ int xml_file_is_valid(std::string &xml, std::string &schema_file) {
         return -2;
     }
 
-    //parse a schema definition resource and build an internal XML Shema struture which can be used to validate instances.
+    //parse a schema definition resource and build an internal XML Shema structure which can be used to validate instances.
     xmlSchemaPtr schema = xmlSchemaParse(parser_ctxt);
     if (schema == NULL) {
         /* the schema itself is not valid */
@@ -550,7 +550,7 @@ int main(int argc, char* argv[]) {
     // Add all embedded files to the global_embedded_files map
     initializeEmbeddedFiles();
 
-    // List embededded parameter maps if requested
+    // List embedded parameter maps if requested
     if (list) {
         std::map<std::string, std::string>::iterator iter;
         std::cout << "Embedded Files: " << std::endl;
@@ -1402,7 +1402,7 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
 
         }
 
-        //Have to handle ECG seperately.
+        //Have to handle ECG separately.
 
         std::vector<ISMRMRD::Waveform> waveforms;
         waveforms.reserve(5);
