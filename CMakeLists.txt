@@ -133,7 +133,7 @@ add_executable(siemens_to_ismrmrd
 target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
 
 target_link_libraries(siemens_to_ismrmrd
-                        ${ISMRMRD_LIBRARIES}
+                        ISMRMRD::ISMRMRD
                         ${Boost_LIBRARIES} )
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
