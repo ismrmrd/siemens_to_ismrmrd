@@ -70,7 +70,7 @@ void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp
 
 std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
                                             uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header,
-                                            long scan_counter);
+                                            long scan_counter, bool skip_syncdata);
 
 std::string get_file_content(const std::string &embed_file, const std::string &user_file, const std::string &default_file, std::string &actual_file, const bool all_measurements, const unsigned int currentMeas);
 
@@ -450,6 +450,7 @@ int main(int argc, char* argv[]) {
     bool append_buffers = false;
     bool all_measurements = false;
     bool multi_meas_file = false;
+    bool skip_syncdata = false;
 
     bool list = false;
     std::string to_extract;
@@ -464,6 +465,7 @@ int main(int argc, char* argv[]) {
         ("measNum,z", po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
         ("allMeas,Z", po::value<bool>(&all_measurements)->implicit_value(true), "<All measurements flag>")
         ("multiMeasFile,M", po::value<bool>(&multi_meas_file)->implicit_value(true), "<Multiple measurements in single output file flag>")
+        ("skipSyncData", po::value<bool>(&skip_syncdata)->implicit_value(true), "<Skip syncdata (PMU) conversion>")
         ("pMap,m", po::value<std::string>(&parammap_file), "<Parameter map XML file>")
         ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
         ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
@@ -490,6 +492,7 @@ int main(int argc, char* argv[]) {
         ("measNum,z", "<Measurement number>")
         ("allMeas,Z", "<All measurements flag>")
         ("multiMeasFile,M", "<Multiple measurements in single file flag>")
+        ("skipSyncData", "<Skip syncdata (PMU) conversion>")
         ("pMap,m", "<Parameter map XML>")
         ("pMapStyle,x", "<Parameter stylesheet XSL>")
         ("user-map", "<Provide a parameter map XML file>")
@@ -830,7 +833,7 @@ int main(int argc, char* argv[]) {
                 uint32_t last_scan_counter = acquisitions - 1;
 
                 auto waveforms = readSyncdata(siemens_dat, VBFILE, acquisitions, dma_length, scanhead, header,
-                                            last_scan_counter);
+                                            last_scan_counter, skip_syncdata);
                 for (auto &w : waveforms)
                     ismrmrd_dataset->appendWaveform(w);
                 sync_data_packets++;
@@ -1302,7 +1305,7 @@ std::set<PMU_Type> PMU_Types = {PMU_Type::ECG1, PMU_Type::ECG2, PMU_Type::ECG3, 
 
 std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
                                             uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header,
-                                            long last_scan_counter) {
+                                            long last_scan_counter, bool skip_syncdata) {
 
     size_t len = 0;
     if (VBFILE) {
@@ -1326,7 +1329,7 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
 
         }
 
-        if (packedID.find("PMU") == packedID.npos) { //packedID indicates this isn't PMU data, so let's jump ship.
+        if ((skip_syncdata) || (packedID.find("PMU") == packedID.npos)) { //packedID indicates this isn't PMU data, so let's jump ship.
             siemens_dat.seekg(cur_pos);
             siemens_dat.seekg(len, siemens_dat.cur);
             return std::vector<ISMRMRD::Waveform>();
