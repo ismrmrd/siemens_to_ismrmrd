@@ -26,6 +26,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem.hpp>
 #include <boost/locale/encoding_utf.hpp>
 using boost::locale::conv::utf_to_utf;
 
@@ -581,22 +582,8 @@ int main(int argc, char* argv[]) {
 
     if (ismrmrd_file.empty())
     {
-        // Use the intput filename, but with an h5 extension
-        std::vector<std::string> v;
-        boost::algorithm::split(v, siemens_dat_filename, boost::is_any_of("."));
-
-        if ((v.size() > 1) && (v.back().compare("h5") != 0))
-        {
-            v.back() = std::string("h5");
-            ismrmrd_file = boost::algorithm::join(v, ".");
-        }
-        else
-        {
-            // No file extension found
-            std::stringstream ss;
-            ss << siemens_dat_filename << "_ismrmrd";
-            ismrmrd_file = ss.str();
-        }
+        boost::filesystem::path siemens_dat_path(siemens_dat_filename);
+        ismrmrd_file = siemens_dat_path.replace_extension(".mrd").string();
         std::cout << "Output file not specified -- using " << ismrmrd_file << std::endl;
     }
 
