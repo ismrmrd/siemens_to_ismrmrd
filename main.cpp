@@ -470,7 +470,7 @@ int main(int argc, char* argv[]) {
         ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
         ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
         ("user-stylesheet", po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
-        ("output,o", po::value<std::string>(&ismrmrd_file)->default_value("output.h5"), "<ISMRMRD output file>")
+        ("output,o", po::value<std::string>(&ismrmrd_file)->default_value(""), "<ISMRMRD output file>")
         ("outputGroup,g", po::value<std::string>(&ismrmrd_group)->default_value("dataset"),
             "<ISMRMRD output group>")
             ("list,l", po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
@@ -578,6 +578,27 @@ int main(int argc, char* argv[]) {
         return -1;
     }
     std::cout << "Siemens file is: " << siemens_dat_filename << std::endl;
+
+    if (ismrmrd_file.empty())
+    {
+        // Use the intput filename, but with an h5 extension
+        std::vector<std::string> v;
+        boost::algorithm::split(v, siemens_dat_filename, boost::is_any_of("."));
+
+        if ((v.size() > 1) && (v.back().compare("h5") != 0))
+        {
+            v.back() = std::string("h5");
+            ismrmrd_file = boost::algorithm::join(v, ".");
+        }
+        else
+        {
+            // No file extension found
+            std::stringstream ss;
+            ss << siemens_dat_filename << "_ismrmrd";
+            ismrmrd_file = ss.str();
+        }
+        std::cout << "Output file not specified -- using " << ismrmrd_file << std::endl;
+    }
 
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
 
