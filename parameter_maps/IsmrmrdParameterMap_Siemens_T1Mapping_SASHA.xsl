@@ -760,6 +760,15 @@
                     </userParameterLong>
                 </xsl:if>
 
+                <xsl:if test="siemens/MEAS/ucMotionCorr">
+                    <userParameterLong>
+                        <name>MotionCorrection</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/ucMotionCorr" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
+
                 <xsl:if test="siemens/YAPS/aflMaxwellCoefficients[1]">
                   <userParameterDouble>
                       <name>MaxwellCoefficient_0</name>
