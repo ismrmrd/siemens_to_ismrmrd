@@ -214,6 +214,10 @@
                 <institutionName>
                     <xsl:value-of select="siemens/DICOM/InstitutionName"/>
                 </institutionName>
+
+                <deviceID>
+                    <xsl:value-of select="siemens/DICOM/DeviceSerialNumber"/>
+                </deviceID>
             </acquisitionSystemInformation>
 
             <experimentalConditions>
@@ -1010,6 +1014,33 @@
                             <xsl:value-of select="siemens/YAPS/aflMaxwellCoefficients[16]"/>
                         </value>
                     </userParameterDouble>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/flContrastBolusVolume">
+                    <userParameterDouble>
+                        <name>ContrastBolusVolume</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/flContrastBolusVolume" />
+                        </value>
+                    </userParameterDouble>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/flContrastBolusTotalDose">
+                    <userParameterDouble>
+                        <name>ContrastBolusTotalDose</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/flContrastBolusTotalDose" />
+                        </value>
+                    </userParameterDouble>
+                </xsl:if>
+
+                <xsl:if test="siemens/YAPS/tContrastBolusAgent">
+                    <userParameterString>
+                        <name>ContrastBolusAgent</name>
+                        <value>
+                            <xsl:value-of select="siemens/YAPS/tContrastBolusAgent" />
+                        </value>
+                    </userParameterString>
                 </xsl:if>
 
                 <xsl:if test="not(siemens/MEAS/sPhysioImaging/lSignal1 = 1) and not(siemens/MEAS/sPhysioImaging/lSignal1 = 16) and (siemens/MEAS/sPhysioImaging/lMethod1 = 8)">

@@ -73,7 +73,9 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
                                             uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header,
                                             long scan_counter, bool skip_syncdata);
 
-std::string get_file_content(const std::string &embed_file, const std::string &user_file, const std::string &default_file, std::string &actual_file, const bool all_measurements, const unsigned int currentMeas);
+std::string select_file(const std::string &, const std::string &, bool, unsigned int);
+std::string get_file_content(const std::string &file);
+
 
 std::vector<MrParcRaidFileEntry>
 readParcFileEntries(std::ifstream &siemens_dat, const MrParcRaidFileHeader &ParcRaidHead, bool VBFILE);
@@ -496,8 +498,6 @@ int main(int argc, char* argv[]) {
         ("skipSyncData", "<Skip syncdata (PMU) conversion>")
         ("pMap,m", "<Parameter map XML>")
         ("pMapStyle,x", "<Parameter stylesheet XSL>")
-        ("user-map", "<Provide a parameter map XML file>")
-        ("user-stylesheet", "<Provide a parameter stylesheet XSL file>")
         ("output,o", "<ISMRMRD output file>")
         ("outputGroup,g", "<ISMRMRD output group>")
         ("list,l", "<List embedded files>")
@@ -532,6 +532,20 @@ int main(int argc, char* argv[]) {
         std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
         std::cerr << display_options << std::endl;
         return -1;
+    }
+
+    if (!usermap_file.empty()) {
+        if (!parammap_file.empty()) throw std::runtime_error("Specifying both --user-map and -m is not allowed.");
+
+        std::cout << "WARNING: Specifying --user-map is deprecated; use -m instead." << std::endl;
+        parammap_file = usermap_file;
+    }
+
+    if (!usermap_xsl.empty()) {
+        if (!parammap_xsl.empty()) throw std::runtime_error("Specifying both --user-stylesheet and -x is not allowed.");
+
+        std::cout << "WARNING: Specifying --user-stylesheet is deprecated; use -x instead." << std::endl;
+        parammap_xsl = usermap_xsl;
     }
 
     // Add all embedded files to the global_embedded_files map
@@ -706,8 +720,8 @@ int main(int argc, char* argv[]) {
         } else {
             default_parammap = "IsmrmrdParameterMap_Siemens.xml";
         }
-        std::string parammap_actual_file;
-        std::string parammap_file_content = get_file_content(parammap_file, usermap_file, default_parammap, parammap_actual_file, all_measurements, currentMeas);
+        std::string parammap_actual_file = select_file(parammap_file, default_parammap, all_measurements, currentMeas);
+        std::string parammap_file_content = get_file_content(parammap_actual_file);
         std::cout << "Using parameter map: " << parammap_actual_file << std::endl;
 
         std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
@@ -792,8 +806,8 @@ int main(int argc, char* argv[]) {
         } else {
             default_parammap_xsl = "IsmrmrdParameterMap_Siemens.xsl";
         }
-        std::string parammap_xsl_actual_file;
-        std::string parammap_xsl_content = get_file_content(parammap_xsl, usermap_xsl, default_parammap_xsl, parammap_xsl_actual_file, all_measurements, currentMeas);
+        std::string parammap_xsl_actual_file = select_file(parammap_xsl, default_parammap_xsl, all_measurements, currentMeas);
+        std::string parammap_xsl_content = get_file_content(parammap_xsl_actual_file);
         std::cout << "Using parameter XSL: " << parammap_xsl_actual_file << std::endl;
 
 
@@ -2049,73 +2063,42 @@ readParcFileEntries(std::ifstream &siemens_dat, const MrParcRaidFileHeader &Parc
     return ParcFileEntries;
 }
 
-std::string get_file_content(const std::string &embed_file, const std::string &user_file, const std::string &default_file, std::string &actual_file, const bool all_measurements, const unsigned int currentMeas) {
-    // Load parameter map or stylesheet contents
+std::string get_file_content(const std::string &file) {
 
-    std::string file_content;
-    if ((embed_file.length() > 0) && (user_file.length() > 0)) {
-        // Both an embedded and user-supplied file
-        std::stringstream sstream;
-        sstream << "Cannot specify both user (" << user_file << ") and embedded (" << embed_file << ") files";
-        throw std::runtime_error(sstream.str());
-    } else if ((embed_file.length() == 0) && (user_file.length() == 0)) {
-        // Neither embedded nor user-supplied file -- use default file
-        actual_file = default_file;
-        file_content = load_embedded(actual_file);
-    } else if (user_file.length() > 0) {
-        // User-specified file
-        if (all_measurements)
-        {
-            // Allow different files for each measurement, delimited by commas
-            std::vector<std::string> vs_user_files;
-            boost::algorithm::split(vs_user_files, user_file, boost::is_any_of(","));
-            if (vs_user_files.size() == 1) {
-                actual_file = user_file;
-                file_content = load_file(actual_file);
-            } else {
-                if (currentMeas-1 < vs_user_files.size()) {
-                    actual_file = vs_user_files.at(currentMeas-1);
-                    if (actual_file.length() == 0) {
-                        actual_file = default_file;
-                        file_content = load_embedded(actual_file);
-                    } else {
-                        file_content = load_file(actual_file);
-                    }
-                } else {
-                    std::stringstream sstream;
-                    sstream << "all_measurements is true and multiple user files are provided (" << user_file << "), but the current measurement " << currentMeas << " exceeds the number of number of user files";
-                    throw std::runtime_error(sstream.str());
-                }
-            }
-        } else {
-            actual_file = user_file;
-            file_content = load_file(actual_file);
-        }
-    } else if (embed_file.length() > 0) {
-        // Embedded file
-        std::string actual_file;
-        if (all_measurements) {
-            // Allow different files for each measurement, delimited by commas
-            std::vector<std::string> vs_embed_files;
-            boost::algorithm::split(vs_embed_files, embed_file, boost::is_any_of(","));
-            if (vs_embed_files.size() == 1) {
-                actual_file = embed_file;
-            } else {
-                if (currentMeas-1 < vs_embed_files.size())
-                {
-                    actual_file = vs_embed_files.at(currentMeas-1);
-                } else {
-                    std::stringstream sstream;
-                    sstream << "all_measurements is true and multiple embedded files are provided (" << embed_file << "), but the current measurement " << currentMeas << " exceeds the number of number of embedded files";
-                    throw std::runtime_error(sstream.str());
-                }
-            }
-        } else {
-            actual_file = embed_file;
-        }
-
-        // Read in file contents
-        file_content = load_embedded(actual_file);
+    try {
+        return load_file(file);
     }
-    return file_content;
+    catch (...) {}
+
+    try {
+        return load_embedded(file);
+    }
+    catch (...) {}
+
+    throw std::runtime_error("Failed to load file: " + file);
+}
+
+std::string select_file(
+        const std::string &file,
+        const std::string &default_file,
+        const bool all_measurements,
+        const unsigned int currentMeas) {
+
+    if (file.empty()) return default_file;
+
+    std::vector<std::string> files;
+    boost::algorithm::split(files, file, boost::is_any_of(","));
+
+    if (!all_measurements) return file;
+    if (files.size() == 1) return file;
+
+    try {
+        const std::string &file_token = files.at(currentMeas - 1);
+        return file_token.empty() ? default_file : file_token;
+    }
+    catch (const std::out_of_range &e) {
+        std::stringstream message;
+        message << "Multiple files provided (" << file << "), but the current measurement (" << currentMeas << ") exceeds the number specified.";
+        throw std::runtime_error(message.str());
+    }
 }

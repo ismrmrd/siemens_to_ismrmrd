@@ -133,6 +133,9 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
             </xsl:for-each>
           </xsl:otherwise>
         </xsl:choose>
+	  <deviceID>
+		  <xsl:value-of select="siemens/DICOM/DeviceSerialNumber"/>
+	  </deviceID>
   </acquisitionSystemInformation> 
         
   <experimentalConditions>
