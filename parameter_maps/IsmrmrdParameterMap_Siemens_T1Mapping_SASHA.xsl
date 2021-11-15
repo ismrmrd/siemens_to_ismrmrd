@@ -199,6 +199,9 @@
                 <institutionName>
                     <xsl:value-of select="siemens/DICOM/InstitutionName" />
                 </institutionName>
+                <deviceID>
+                    <xsl:value-of select="siemens/DICOM/DeviceSerialNumber"/>
+                </deviceID>
             </acquisitionSystemInformation>
 
             <experimentalConditions>
@@ -753,6 +756,15 @@
                         <name>NumOfProtonDensityImages</name>
                         <value>
                             <xsl:value-of select="siemens/MEAS/lProtonDensMap" />
+                        </value>
+                    </userParameterLong>
+                </xsl:if>
+
+                <xsl:if test="siemens/MEAS/ucMotionCorr">
+                    <userParameterLong>
+                        <name>MotionCorrection</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/ucMotionCorr" />
                         </value>
                     </userParameterLong>
                 </xsl:if>
