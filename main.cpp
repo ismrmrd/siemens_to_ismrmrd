@@ -431,7 +431,7 @@ std::string ws2s(const std::wstring &wstr) {
 
 int main(int argc, char* argv[]) {
     std::string siemens_dat_filename;
-    unsigned int measurement_number;
+    int measurement_number;
 
     std::string parammap_file;
     std::string parammap_xsl;
@@ -464,7 +464,7 @@ int main(int argc, char* argv[]) {
         ("help,h", "Produce HELP message")
         ("version,v", "Prints converter version and ISMRMRD version")
         ("file,f", po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file>")
-        ("measNum,z", po::value<unsigned int>(&measurement_number)->default_value(1), "<Measurement number>")
+        ("measNum,z", po::value<int>(&measurement_number)->default_value(1), "<Measurement number (with negative indexing)>")
         ("allMeas,Z", po::value<bool>(&all_measurements)->implicit_value(true), "<All measurements flag>")
         ("multiMeasFile,M", po::value<bool>(&multi_meas_file)->implicit_value(true), "<Multiple measurements in single output file flag>")
         ("skipSyncData", po::value<bool>(&skip_syncdata)->implicit_value(true), "<Skip syncdata (PMU) conversion>")
@@ -571,8 +571,8 @@ int main(int argc, char* argv[]) {
         return 0;
     }
 
-    if (measurement_number < 1) {
-        std::cerr << "The measurement number must be a positive integer" << std::endl;
+    if (measurement_number == 0) {
+        std::cerr << "The measurement number must not be zero (count starts at 1)" << std::endl;
         std::cerr << display_options << "\n";
         return -1;
     }
@@ -629,6 +629,20 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    if (measurement_number < 0) {
+        // negative indexing support ('-1' returns the last measurement)
+        if (-measurement_number > ParcRaidHead.count_)
+        {
+            std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
+                << std::endl;
+            std::cout << "Using negative indexing, you are trying to convert measurement number: " << measurement_number
+                << std::endl;
+            return -1;
+        }
+
+        measurement_number = ParcRaidHead.count_ + measurement_number + 1;
+    }
+
     // Loop through all measurements in multi-raid
     std::string ismrmrd_file_orig = ismrmrd_file;
     std::string ismrmrd_group_orig = ismrmrd_group;
@@ -638,8 +652,8 @@ int main(int argc, char* argv[]) {
     {
         firstMeas = 1;
         lastMeas  = ParcRaidHead.count_;
-    }
-    else
+    } 
+    else 
     {
         firstMeas = measurement_number;
         lastMeas  = measurement_number;
