@@ -26,6 +26,7 @@
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
+#include <boost/filesystem.hpp>
 #include <boost/locale/encoding_utf.hpp>
 using boost::locale::conv::utf_to_utf;
 
@@ -440,7 +441,6 @@ int main(int argc, char* argv[]) {
 
     std::string schema_file_name;
 
-    std::string ismrmrd_file;
     std::string ismrmrd_group;
     std::string date_time = get_date_time_string();
 
@@ -472,7 +472,7 @@ int main(int argc, char* argv[]) {
         ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
         ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
         ("user-stylesheet", po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
-        ("output,o", po::value<std::string>(&ismrmrd_file)->default_value("output.h5"), "<ISMRMRD output file>")
+        ("output,o", po::value<std::string>(), "<ISMRMRD output file (defaults to the input file name, with .mrd extension)>")
         ("outputGroup,g", po::value<std::string>(&ismrmrd_group)->default_value("dataset"),
             "<ISMRMRD output group>")
             ("list,l", po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
@@ -593,9 +593,15 @@ int main(int argc, char* argv[]) {
     }
     std::cout << "Siemens file is: " << siemens_dat_filename << std::endl;
 
-
-
-
+    std::string ismrmrd_file;
+    if (!vm.count("output"))
+    {
+        boost::filesystem::path siemens_dat_path(siemens_dat_filename);
+        ismrmrd_file = siemens_dat_path.replace_extension(".mrd").string();
+        std::cout << "Output file not specified -- using " << ismrmrd_file << std::endl;
+    } else {
+        ismrmrd_file = vm["output"].as<std::string>();
+    }
 
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
 
