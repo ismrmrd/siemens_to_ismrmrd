@@ -67,7 +67,7 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 
 
 find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
-find_package(ISMRMRD REQUIRED)
+find_package(ISMRMRD REQUIRED 1.7.0)
 find_package(HDF5  REQUIRED COMPONENTS C)
 
 include_directories( ${ISMRMRD_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} )
