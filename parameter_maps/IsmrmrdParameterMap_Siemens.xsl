@@ -1016,6 +1016,15 @@
                     </userParameterDouble>
                 </xsl:if>
 
+                <xsl:if test="siemens/MEAS/sSliceArray/asSlice/s0/dInPlaneRot">
+                    <userParameterDouble>
+                        <name>InPlaneRot</name>
+                        <value>
+                            <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dInPlaneRot" />
+                        </value>
+                    </userParameterDouble>
+                </xsl:if>
+
                 <xsl:if test="siemens/YAPS/flContrastBolusVolume">
                     <userParameterDouble>
                         <name>ContrastBolusVolume</name>
