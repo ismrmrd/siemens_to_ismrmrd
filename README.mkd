@@ -5,7 +5,7 @@
 The siemens_to_ismrmrd convertor is used to convert data from Siemens raw data format into ISMRMRD raw data format. 
 
 ***
-## Dependancies:
+## Dependencies:
 
 
 - HDF5 (version 1.8 or higher) libraries (http://www.hdfgroup.org/downloads/index.html)
@@ -19,9 +19,9 @@ The siemens_to_ismrmrd convertor is used to convert data from Siemens raw data f
 - Cmake build tool (http://www.cmake.org/)
 
 ***
-## Linux instalation:
+## Linux installation:
 
-### Installing dependancies:
+### Installing dependencies:
 
 The dependencies mentioned above should be included in most linux distributions. On Ubuntu, the user can install all required dependencies with:
 ```sh
@@ -118,13 +118,13 @@ There are three different types of files that have important role in the process
 
 - **Siemens dat file**:
 
-    This is the file that is being converted. The user must supply it using the option **-f**. Siemens dat file can be a Numaris/4 VB/VD/VE or Numaris/X file. In case of a file that contains multiple measurements, all measurements can be exported using the **-Z** option (default off) into separate files appended by the measurement number. In this example, multi-measurement file *meas_MID00832.dat* file has 2 measurements and two ouput files *resulting_file_1.h5* and *resulting_file_2.h5* are created:
+    This is the file that is being converted. The user must supply it using the option **-f**. Siemens dat file can be a Numaris/4 VB/VD/VE or Numaris/X file. In case of a file that contains multiple measurements, all measurements can be exported using the **-Z** option (default off) into separate files appended by the measurement number. In this example, multi-measurement file *meas_MID00832.dat* file has 2 measurements and two output files *resulting_file_1.h5* and *resulting_file_2.h5* are created:
 
     ```sh
     $ siemens_to_ismrmrd -f meas_MID00832.dat -o resulting_file.h5 -Z
     ```
 
-    The "all measurements" **-Z** can be combined with the **-M** to create a multi-measurement output file where different measurements are stored in separate groups. In this example, multi-measurement file *meas_MID00832.dat* file has 2 measurements, stored in HDF5 groups *dataset_1* and *dataset_2* respectively in ouput file *resulting_file.h5*:
+    The "all measurements" **-Z** can be combined with the **-M** to create a multi-measurement output file where different measurements are stored in separate groups. In this example, multi-measurement file *meas_MID00832.dat* file has 2 measurements, stored in HDF5 groups *dataset_1* and *dataset_2* respectively in output file *resulting_file.h5*:
 
     ```sh
     $ siemens_to_ismrmrd -f meas_MID00832.dat -o resulting_file.h5 -Z -M
@@ -146,7 +146,7 @@ There are three different types of files that have important role in the process
 
 - **Parameter stylesheet XSL file**:
 
-    This is a stylesheet file that defines parameters that are usefull for the ISMRMRD header. It is applied on the *xml_raw.xml* file. After the stylesheet is applied, resulting XML file (*processed.xml*) is used to create ISMRMRD header. File *processed.xml* can also be extracted if using the convertor in the debug mode.
+    This is a stylesheet file that defines parameters that are useful for the ISMRMRD header. It is applied on the *xml_raw.xml* file. After the stylesheet is applied, resulting XML file (*processed.xml*) is used to create ISMRMRD header. File *processed.xml* can also be extracted if using the convertor in the debug mode.
     
 ### Embedded files
 
