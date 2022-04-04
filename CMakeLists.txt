@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 
 project(SIEMENS-TO-ISMRMRD)
 
@@ -17,8 +17,8 @@ message(STATUS "Looking for packages in : ${CMAKE_PREFIX_PATH}")
 
 #VERSIONING
 set(SIEMENS_TO_ISMRMRD_VERSION_MAJOR 1)
-set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 0)
-set(SIEMENS_TO_ISMRMRD_VERSION_PATCH 1)
+set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 2)
+set(SIEMENS_TO_ISMRMRD_VERSION_PATCH 2)
 set(SIEMENS_TO_ISMRMRD_VERSION_STRING ${SIEMENS_TO_ISMRMRD_VERSION_MAJOR}.${SIEMENS_TO_ISMRMRD_VERSION_MINOR}.${SIEMENS_TO_ISMRMRD_VERSION_PATCH})
 
 # Generate the converter_version.h header file
@@ -67,7 +67,7 @@ set(Boost_USE_STATIC_RUNTIME OFF)
 
 
 find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
-find_package(ISMRMRD REQUIRED)
+find_package(ISMRMRD 1.7.0 REQUIRED)
 find_package(HDF5  REQUIRED COMPONENTS C)
 
 include_directories( ${ISMRMRD_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} )
