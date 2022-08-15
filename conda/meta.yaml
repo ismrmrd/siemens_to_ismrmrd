@@ -1,0 +1,39 @@
+{% set major = load_file_regex(load_file='CMakeLists.txt', regex_pattern='(?<=set\(SIEMENS_TO_ISMRMRD_VERSION_MAJOR )([^\)]+)') %}
+{% set minor = load_file_regex(load_file='CMakeLists.txt', regex_pattern='(?<=set\(SIEMENS_TO_ISMRMRD_VERSION_MINOR )([^\)]+)') %}
+{% set patch = load_file_regex(load_file='CMakeLists.txt', regex_pattern='(?<=set\(SIEMENS_TO_ISMRMRD_VERSION_PATCH )([^\)]+)') %}
+
+package:
+  name: siemens_to_ismrmrd
+  version: {{ major.group(1) }}.{{ minor.group(1) }}.{{ patch.group(1) }}
+
+source:
+  path: ../
+
+requirements:
+  build:
+    - boost=1.76.0
+    - clang>=13.0.1        # [osx]
+    - clangxx>=13.0.1      # [osx]
+    - cmake>=3.20.0
+    - gcc_linux-64>=9.0.0  # [linux64] 
+    - gxx_linux-64>=9.0.0  # [linux64]
+    - ismrmrd=1.11.1
+    - libxml2=2.9.12
+    - libxslt=1.1.33 
+    - ninja=1.10.*
+
+  run:
+    - ismrmrd=1.11.1
+    - boost=1.76.0
+    - libxml2=2.9.12
+    - libxslt=1.1.33 
+
+about:
+  home: https://github.com/ismrmrd/siemens_to_ismrmrd
+  license: MIT
+  summary: 'Siemens to ISMRM Raw Data (ISMRMRD) converter'
+  description: |
+    Command line tool for converting Siemens raw data (*.dat) files to ISMRMRD files.
+  dev_url: https://github.com/ismrmrd/siemens_to_ismrmrd
+  doc_url: https://github.com/ismrmrd/siemens_to_ismrmrd
+  doc_source_url: https://github.com/ismrmrd/siemens_to_ismrmrd/blob/master/README.md

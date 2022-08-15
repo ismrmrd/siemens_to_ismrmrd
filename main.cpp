@@ -515,7 +515,7 @@ int main(int argc, char* argv[]) {
 
         if (vm.count("help")) {
             std::cout << display_options << "\n";
-            return 1;
+            return 0;
         }
 
         if (vm.count("version")) {
@@ -523,7 +523,7 @@ int main(int argc, char* argv[]) {
                 << SIEMENS_TO_ISMRMRD_VERSION_MINOR << "." << SIEMENS_TO_ISMRMRD_VERSION_PATCH << "\n";
             std::cout << "Built against ISMRMRD version: " << ISMRMRD_VERSION_MAJOR << "." << ISMRMRD_VERSION_MINOR
                 << "." << ISMRMRD_VERSION_PATCH << "\n";
-            return 1;
+            return 0;
         }
     }
 
