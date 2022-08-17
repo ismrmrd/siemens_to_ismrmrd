@@ -46,11 +46,13 @@ $ cmake ..
 $ make
 $ sudo make install
 ```
-#### Set the ISMRMRD environmental variable:
+#### Set the ISMRMRD shared library path:
+For default installation path of ISMRMRD:
 ```sh
-$ echo "export ISMRMRD_HOME=/usr/local/ismrmrd" >> $HOME/.bash_profile
+$ echo "export LD_LIBRARY_PATH=/usr/local/lib:${LD_LIBRARY_PATH}" >> $HOME/.bash_profile
 $ source $HOME/.bash_profile
 ```
+For customized installation path of ISMRMRD, replace `/usr/local/lib` to the directory where file `libismrmrd.so` locates.
 ### Installing siemens_to_ismrmrd:
 
 #### Unpack the siemens_to_ismrmrd.tar.gz file or clone siemens_to_ismrmrd from the repository:
