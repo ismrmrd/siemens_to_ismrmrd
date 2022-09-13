@@ -59,6 +59,10 @@
 
     <xsl:variable name="strSeperator">_</xsl:variable>
 
+    <xsl:variable name="pixelSpacing">
+        <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV * 0.5 * siemens/YAPS/flReadoutOSFactor div siemens/MEAS/sKSpace/lBaseResolution"/>
+    </xsl:variable>
+
     <xsl:template match="/">
         <ismrmrdHeader xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd"
                 xmlns="http://www.ismrm.org/ISMRMRD"
@@ -408,12 +412,32 @@
                 </encodedSpace>
                 <reconSpace>
                     <matrixSize>
-                        <x>
-                            <xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
-                        </x>
-                        <y>
-                            <xsl:value-of select="siemens/IRIS/DERIVED/imageLines"/>
-                        </y>
+                        <xsl:choose>
+                            <xsl:when test="siemens/IRIS/DERIVED/imageColumns">
+                                <x>
+                                    <xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
+                                </x>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <x>
+                                    <xsl:value-of select="siemens/MEAS/sKSpace/lBaseResolution"/>
+                                </x>
+                            </xsl:otherwise>
+                        </xsl:choose>
+
+                        <xsl:choose>    
+                            <xsl:when test="siemens/IRIS/DERIVED/imageLines">
+                                <y>
+                                    <xsl:value-of select="siemens/IRIS/DERIVED/imageLines"/>
+                                </y>
+                            </xsl:when>
+                            <xsl:otherwise>
+                                <y>
+                                    <xsl:value-of select="floor(siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV div $pixelSpacing + 0.5)"/>
+                                </y>
+                            </xsl:otherwise>
+                        </xsl:choose>
+
                         <xsl:choose>
                             <xsl:when test="siemens/YAPS/i3DFTLength = 1">
                                 <z>1</z>
