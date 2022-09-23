@@ -842,7 +842,8 @@ int main(int argc, char* argv[]) {
 
         auto ismrmrd_dataset = boost::make_shared<ISMRMRD::Dataset>(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
         //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profilesISMRMRD::NDArray<float> traj;
-        auto traj = getTrajectory(wip_double, trajectory, dwell_time_0, radial_views);
+//        auto traj = getTrajectory(wip_double, trajectory, dwell_time_0, radial_views);
+        ISMRMRD::NDArray<float> traj;
 
         uint32_t last_mask = 0;
         unsigned long int acquisitions = 1;
@@ -1220,7 +1221,7 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
         ismrmrd_acq.encoding_space_ref() = 1;
     }
 
-    if ((trajectory == Trajectory::TRAJECTORY_SPIRAL) & !(ismrmrd_acq.isFlagSet(
+    if (0 && (trajectory == Trajectory::TRAJECTORY_SPIRAL) & !(ismrmrd_acq.isFlagSet(
             ISMRMRD::ISMRMRD_ACQ_IS_NOISE_MEASUREMENT))) { //Spiral and not noise, we will add the trajectory to the data
 
         // from above we have the following
