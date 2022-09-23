@@ -1,0 +1,33 @@
+{
+    "env": {
+        "conda_env": "/home/javeda2/mambaforge/envs/gadgetron/"
+    },
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "/home/javeda2/mambaforge/envs/gadgetron/**"
+            ],
+            "defines": [],
+            "compilerPath": "/home/javeda2/mambaforge/envs/gadgetron/bin/x86_64-conda-linux-gnu-c99",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-clang-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        },
+        {
+            "name": "Linux_Container",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [],
+            "compilerPath": "/opt/conda/envs/gadgetron/bin/x86_64-conda_cos6-linux-gnu-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "linux-clang-x64",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

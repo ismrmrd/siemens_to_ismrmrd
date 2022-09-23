@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "siemens to ismrmrd",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/home/javeda2/mambaforge/envs/gadgetron/bin/siemens_to_ismrmrd",
+            "args": ["-f","/home/javeda2/ldrive/Javed/MRDATA/data_2022/sandbox_wip/20220921_HV/20220921_123555_meas_MID00114_FID65582_FB_highres_1.75mm_iso.dat","-z","3","-o","/home/javeda2/ldrive/Javed/MRDATA/data_2022/sandbox_wip/20220921_HV/test.h5"],
+            "stopAtEntry": false,
+            "cwd": "${fileDirname}",
+            "environment": [{"name":"PATH","value":"/home/javeda2/mambaforge/envs/gadgetron/bin/"},{"name":"LD_LIBRARY_PATH","value":"/home/javeda2/mambaforge/envs/gadgetron/lib/"}],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description":  "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
