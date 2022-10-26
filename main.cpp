@@ -830,6 +830,10 @@ int main(int argc, char* argv[]) {
         ISMRMRD::IsmrmrdHeader header;
         {
             std::string config = parseXML(debug_xml, parammap_xsl_content, schema_file_name_content, xml_config);
+            if (debug_xml) {
+                std::ofstream o("header_predeserialized.xml");
+                o.write(config.c_str(), config.size());
+            }
             ISMRMRD::deserialize(config.c_str(), header);
         }
         //Append buffers to xml_config if requested

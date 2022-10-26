@@ -559,7 +559,12 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                             <xsl:value-of select="siemens/MEAS/sKSpace/lPhaseEncodingLines"/>
                         </y>
                         <z>
-                            <xsl:value-of select="siemens/MEAS/sPAT/lRefLines3D"/>
+                            <xsl:choose>
+                                <xsl:when test="not(siemens/MEAS/sPAT/lRefLines3D)">1</xsl:when>
+                                <xsl:otherwise>
+                                    <xsl:value-of select="(siemens/MEAS/sPAT/lRefLines3D)"/>
+                                </xsl:otherwise>
+                            </xsl:choose>
                         </z>
                     </matrixSize>
                     <fieldOfView_mm>
