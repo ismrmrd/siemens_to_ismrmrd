@@ -515,7 +515,7 @@ int main(int argc, char* argv[]) {
 
         if (vm.count("help")) {
             std::cout << display_options << "\n";
-            return 1;
+            return 0;
         }
 
         if (vm.count("version")) {
@@ -523,7 +523,7 @@ int main(int argc, char* argv[]) {
                 << SIEMENS_TO_ISMRMRD_VERSION_MINOR << "." << SIEMENS_TO_ISMRMRD_VERSION_PATCH << "\n";
             std::cout << "Built against ISMRMRD version: " << ISMRMRD_VERSION_MAJOR << "." << ISMRMRD_VERSION_MINOR
                 << "." << ISMRMRD_VERSION_PATCH << "\n";
-            return 1;
+            return 0;
         }
     }
 
@@ -1105,9 +1105,9 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     }
     // std::cout << "ismrmrd_acq.sample_time_us(): " << ismrmrd_acq.sample_time_us() << std::endl;
 
-    ismrmrd_acq.position()[0] = scanhead.sSliceData.sSlicePosVec.flSag + (float) (global_table_pos[0]);
-    ismrmrd_acq.position()[1] = scanhead.sSliceData.sSlicePosVec.flCor + (float) (global_table_pos[1]);
-    ismrmrd_acq.position()[2] = scanhead.sSliceData.sSlicePosVec.flTra + (float) (global_table_pos[2]);
+    ismrmrd_acq.position()[0] = scanhead.sSliceData.sSlicePosVec.flSag;// + (float) (global_table_pos[0]);
+    ismrmrd_acq.position()[1] = scanhead.sSliceData.sSlicePosVec.flCor;// + (float) (global_table_pos[1]);
+    ismrmrd_acq.position()[2] = scanhead.sSliceData.sSlicePosVec.flTra;// + (float) (global_table_pos[2]);
 
     // Convert Siemens quaternions to direction cosines.
     // In the Siemens convention the quaternion corresponds to a rotation matrix with columns P R S

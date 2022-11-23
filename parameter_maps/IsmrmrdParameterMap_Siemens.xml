@@ -31,6 +31,7 @@
         <p><s>MEAS.sSliceArray.asSlice.0.dReadoutFOV</s>                        <d>siemens.MEAS.sSliceArray.asSlice.s0.dReadoutFOV</d></p>
         <p><s>MEAS.sSliceArray.asSlice.0.dPhaseFOV</s>                          <d>siemens.MEAS.sSliceArray.asSlice.s0.dPhaseFOV</d></p>
         <p><s>MEAS.sSliceArray.asSlice.0.dThickness</s>                         <d>siemens.MEAS.sSliceArray.asSlice.s0.dThickness</d></p>
+        <p><s>MEAS.sSliceArray.asSlice.0.dInPlaneRot</s>                        <d>siemens.MEAS.sSliceArray.asSlice.s0.dInPlaneRot</d></p>
         <p><s>MEAS.sAngio.sFlowArray.lSize</s>                                  <d>siemens.MEAS.sAngio.sFlowArray.lSize</d></p>
         <p><s>MEAS.sAngio.sFlowArray.asElm.0.nVelocity</s>                      <d>siemens.MEAS.sAngio.sFlowArray.asElm.s0.nVelocity</d></p>
         <p><s>YAPS.aflMaxwellCoefficients</s>                                   <d>siemens.YAPS.aflMaxwellCoefficients</d></p>
@@ -84,6 +85,9 @@
         <!-- measurementInformationType --> 
         <p><s>HEADER.MeasUID</s>                                                <d>siemens.HEADER.MeasUID</d></p>
         <p><s>YAPS.tPatientPosition</s>                                         <d>siemens.YAPS.tPatientPosition</d></p>
+        <p><s>DICOM.lGlobalTablePosSag</s>                                      <d>siemens.DICOM.lGlobalTablePosSag</d></p>
+        <p><s>DICOM.lGlobalTablePosCor</s>                                      <d>siemens.DICOM.lGlobalTablePosCor</d></p>
+        <p><s>DICOM.lGlobalTablePosTra</s>                                      <d>siemens.DICOM.lGlobalTablePosTra</d></p>
         <p><s>MEAS.tProtocolName</s>                                            <d>siemens.MEAS.tProtocolName</d></p>
         <p><s>YAPS.ReconMeasDependencies.0</s>                                  <d>siemens.YAPS.ReconMeasDependencies.RFMap</d></p>
         <p><s>YAPS.ReconMeasDependencies.1</s>                                  <d>siemens.YAPS.ReconMeasDependencies.SenMap</d></p>
