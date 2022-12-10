@@ -24,7 +24,7 @@ requirements:
 
   run:
     - ismrmrd=1.13.1
-    - boost
+    - boost {{ boost }}
     - libxml2=2.9
     - libxslt=1.1 
 
