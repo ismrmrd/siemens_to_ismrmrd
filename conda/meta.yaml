@@ -18,8 +18,8 @@ requirements:
     - gcc_linux-64>=9.0.0  # [linux64] 
     - gxx_linux-64>=9.0.0  # [linux64]
     - ismrmrd=1.13.1
-    - libxml2=2.9.12
-    - libxslt=1.1.33 
+    - libxml2=2.9
+    - libxslt=1.1 
     - ninja=1.10.*
 
   run:
