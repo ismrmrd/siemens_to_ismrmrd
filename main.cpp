@@ -1011,12 +1011,17 @@ std::vector<ChannelHeaderAndData>
 readChannelHeaders(std::ifstream &siemens_dat, bool VBFILE, const sScanHeader &scanhead) {
     size_t nchannels = scanhead.ushUsedChannels;
     auto channels = std::vector<ChannelHeaderAndData>(nchannels);
-    sMDH mdh;
+    
     for (unsigned int c = 0; c < nchannels; c++) {
         if (VBFILE) {
-            if (c > 0) {
-                siemens_dat.read(reinterpret_cast<char *>(&mdh), sizeof(sMDH));
+            if (c == 0) {
+                // Rewind to read mdh again 
+                // It was read once to create scanhead 
+                // Not all parameters are present in scanhead
+                siemens_dat.seekg(-sizeof(sMDH), std::ios_base::cur);
             }
+            sMDH mdh;
+            siemens_dat.read(reinterpret_cast<char*>(&mdh), sizeof(sMDH));
             channels[c].header.ulTypeAndChannelLength = 0;
             channels[c].header.lMeasUID = mdh.lMeasUID;
             channels[c].header.ulScanCounter = mdh.ulScanCounter;
