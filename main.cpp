@@ -1194,7 +1194,7 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 23))) {
         ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING);
     } else {
-        if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22)))
+        if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22)) || (scanhead.aulEvalInfoMask[1] & (1ULL << 6)))
             ismrmrd_acq.setFlag(
                     ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
     }
