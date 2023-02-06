@@ -40,9 +40,9 @@
 <p><s>YAPS.iPEFTLength</s>                                                                      <d>siemens.YAPS.iPEFTLength</d></p>
 <p><s>YAPS.i3DFTLength</s>                                                                      <d>siemens.YAPS.i3DFTLength</d></p>
 <p><s>YAPS.tMRAcquisitionType</s>                                                       <d>siemens.YAPS.tMRAcquisitionType</d></p>
-<p><s>YAPS.flReadoutOSFactor</s>                                                        <d>siemens.YAPS.flReadoutOSFactor</d></p>      
+<p><s>YAPS.flReadoutOSFactor</s>                                                        <d>siemens.YAPS.flReadoutOSFactor</d></p>
 <p><s>YAPS.flUsedPatientWeight</s>                                                      <d>siemens.YAPS.flUsedPatientWeight</d></p>
-<p><s>YAPS.flMagneticFieldStrength</s>                                          <d>siemens.YAPS.flMagneticFieldStrength</d></p>      
+<p><s>YAPS.flMagneticFieldStrength</s>                                          <d>siemens.YAPS.flMagneticFieldStrength</d></p>
 <p><s>DICOM.lFrequency</s>                                                          <d>siemens.DICOM.lFrequency</d></p>
 <p><s>DICOM.Manufacturer</s>                                                    <d>siemens.DICOM.Manufacturer</d></p>
 <p><s>DICOM.ManufacturersModelName</s>                                          <d>siemens.DICOM.ManufacturersModelName</d></p>
@@ -149,6 +149,11 @@
         <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.lElementSelected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Select.lElementSelected</d></p>
         <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.lRxChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.Rx.lRxChannelConnected</d></p>
         <p><s>MEAS.sCoilSelectMeas.aRxCoilSelectData.0.asList.13.lADCChannelConnected</s>                                       <d>siemens.MEAS.asCoilSelectMeas.ADC.lADCChannelConnected</d></p>
+        <p><s>MEAS.sKSpace.ucMultiSliceMode</s>                  <d>siemens.MEAS.sKSpace.ucMultiSliceMode</d></p>
+        <p><s>MEAS.sKSpace.ucSlicePartialFourier</s>                            <d>siemens.MEAS.sKSpace.ucSlicePartialFourier</d></p>
+        <p><s>MEAS.sKSpace.lRadialViews</s>                                     <d>siemens.MEAS.sKSpace.lRadialViews</d></p>
+        <p><s>MEAS.sKSpace.uc2DInterpolation</s>                                <d>siemens.MEAS.sKSpace.uc2DInterpolation</d></p>
+        <p><s>MEAS.sKSpace.ucMultiSliceMode</s>                                 <d>siemens.MEAS.sKSpace.ucMultiSliceMode</d></p>
 
 </parameters>
 
