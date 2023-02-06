@@ -1159,9 +1159,6 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     ismrmrd_acq.idx().user[2] = scanhead.sLC.ushIdc;
     ismrmrd_acq.idx().user[3] = scanhead.sLC.ushIdd;
     ismrmrd_acq.idx().user[4] = scanhead.sLC.ushIde;
-    // TODO: remove this once the GTPlus can properly autodetect partial fourier
-    ismrmrd_acq.idx().user[5] = scanhead.ushKSpaceCentreLineNo;
-    ismrmrd_acq.idx().user[6] = scanhead.ushKSpaceCentrePartitionNo;
 
     /*****************************************************************************/
     /* the user_int[0] and user_int[1] are used to store user defined parameters */
