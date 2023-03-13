@@ -805,7 +805,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Protocol name: " << protocol_name << std::endl;
 
         bool isNX = false;
-        if ((baseLineString.find("NXVA") != std::string::npos) || (software_version.find("XA11") != std::string::npos) )
+        if ((baseLineString.find("NXVA") != std::string::npos) || (software_version.find("syngo MR XA") != std::string::npos) )
         {
             isNX = true;
         }
