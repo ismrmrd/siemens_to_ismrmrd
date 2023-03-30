@@ -810,6 +810,17 @@ int main(int argc, char* argv[]) {
             isNX = true;
         }
 
+        if (isNX)
+        {
+            int nxVersion = atoi(software_version.substr(11).c_str());
+            std::cout << "Detected Numaris/X version: " << nxVersion << std::endl;
+            if (nxVersion > 30)
+            {
+                skip_syncdata = true;
+                std::cout << "Disabling parsing of syncdata due to incompatibility!" << std::endl;
+            }
+        }
+
         std::cout << "Dwell time: " << dwell_time_0 << std::endl;
 
         if (debug_xml) {
