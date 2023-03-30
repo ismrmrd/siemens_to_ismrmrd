@@ -59,6 +59,10 @@
 
     <xsl:variable name="strSeperator">_</xsl:variable>
 
+    <xsl:variable name="pixelSpacing">
+        <xsl:value-of select="siemens/MEAS/sSliceArray/asSlice/s0/dReadoutFOV * 0.5 * siemens/YAPS/flReadoutOSFactor div siemens/MEAS/sKSpace/lBaseResolution"/>
+    </xsl:variable>
+
     <xsl:template match="/">
         <ismrmrdHeader xsi:schemaLocation="http://www.ismrm.org/ISMRMRD ismrmrd.xsd"
                 xmlns="http://www.ismrm.org/ISMRMRD"
@@ -337,18 +341,26 @@
 
                 <encodedSpace>
                     <matrixSize>
-
                         <xsl:choose>
-                            <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
+                        <xsl:when test="siemens/MEAS/sKSpace/ucTrajectory = 1">
+                            <x>
+                                <xsl:value-of select="siemens/YAPS/iNoOfFourierColumns"/>
+                            </x>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:choose>
+                            <xsl:when test="(siemens/IRIS/DERIVED/imageColumns) and (siemens/IRIS/DERIVED/imageColumns > 0)">
                                 <x>
-                                    <xsl:value-of select="siemens/YAPS/iNoOfFourierColumns"/>
+                                    <xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
                                 </x>
                             </xsl:when>
                             <xsl:otherwise>
                                 <x>
-                                    <xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
+                                    <xsl:value-of select="siemens/MEAS/sKSpace/lBaseResolution"/>
                                 </x>
                             </xsl:otherwise>
+                            </xsl:choose>
+                        </xsl:otherwise>
                         </xsl:choose>
 
                         <xsl:choose>
@@ -408,21 +420,41 @@
                 </encodedSpace>
                 <reconSpace>
                     <matrixSize>
-                        <x>
-                            <xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
-                        </x>
-                        <y>
-                            <xsl:value-of select="siemens/IRIS/DERIVED/imageLines"/>
-                        </y>
                         <xsl:choose>
-                            <xsl:when test="siemens/YAPS/i3DFTLength = 1">
-                                <z>1</z>
-                            </xsl:when>
-                            <xsl:otherwise>
-                                <z>
-                                    <xsl:value-of select="siemens/MEAS/sKSpace/lImagesPerSlab"/>
-                                </z>
-                            </xsl:otherwise>
+                        <xsl:when test="(siemens/IRIS/DERIVED/imageColumns) and (siemens/IRIS/DERIVED/imageColumns > 0)">
+                            <x>
+                                <xsl:value-of select="siemens/IRIS/DERIVED/imageColumns"/>
+                            </x>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <x>
+                                <xsl:value-of select="siemens/MEAS/sKSpace/lBaseResolution"/>
+                            </x>
+                        </xsl:otherwise>
+                        </xsl:choose>
+
+                        <xsl:choose>
+                        <xsl:when test="(siemens/IRIS/DERIVED/imageLines) and (siemens/IRIS/DERIVED/imageLines > 0)">
+                            <y>
+                                <xsl:value-of select="siemens/IRIS/DERIVED/imageLines"/>
+                            </y>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <y>
+                                <xsl:value-of select="floor(siemens/MEAS/sSliceArray/asSlice/s0/dPhaseFOV * (1+$phaseOversampling) div $pixelSpacing + 0.5)"/>
+                            </y>
+                        </xsl:otherwise>
+                        </xsl:choose>
+
+                        <xsl:choose>
+                        <xsl:when test="siemens/YAPS/i3DFTLength = 1">
+                            <z>1</z>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <z>
+                                <xsl:value-of select="siemens/MEAS/sKSpace/lImagesPerSlab"/>
+                            </z>
+                        </xsl:otherwise>
                         </xsl:choose>
                     </matrixSize>
                     <fieldOfView_mm>
