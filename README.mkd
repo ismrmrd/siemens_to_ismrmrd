@@ -26,7 +26,7 @@ The siemens_to_ismrmrd convertor is used to convert data from Siemens raw data f
 The dependencies mentioned above should be included in most linux distributions. On Ubuntu, the user can install all required dependencies with:
 ```sh
 $ sudo apt-get install g++ cmake git
-$ sudo apt-get install libboost-all-dev xsdcxx libxerces-c-dev libhdf5-serial-dev h5utils hdf5-tools libtinyxml-dev libxml2-dev libxslt1-dev
+$ sudo apt-get install libboost-all-dev xsdcxx libxerces-c-dev libhdf5-serial-dev h5utils hdf5-tools libtinyxml-dev libxml2-dev libxslt1-dev libpugixml-dev
 ```
 ### Installing ISMRMRD:
 
