@@ -211,7 +211,7 @@
                                     <xsl:variable name="CurCoilCopyID" select="../../Coil/lCoilCopy[$CurCoil]"/>
                                     <coilLabel>
                                         <coilNumber>
-                                            <xsl:value-of select="number(../lADCChannelConnected[$CurADCIndex])"/>
+                                            <xsl:value-of select="number(../lADCChannelConnected[$CurCoil])"/>
                                         </coilNumber>
                                         <coilName>
                                             <xsl:value-of select="$CurCoilID"/>:<xsl:value-of
