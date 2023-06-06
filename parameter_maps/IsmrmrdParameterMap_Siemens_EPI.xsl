@@ -151,8 +151,6 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
                                       select="." />
                             <xsl:variable name="CurADC"
                                           select="."/>
-                            <xsl:variable name="CurADCIndex"
-                                          select="position()" />
                             <xsl:for-each select="../lADCChannelConnected[position() >= 1  and not(position() > $NumberOfSelectedCoils)]">
                                 <xsl:if test="$CurADC = .">
                                     <xsl:variable name="CurCoil" select="position()"/>
