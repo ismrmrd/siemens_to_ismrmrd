@@ -1228,8 +1228,8 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
 
     if ((scanhead.aulEvalInfoMask[1] & (1ULL << 46-32))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
 
-    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 14))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PHASE_STABILIZATION_REFERENCE);
-    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 15))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PHASE_STABILIZATION);
+    //if ((scanhead.aulEvalInfoMask[0] & (1ULL << 14))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PHASE_STABILIZATION_REFERENCE);
+    //if ((scanhead.aulEvalInfoMask[0] & (1ULL << 15))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PHASE_STABILIZATION);
 
     if ((flash_pat_ref_scan) & (ismrmrd_acq.isFlagSet(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION))) {
         // For some sequences the PAT Reference data is collected using a different encoding space
