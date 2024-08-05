@@ -3,7 +3,7 @@ FROM ubuntu:latest as ismrmrd_base
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/Chicago
 
-RUN apt-get update && apt-get install -y git cmake g++ libhdf5-dev libxml2-dev libxslt1-dev libboost-dev libboost-program-options-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev libboost-timer-dev libboost-program-options-dev
+RUN apt-get update && apt-get install -y git cmake g++ libhdf5-dev libxml2-dev libxslt1-dev libboost-dev libboost-program-options-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev libboost-timer-dev libboost-program-options-dev libpugixml-dev
 
 RUN  mkdir -p /opt/code
 
