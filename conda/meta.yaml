@@ -18,14 +18,14 @@ requirements:
     - gcc_linux-64>=9.0.0  # [linux64] 
     - gxx_linux-64>=9.0.0  # [linux64]
     - ismrmrd=1.14.1
-    - libxml2=2.9
+    - libxml2=2.13.1
     - libxslt=1.1 
-    - ninja=1.10.*
+    - ninja=1.12.*
 
   run:
     - ismrmrd=1.14.1
     - boost {{ boost }}
-    - libxml2=2.9
+    - libxml2=2.13.1
     - libxslt=1.1 
 
 about:
