@@ -3,7 +3,7 @@ FROM ubuntu:latest as ismrmrd_base
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/Chicago
 
-RUN apt-get update && apt-get install -y git cmake g++ libhdf5-dev libxml2-dev libxslt1-dev libboost-dev libboost-program-options-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev libboost-timer-dev libboost-program-options-dev
+RUN apt-get update && apt-get install -y git cmake g++ libhdf5-dev libxml2-dev libxslt1-dev libboost-dev libboost-program-options-dev libboost-system-dev libboost-filesystem-dev libboost-thread-dev libboost-timer-dev libboost-program-options-dev libpugixml-dev
 
 RUN  mkdir -p /opt/code
 
@@ -35,7 +35,7 @@ RUN cd /usr/local/lib && tar -czvf libismrmrd.tar.gz libismrmrd*
 # ----- Start another clean build without all of the build dependencies of siemens_to_ismrmrd -----
 FROM ubuntu:latest
 
-RUN apt-get update && apt-get install -y --no-install-recommends libxslt1.1 libhdf5-103 && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libxslt1.1 libhdf5-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy siemens_to_ismrmrd from last stage and re-add necessary dependencies
 COPY --from=ismrmrd_base /usr/local/bin/siemens_to_ismrmrd  /usr/local/bin/siemens_to_ismrmrd
