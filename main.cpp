@@ -1213,6 +1213,7 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
                     ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
     }
 
+	if (scanhead.aulEvalInfoMask[1] & (1ULL << (38 - 32))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);  // Indicates a single-band reference scan for Siemens product sequences
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 24))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_REVERSE);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 11))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_MEASUREMENT);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 21))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PHASECORR_DATA);
