@@ -107,6 +107,7 @@
         <p><s>DICOM.tMRAcquisitionType</s>                                      <d>siemens.DICOM.tMRAcquisitionType</d></p>
         <p><s>DICOM.DeviceSerialNumber</s>                                      <d>siemens.DICOM.DeviceSerialNumber</d></p>
         <p><s>DICOM.SoftwareVersions</s>                                        <d>siemens.DICOM.SoftwareVersions</d></p>
+        <p><s>DICOM.adFlipAngleDegree</s>                                       <d>siemens.DICOM.adFlipAngleDegree</d></p>
         <!-- EPI parameters -->
         <p><s>MEAS.sFastImaging.lEPIFactor</s>                                  <d>siemens.MEAS.sFastImaging.lEPIFactor</d></p>
         <p><s>YAPS.lEchoSpacing</s>                                             <d>siemens.YAPS.lEchoSpacing</d></p>
