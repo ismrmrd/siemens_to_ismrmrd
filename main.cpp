@@ -18,9 +18,11 @@
 #include "ConverterXml.h"
 
 #include "ismrmrd/ismrmrd.h"
-#include "ismrmrd/dataset.h"
 #include "ismrmrd/version.h"
 #include "ismrmrd/xml.h"
+#include "ismrmrd/waveform.h"
+#include "ismrmrd/serialization.h"
+#include "ismrmrd/serialization_iostream.h"
 #include "converter_version.h"
 
 #include <boost/program_options.hpp>
@@ -654,8 +656,8 @@ int main(int argc, char* argv[]) {
     {
         firstMeas = 1;
         lastMeas  = ParcRaidHead.count_;
-    } 
-    else 
+    }
+    else
     {
         firstMeas = measurement_number;
         lastMeas  = measurement_number;
@@ -852,8 +854,10 @@ int main(int argc, char* argv[]) {
 
         // Free memory used for MeasurementHeaderBuffers
 
+        std::ofstream output(ismrmrd_file, std::ios::out | std::ios::binary);
+        ISMRMRD::OStreamView ws(output);
+        ISMRMRD::ProtocolSerializer serializer(ws);
 
-        auto ismrmrd_dataset = boost::make_shared<ISMRMRD::Dataset>(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
         //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profilesISMRMRD::NDArray<float> traj;
 //        auto traj = getTrajectory(wip_double, trajectory, dwell_time_0, radial_views);
         ISMRMRD::NDArray<float> traj;
@@ -886,8 +890,9 @@ int main(int argc, char* argv[]) {
 
                 auto waveforms = readSyncdata(siemens_dat, VBFILE, acquisitions, dma_length, scanhead, header,
                                             last_scan_counter, skip_syncdata);
-                for (auto &w : waveforms)
-                    ismrmrd_dataset->appendWaveform(w);
+                for (auto &w : waveforms) {
+                    serializer.serialize(w);
+                }
                 sync_data_packets++;
                 continue;
             }
@@ -928,12 +933,12 @@ int main(int argc, char* argv[]) {
 
                 //This means we should only create XML header and exit
                 if (header_only) {
-                    std::ofstream header_out_file(ismrmrd_file.c_str());
-                    header_out_file << xml_config;
+                    output << xml_config;
                     return -1;
                 }
 
-                // Create an ISMRMRD dataset
+                // Write out the Header
+                serializer.serialize(header);
             }
 
             //This check only makes sense in VD line files.
@@ -965,7 +970,7 @@ int main(int argc, char* argv[]) {
                 break;
             }
 
-            ismrmrd_dataset->appendAcquisition(
+            serializer.serialize(
                     getAcquisition(flash_pat_ref_scan, trajectory, dwell_time_0, global_table_pos, max_channels, isAdjustCoilSens,
                                 isAdjQuietCoilSens, isVB, isNX, attachTrajectory, traj, scanhead, channels));
 
@@ -977,7 +982,7 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        ismrmrd_dataset->writeHeader(xml_config);
+        serializer.close();
 
         //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
         std::streamoff mystery_bytes = (std::streamoff) (ParcFileEntries[measurement_number - 1].off_ +
@@ -986,7 +991,7 @@ int main(int argc, char* argv[]) {
 
         if (mystery_bytes > 0) {
             if (mystery_bytes != MYSTERY_BYTES_EXPECTED) {
-                // Something in not quite right
+                // Something is not quite right
                 std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
                 std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].off_ = "
                         << ParcFileEntries[measurement_number - 1].off_ << std::endl;
@@ -998,7 +1003,7 @@ int main(int argc, char* argv[]) {
                 // Read the mystery bytes
                 char mystery_data[MYSTERY_BYTES_EXPECTED];
                 siemens_dat.read(reinterpret_cast<char *>(&mystery_data), mystery_bytes);
-                //After this we have to be on a 512 byte boundary
+                // After this we have to be on a 512 byte boundary
                 if (siemens_dat.tellg() % 512) {
                     siemens_dat.seekg(512 - (siemens_dat.tellg() % 512), std::ios::cur);
                 }
@@ -1022,12 +1027,12 @@ std::vector<ChannelHeaderAndData>
 readChannelHeaders(std::ifstream &siemens_dat, bool VBFILE, const sScanHeader &scanhead) {
     size_t nchannels = scanhead.ushUsedChannels;
     auto channels = std::vector<ChannelHeaderAndData>(nchannels);
-    
+
     for (unsigned int c = 0; c < nchannels; c++) {
         if (VBFILE) {
             if (c == 0) {
-                // Rewind to read mdh again 
-                // It was read once to create scanhead 
+                // Rewind to read mdh again
+                // It was read once to create scanhead
                 // Not all parameters are present in scanhead
                 siemens_dat.seekg(-sizeof(sMDH), std::ios_base::cur);
             }

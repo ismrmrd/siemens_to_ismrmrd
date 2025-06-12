@@ -61,20 +61,20 @@ else()
    message("Building statically linked application.")
 endif()
 
-# set(Boost_USE_STATIC_LIBS OFF)
 set(Boost_USE_MULTITHREADED ON)
 set(Boost_USE_STATIC_RUNTIME OFF)
 
-
 find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
-find_package(ISMRMRD 1.14.2 REQUIRED)
-find_package(HDF5  REQUIRED COMPONENTS C)
+include_directories(${Boost_INCLUDE_DIR})
+if(WIN32)
+    link_directories(${Boost_LIBRARY_DIRS})
+endif()
 
-include_directories( ${ISMRMRD_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} )
-link_directories( ${ISMRMRD_LIB_DIR} )
+find_package(ISMRMRD 1.14.2 REQUIRED)
+include_directories(${ISMRMRD_INCLUDE_DIR})
+link_directories(${ISMRMRD_LIB_DIR})
 
 add_executable(embed base64.cpp embed.cpp)
-
 target_link_libraries(embed ${Boost_LIBRARIES})
 
 add_custom_command(
@@ -107,13 +107,29 @@ add_custom_command(
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 )
 
+set(SIEMENS_TO_ISMRMRD_LINK_LIBRARIES ISMRMRD::ISMRMRD ${Boost_LIBRARIES})
+
+if (NOT BUILD_DYNAMIC)
+  find_library(STATIC_LIBXML2_LIBRARY NAMES libxml2.a libxml2.lib REQUIRED)
+  message(STATUS "STATIC_LIBXML2_LIBRARY: ${STATIC_LIBXML2_LIBRARY}")
+  set(LIBXML2_LIBRARY ${STATIC_LIBXML2_LIBRARY})
+
+  find_library(STATIC_LIBXSLT_LIBRARY NAMES libxslt.a libxslt.lib REQUIRED)
+  message(STATUS "STATIC_LIBXSLT_LIBRARY: ${STATIC_LIBXSLT_LIBRARY}")
+  set(LIBXSLT_LIBRARY ${STATIC_LIBXSLT_LIBRARY})
+endif()
+
 find_package(LibXml2 REQUIRED)
 find_package(LibXslt REQUIRED)
+message(STATUS "Found libxml2: ${LIBXML2_LIBRARIES}")
+message(STATUS "Found libxslt: ${LIBXSLT_LIBRARIES}")
 
-include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
+include_directories(${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
+list(APPEND SIEMENS_TO_ISMRMRD_LINK_LIBRARIES LibXml2::LibXml2 LibXslt::LibXslt)
 
-if(WIN32)
-    link_directories(${Boost_LIBRARY_DIRS})
+if (NOT BUILD_DYNAMIC)
+  find_library(STATIC_LIBZ_LIBRARY NAMES libz.a libz.lib REQUIRED)
+  list(APPEND SIEMENS_TO_ISMRMRD_LINK_LIBRARIES ${STATIC_LIBZ_LIBRARY})
 endif()
 
 add_executable(siemens_to_ismrmrd
@@ -130,13 +146,13 @@ add_executable(siemens_to_ismrmrd
                ${schema_files}
                )
 
-target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
-
-target_link_libraries(siemens_to_ismrmrd
-                        ISMRMRD::ISMRMRD
-                        ${Boost_LIBRARIES} )
+target_link_libraries(siemens_to_ismrmrd ${SIEMENS_TO_ISMRMRD_LINK_LIBRARIES})
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
+
+add_executable(inspect_ismrmrd_stream inspect.cpp)
+target_link_libraries(inspect_ismrmrd_stream ISMRMRD::ISMRMRD)
+
 
 # Create package
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
