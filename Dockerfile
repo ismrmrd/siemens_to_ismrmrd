@@ -35,7 +35,7 @@ RUN cd /usr/local/lib && tar -czvf libismrmrd.tar.gz libismrmrd*
 # ----- Start another clean build without all of the build dependencies of siemens_to_ismrmrd -----
 FROM ubuntu:latest
 
-RUN apt-get update && apt-get install -y --no-install-recommends libxslt1.1 libhdf5-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libxslt1.1 libhdf5-dev libpugixml-dev && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy siemens_to_ismrmrd from last stage and re-add necessary dependencies
 COPY --from=ismrmrd_base /usr/local/bin/siemens_to_ismrmrd  /usr/local/bin/siemens_to_ismrmrd
