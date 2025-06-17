@@ -1,0 +1,14 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+  "name": "siemens-to-ismrmrd",
+  "version": "1.2.13",
+  "dependencies": [
+    "libxml2",
+    "libxslt",
+    "pugixml",
+    "boost-spirit",
+    "boost-program-options",
+    "boost-filesystem",
+    "boost-locale"
+  ]
+}

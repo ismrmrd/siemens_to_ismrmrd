@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.21)
 
 project(SIEMENS-TO-ISMRMRD)
 
@@ -38,11 +38,15 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+
 if (WIN32)
     ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
-    # ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
+    ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /MP")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
+    # https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
     set (CMAKE_EXE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_SHARED_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
@@ -58,21 +62,12 @@ if (BUILD_DYNAMIC)
     message("Building dynamically linked application.")
 else()
    set(Boost_USE_STATIC_LIBS ON)
+   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
    message("Building statically linked application.")
 endif()
 
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-
-find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
-include_directories(${Boost_INCLUDE_DIR})
-if(WIN32)
-    link_directories(${Boost_LIBRARY_DIRS})
-endif()
-
+find_package(Boost COMPONENTS system program_options filesystem REQUIRED)
 find_package(ISMRMRD 1.14.2 REQUIRED)
-include_directories(${ISMRMRD_INCLUDE_DIR})
-link_directories(${ISMRMRD_LIB_DIR})
 
 add_executable(embed base64.cpp embed.cpp)
 target_link_libraries(embed ${Boost_LIBRARIES})
@@ -123,13 +118,13 @@ find_package(LibXml2 REQUIRED)
 find_package(LibXslt REQUIRED)
 message(STATUS "Found libxml2: ${LIBXML2_LIBRARIES}")
 message(STATUS "Found libxslt: ${LIBXSLT_LIBRARIES}")
-
-include_directories(${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
 list(APPEND SIEMENS_TO_ISMRMRD_LINK_LIBRARIES LibXml2::LibXml2 LibXslt::LibXslt)
 
 if (NOT BUILD_DYNAMIC)
-  find_library(STATIC_LIBZ_LIBRARY NAMES libz.a libz.lib REQUIRED)
-  list(APPEND SIEMENS_TO_ISMRMRD_LINK_LIBRARIES ${STATIC_LIBZ_LIBRARY})
+  if (NOT WIN32)
+    find_library(STATIC_LIBZ_LIBRARY NAMES libz.a libz.lib REQUIRED)
+    list(APPEND SIEMENS_TO_ISMRMRD_LINK_LIBRARIES ${STATIC_LIBZ_LIBRARY})
+  endif()
 endif()
 
 add_executable(siemens_to_ismrmrd
@@ -150,8 +145,8 @@ target_link_libraries(siemens_to_ismrmrd ${SIEMENS_TO_ISMRMRD_LINK_LIBRARIES})
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
 
-add_executable(inspect_ismrmrd_stream inspect.cpp)
-target_link_libraries(inspect_ismrmrd_stream ISMRMRD::ISMRMRD)
+add_executable(ismrmrd_inspect_stream inspect.cpp)
+target_link_libraries(ismrmrd_inspect_stream ISMRMRD::ISMRMRD)
 
 
 # Create package

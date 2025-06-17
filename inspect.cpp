@@ -1,7 +1,7 @@
+#include <fstream>
+
 #include "ismrmrd/serialization.h"
 #include "ismrmrd/serialization_iostream.h"
-
-#include <fstream>
 
 
 template <typename T>

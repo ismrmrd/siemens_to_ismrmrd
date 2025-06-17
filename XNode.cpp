@@ -6,7 +6,6 @@
 #include <boost/spirit/include/phoenix_stl.hpp>
 #include <boost/fusion/include/adapt_struct.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
 
 #include <iostream>
 #include <stdlib.h>
@@ -37,7 +36,7 @@ const XNode* getChildNodeByName::operator()(const XNodeParamArray& node) const {
 
 const XNode* getChildNodeByName::operator()(const XNodeParamMap& node) const {
 	const XNode* ret = 0;
-	BOOST_FOREACH(XNode const& cnode, node.children_) {
+	for (XNode const& cnode: node.children_) {
 		const std::string& name = boost::apply_visitor(getNodeName(), cnode);
 		if (boost::iequals(name,level_)) {
 		//if (name.compare(level_) == 0) {
@@ -96,7 +95,7 @@ std::string getXMLString::operator()(const XNodeParamMap& node) const
 {
 	std::stringstream str;
 	str << "<" << node.name_ << ">" << std::endl;
-	BOOST_FOREACH(XNode const& cnode, node.children_) {
+	for (XNode const& cnode: node.children_) {
 		str << boost::apply_visitor(getXMLString(), cnode);
 	}
 	str << "</" << node.name_ << ">" << std::endl;
@@ -113,7 +112,7 @@ std::string getXMLString::operator()(const XNodeParamArray& node) const
 	}
 	std::stringstream str;
 	str << "<" << node.name_ << ">" << std::endl;
-	BOOST_FOREACH(XNode const& cnode, node.children_) {
+	for (XNode const& cnode: node.children_) {
 		str << boost::apply_visitor(getXMLString(), cnode);
 	}
 	/*

@@ -29,7 +29,7 @@
 namespace po = boost::program_options;
 
 #include <boost/filesystem.hpp>
-#include <boost/locale/encoding_utf.hpp>
+#include <boost/locale.hpp>
 using boost::locale::conv::utf_to_utf;
 
 #include <iomanip>
