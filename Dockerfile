@@ -22,8 +22,6 @@ RUN cd /opt/code && \
     make -j $(nproc) && \
     make install
 
-FROM ismrmrd_dev AS siemens_to_ismrmrd_dev
-
 # libxml2
 RUN cd /opt/code && \
     wget ftp://xmlsoft.org/libxslt//libxml2-2.9.12.tar.gz && \
@@ -39,6 +37,8 @@ RUN cd /opt/code && \
     cd libxslt-1.1.34 && \
     ./configure && \
     make install
+
+FROM ismrmrd_dev AS siemens_to_ismrmrd_dev
 
 # siemens_to_ismrmrd converter
 RUN cd /opt/code/siemens_to_ismrmrd && \
