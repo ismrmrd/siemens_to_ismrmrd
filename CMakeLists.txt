@@ -52,8 +52,6 @@ if (WIN32)
     set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     add_definitions(-D__BUILD_CONVERTER_TINYXML__)
-else()
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 endif()
 
 # Added for static linking!!!
@@ -142,6 +140,10 @@ add_executable(siemens_to_ismrmrd
                )
 
 target_link_libraries(siemens_to_ismrmrd ${SIEMENS_TO_ISMRMRD_LINK_LIBRARIES})
+
+if (NOT BUILD_DYNAMIC AND NOT WIN32)
+  target_link_options(siemens_to_ismrmrd PRIVATE -static-libgcc -static-libstdc++ -static)
+endif()
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
 

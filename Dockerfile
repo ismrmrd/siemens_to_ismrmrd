@@ -35,7 +35,7 @@ RUN cd /opt/code && \
     wget ftp://xmlsoft.org/libxslt//libxslt-1.1.34.tar.gz && \
     tar xzf libxslt-1.1.34.tar.gz && \
     cd libxslt-1.1.34 && \
-    ./configure && \
+    ./configure --without-ftp --without-http && \
     make install
 
 FROM ismrmrd_dev AS siemens_to_ismrmrd_dev
