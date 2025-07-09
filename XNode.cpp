@@ -74,7 +74,7 @@ const XNode*  getChildNodeByIndex::operator()(const XNodeParamArray& node)
 	const XNode* ret = 0;
 	if (node.children_.size() == 0) { //Children have not yet been expanded
 		if (!const_cast<XNodeParamArray&>(node).expand_children()) {
-			std::cout << "Failed to expand children" << std::endl;
+			std::cerr << "Failed to expand children" << std::endl;
 			return 0;
 		}
 	}
@@ -106,7 +106,7 @@ std::string getXMLString::operator()(const XNodeParamArray& node) const
 {
 	if (node.children_.size() == 0) { //Children have not yet been expanded
 		if (!const_cast<XNodeParamArray&>(node).expand_children()) {
-			std::cout << "Failed to expand children" << std::endl;
+			std::cerr << "Failed to expand children" << std::endl;
 			return 0;
 		}
 	}
@@ -135,10 +135,10 @@ std::string getXMLString::operator()(const XNodeParamValue& node) const
 
 
 bool setNodeValues :: operator()(XNodeParamMap& node) {
-	//std::cout << "Calling param map set values....";
+	//std::cerr << "Calling param map set values....";
 	if (node.children_.size() < val_.children_.size()) {
-		std::cout << "Mismatch between number of values (" << val_.children_.size() << ") and children (" << node.children_.size() << ")" << std::endl;
-		std::cout << "node name: " << node.name_ << std::endl;
+		std::cerr << "Mismatch between number of values (" << val_.children_.size() << ") and children (" << node.children_.size() << ")" << std::endl;
+		std::cerr << "node name: " << node.name_ << std::endl;
 		return false;
 	}
 	for (unsigned int i = 0; i < val_.children_.size(); i++) {
@@ -147,7 +147,7 @@ bool setNodeValues :: operator()(XNodeParamMap& node) {
 			return false;
 		}
 	}
-	//std::cout << "done!" << std::endl;
+	//std::cerr << "done!" << std::endl;
 	return true;
 }
 
@@ -161,11 +161,11 @@ bool setNodeValues :: operator()(XNodeParamArray& node) {
 }
 
 bool setNodeValues :: operator()(XNodeParamValue& node) {
-	//std::cout << "Calling param value set values....";
+	//std::cerr << "Calling param value set values....";
 	for (unsigned int i = 0; i < val_.values_.size(); i++) {
 		node.values_.push_back(val_.values_[i]);
 	}
-	//std::cout << "done!" << std::endl;
+	//std::cerr << "done!" << std::endl;
 	return true;
 }
 
@@ -174,7 +174,7 @@ bool XNodeParamArray :: expand_children() {
 		for (unsigned int i = 0; i < values_.size(); i++) {
 			children_.push_back(default_);
 			if (values_[i].values_.size() == 0 && values_[i].children_.size()==0) { //Empty values container, occurs sometimes in the files.
-				//std::cout << "Empty container encountered, " << name_ << std::endl;
+				//std::cerr << "Empty container encountered, " << name_ << std::endl;
 				continue;
 			}
 			setNodeValues tmp(values_[i]);
@@ -188,7 +188,7 @@ bool XNodeParamArray :: expand_children() {
 
 std::vector<std::string> getStringValueArray::operator()(const XNodeParamArray& node) const
 {
-	//std::cout << "Array: " << node.name_ << ", node.values_.size() = " << node.values_.size() << std::endl;
+	//std::cerr << "Array: " << node.name_ << ", node.values_.size() = " << node.values_.size() << std::endl;
 	std::vector<std::string> ret;
 
 	return ret;

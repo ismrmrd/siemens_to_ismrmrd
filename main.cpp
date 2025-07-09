@@ -34,6 +34,10 @@ using boost::locale::conv::utf_to_utf;
 
 #include <iomanip>
 
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -432,6 +436,12 @@ std::string ws2s(const std::wstring &wstr) {
 }
 
 int main(int argc, char* argv[]) {
+#ifdef _WIN32
+    // Change std::cin/std::cout to binary mode
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stdin), _O_BINARY);
+#endif
+
     std::string siemens_dat_filename;
     int measurement_number;
 
@@ -970,8 +980,7 @@ int main(int argc, char* argv[]) {
 
         //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
         std::streamoff mystery_bytes = (std::streamoff) (ParcFileEntries[measurement_number - 1].off_ +
-                                                        ParcFileEntries[measurement_number - 1].len_) -
-                                    current_offset;
+                                                        ParcFileEntries[measurement_number - 1].len_) - current_offset;
 
         if (mystery_bytes > 0) {
             if (mystery_bytes != MYSTERY_BYTES_EXPECTED) {
@@ -1035,6 +1044,18 @@ readChannelHeaders(std::istream &siemens_dat, bool VBFILE, const sMDH& firstMDH,
             } else {
                 siemens_dat.read(reinterpret_cast<char*>(&mdh), sizeof(sMDH));
                 current_offset += sizeof(sMDH);
+
+                /*
+                if (mdh.ushUsedChannels != scanhead.ushUsedChannels) {
+                    std::cerr << "WARNING: Channel count mismatch in MDH for channel " << c << ". Expected "
+                              << scanhead.ushUsedChannels << ", got " << mdh.ushUsedChannels << "." << std::endl;
+                }
+
+                if (mdh.ushSamplesInScan != scanhead.ushSamplesInScan) {
+                    std::cerr << "WARNING: Sample count mismatch in MDH for channel " << c << ". Expected "
+                              << scanhead.ushSamplesInScan << ", got " << mdh.ushSamplesInScan << "." << std::endl;
+                }
+                */
             }
             channels[c].header.ulTypeAndChannelLength = 0;
             channels[c].header.lMeasUID = mdh.lMeasUID;
@@ -1713,7 +1734,6 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             std::stringstream sstream;
             sstream << "Failed to parse XProtocol for buffer " << buffers[b].name;
             throw std::runtime_error(sstream.str());
-
         }
 
         //Get some parameters - wip long

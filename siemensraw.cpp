@@ -36,7 +36,7 @@ int SiemensRawData::ReadRawFile(char* filename)
 	uint32_t number_of_parameter_buffers = 0;
 	f.read(reinterpret_cast<char*>(&number_of_parameter_buffers),sizeof(uint32_t));
 
-	//std::cout << "Number of parameter buffers: " << number_of_parameter_buffers << std::endl;
+	//std::cerr << "Number of parameter buffers: " << number_of_parameter_buffers << std::endl;
 
 	for (unsigned int i = 0; i < number_of_parameter_buffers; i++) {
 		char buffer_name[1024];
@@ -49,7 +49,7 @@ int SiemensRawData::ReadRawFile(char* filename)
 		try {
 			tmp_buffer = new char[buffer_length];
 		} catch (...) {
-			std::cout << "Unable to allocate temporary memory for buffer" << std::endl;
+			std::cerr << "Unable to allocate temporary memory for buffer" << std::endl;
 			return -1;
 		}
 
@@ -74,7 +74,7 @@ int SiemensRawData::ReadRawFile(char* filename)
 
 	UpdateMinMax();
 
-	//std::cout << "Done reading. Total mdh count: " << m_number_of_nodes << std::endl;
+	//std::cerr << "Done reading. Total mdh count: " << m_number_of_nodes << std::endl;
 	ParseMeasYaps();
 	return m_number_of_nodes;
 }
@@ -91,7 +91,7 @@ int SiemensRawData::ReadMdhNode(std::ifstream* f)
 	try {
 		new_node = new SiemensMdhNode;
 	} catch (...) {
-		std::cout << "SiemensRawData::ReadMdhNode: Failed to allocate new node" << std::endl;
+		std::cerr << "SiemensRawData::ReadMdhNode: Failed to allocate new node" << std::endl;
 		return -1;
 	}
 
@@ -103,7 +103,7 @@ int SiemensRawData::ReadMdhNode(std::ifstream* f)
 	{
 		f->read(reinterpret_cast<char*>(&(new_node->mdh)),sizeof(sMDH));
 	} catch (...) {
-		std::cout << "SiemensRawData::ReadMdhNode: Unable to read mdh" << std::endl;
+		std::cerr << "SiemensRawData::ReadMdhNode: Unable to read mdh" << std::endl;
 		delete new_node;
 		return -1;
 	}
@@ -119,7 +119,7 @@ int SiemensRawData::ReadMdhNode(std::ifstream* f)
 	{
 		new_node->data = new float[new_node->mdh.ushSamplesInScan * 2];
 	} catch (...) {
-		std::cout << "SiemensRawData::ReadMdhNode: Unable to allocate memory in data node" << std::endl;
+		std::cerr << "SiemensRawData::ReadMdhNode: Unable to allocate memory in data node" << std::endl;
 		delete new_node;
 		return -1;
 	}
@@ -128,7 +128,7 @@ int SiemensRawData::ReadMdhNode(std::ifstream* f)
 	{
 		f->read(reinterpret_cast<char*>(new_node->data),sizeof(float)*new_node->mdh.ushSamplesInScan*2);
 	} catch (...) {
-		std::cout << "SiemensRawData::ReadMdhNode: Unable to read data for data node" << std::endl;
+		std::cerr << "SiemensRawData::ReadMdhNode: Unable to read data for data node" << std::endl;
 		delete [] new_node->data;
 		delete new_node;
 		return -1;
@@ -307,7 +307,7 @@ int SiemensRawData::ParseMeasYaps()
 	static const char fname[] = "SiemensRawData::ParseMeasYaps";
 
 	if (m_parameter_buffers.find("MeasYaps") == m_parameter_buffers.end()) {
-		std::cout << fname << ": Unable to find MeasYaps buffer" << std::endl;
+		std::cerr << fname << ": Unable to find MeasYaps buffer" << std::endl;
 		return -1;
 	}
 
@@ -355,7 +355,7 @@ int SiemensRawData::ParseMeasYaps()
 const std::string & SiemensRawData::GetParameterBuffer(std::string name)
 {
 	if (m_parameter_buffers.find(name) == m_parameter_buffers.end()) {
-		std::cout << "SiemensRawData::GetParameterBuffer: Unable to find buffer: " << name << std::endl;
+		std::cerr << "SiemensRawData::GetParameterBuffer: Unable to find buffer: " << name << std::endl;
 	}
 
 	return m_parameter_buffers[name];
