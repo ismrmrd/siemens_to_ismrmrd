@@ -147,6 +147,18 @@ endif()
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
 
+
+add_executable(ismrmrd_to_siemens ismrmrd_to_siemens.cpp)
+
+target_link_libraries(ismrmrd_to_siemens ${SIEMENS_TO_ISMRMRD_LINK_LIBRARIES})
+
+if (NOT BUILD_DYNAMIC AND NOT WIN32)
+  target_link_options(ismrmrd_to_siemens PRIVATE -static-libgcc -static-libstdc++ -static)
+endif()
+
+install(TARGETS ismrmrd_to_siemens DESTINATION bin)
+
+
 add_executable(ismrmrd_inspect_stream inspect.cpp)
 target_link_libraries(ismrmrd_inspect_stream ISMRMRD::ISMRMRD)
 
