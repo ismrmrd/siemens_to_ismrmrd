@@ -5,8 +5,20 @@
  * This file contains the main function and logic to read ISMRMRD data,
  * convert it to Siemens format, and write the output to a specified file.
  *
- * The output format is as follows:
- * -
+ * The output format is a series of tuples consisting of a message ID and payload, concluded by a CLOSE message id.
+ * Currently, only images are supported. Thus, the output of this program is:
+ * {
+ *     uint32_t message_id (=SIEMENS_MESSAGE_ID::SIEMENS_MESSAGE_IMAGE)
+ *     uint32_t image_type_id (=CXFLOAT, FLOAT, or UINT16)
+ *     uint32_t mini_header_size
+ *     uint8_t* mini_header
+ *     uint32_t data_size
+ *     uint8_t* data
+ *
+ *     (repeats for each image...)
+ *
+ *     uint32_t message_id (=SIEMENS_MESSAGE_ID::SIEMENS_MESSAGE_CLOSE)
+ * }
  */
 #include "ismrmrd/ismrmrd.h"
 #include "ismrmrd/version.h"
@@ -117,6 +129,10 @@ void convertImage(ISMRMRD::Image<T>& img, std::ostream& out) {
     // builder.setLong("NoOfCols", 256);
     // builder.setLong("NoOfRows", 256);
 
+    builder.setLongArray("MatrixSize", {img.getMatrixSizeX(), img.getMatrixSizeY(), img.getMatrixSizeZ()});
+    builder.setLong("NoOfChannels", img.getNumberOfChannels());
+    builder.setDoubleArray("FieldOfView", {img.getFieldOfViewX(), img.getFieldOfViewY(), img.getFieldOfViewZ()});
+
     uint32_t img_type_msg = SIEMENS_MESSAGE_ID::SIEMENS_MESSAGE_CLOSE;
     if (sizeof(T) == sizeof(complex_float_t)) {
         img_type_msg = SIEMENS_MESSAGE_ID::SIEMENS_MESSAGE_IMAGE_CXFLOAT;
@@ -134,15 +150,10 @@ void convertImage(ISMRMRD::Image<T>& img, std::ostream& out) {
     } else {
         throw std::runtime_error("Unsupported image type for conversion.");
     }
-
     // TODO: Does this need to be set?
     // builder.setStringArray("ImageTypeValue4", {"ND"});
 
     out.write(reinterpret_cast<const char*>(&img_type_msg), sizeof(img_type_msg));
-
-    builder.setLongArray("MatrixSize", {256, 256, 1});
-    builder.setLong("NoOfChannels", 1);
-    builder.setDoubleArray("FieldOfView", {200.0, 200.0, 5.0});
 
     std::string miniHeader(builder.build());
     uint32_t miniHeaderSize = static_cast<uint32_t>(miniHeader.size());
