@@ -7,7 +7,7 @@
 		"context": "..",
 		// Update the 'dockerFile' property if you aren't using the standard 'Dockerfile' filename.
 		"dockerfile": "../Dockerfile",
-		"target": "ismrmrd_dev"
+		"target": "siemens_to_ismrmrd_dev"
 	},
 	"containerEnv": {
 		"DOCKER_BUILDKIT": "1",

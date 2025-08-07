@@ -3,9 +3,7 @@ FROM mcr.microsoft.com/devcontainers/base:jammy AS ismrmrd_dev
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         git cmake g++ pkg-config \
-        libboost-dev libboost-program-options-dev libboost-system-dev \
-        libboost-filesystem-dev libboost-thread-dev libboost-timer-dev \
-        libboost-program-options-dev libboost-test-dev libpugixml-dev \
+        libboost-all-dev libpugixml-dev \
     && apt-get clean
 
 RUN mkdir -p /opt/code/siemens_to_ismrmrd
@@ -22,23 +20,25 @@ RUN cd /opt/code && \
     make -j $(nproc) && \
     make install
 
+FROM ismrmrd_dev AS siemens_to_ismrmrd_dev
+
 # libxml2
-RUN cd /opt/code && \
-    wget ftp://xmlsoft.org/libxslt//libxml2-2.9.12.tar.gz && \
-    tar xzf libxml2-2.9.12.tar.gz && \
-    cd libxml2-2.9.12/ && \
-    ./configure && \
-    make install
+RUN cd /opt/code \
+    && wget https://download.gnome.org/sources/libxml2/2.14/libxml2-2.14.5.tar.xz \
+    && tar xJf libxml2-2.14.5.tar.xz \
+    && cd libxml2-2.14.5/ \
+    && ./configure --enable-static=yes --without-python \
+    && make install
 
 # libxslt
-RUN cd /opt/code && \
-    wget ftp://xmlsoft.org/libxslt//libxslt-1.1.34.tar.gz && \
-    tar xzf libxslt-1.1.34.tar.gz && \
-    cd libxslt-1.1.34 && \
-    ./configure --without-ftp --without-http && \
-    make install
+RUN cd /opt/code \
+    && wget https://download.gnome.org/sources/libxslt/1.1/libxslt-1.1.43.tar.xz \
+    && tar xJf libxslt-1.1.43.tar.xz \
+    && cd libxslt-1.1.43 \
+    && ./configure --enable-static=yes --without-python \
+    && make install
 
-FROM ismrmrd_dev AS siemens_to_ismrmrd_dev
+FROM siemens_to_ismrmrd_dev AS siemens_to_ismrmrd_build
 
 # siemens_to_ismrmrd converter
 RUN cd /opt/code/siemens_to_ismrmrd && \
@@ -50,4 +50,4 @@ RUN cd /opt/code/siemens_to_ismrmrd && \
 
 FROM mcr.microsoft.com/devcontainers/base:jammy AS siemens_to_ismrmrd
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
-COPY --from=siemens_to_ismrmrd_dev /usr/local/bin/siemens_to_ismrmrd /usr/local/bin/siemens_to_ismrmrd
+COPY --from=siemens_to_ismrmrd_build /usr/local/bin/siemens_to_ismrmrd /usr/local/bin/siemens_to_ismrmrd
