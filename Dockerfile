@@ -4,6 +4,7 @@ RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
         git cmake g++ pkg-config \
         libboost-all-dev libpugixml-dev \
+        python3-venv \
     && apt-get clean
 
 RUN mkdir -p /opt/code/siemens_to_ismrmrd
@@ -47,6 +48,12 @@ RUN cd /opt/code/siemens_to_ismrmrd && \
     cmake ../ && \
     make -j $(nproc) && \
     make install
+
+RUN cd /opt/code/siemens_to_ismrmrd/test && \
+    python3 -m venv .venv && \
+    . .venv/bin/activate && \
+    pip install -r requirements.txt && \
+    python -m pytest --download-all --echo-log-on-failure
 
 FROM mcr.microsoft.com/devcontainers/base:jammy AS siemens_to_ismrmrd
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*

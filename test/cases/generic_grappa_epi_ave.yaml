@@ -1,0 +1,23 @@
+datfile: epi_ave/meas_MID01349_FID12150_amri_ep2d_bold_96x72x5_R2_16avg_gadgetron/meas_MID01349_FID12150_amri_ep2d_bold_96x72x5_R2_16avg_gadgetron.dat
+checksum: 7afdcf271e6aa53952ee8c0a0291acd9
+extra_args: --flashPatRef
+measurement: 1
+parameter_map: IsmrmrdParameterMap_Siemens.xml
+parameter_xsl: IsmrmrdParameterMap_Siemens_EPI_FLASHREF.xsl
+
+measurement_id: "45155_02349156_02349161_1349"
+protocol_name: amri_ep2d_bold 96x72x5_R2 16avg gadgetron
+receiver_channels: 32
+field_strength: 2.89362001
+num_waveforms: 0
+num_acquisitions: 3192
+measurement_uid: 1349
+kspace_step1s: [0, 69]
+kspace_step2s: [0, 0]
+averages: [0, 15]
+slices: [0, 4]
+contrasts: [0, 0]
+phases: [0, 0]
+repetitions: [0, 0]
+sets: [0, 0]
+segments: [0, 1]

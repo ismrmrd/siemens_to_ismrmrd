@@ -1,0 +1,22 @@
+datfile: cmr/T1SRmapping/meas_MID00613_FID40909_pre_SASHA_10pt_TS600_256/meas_MID00613_FID40909_pre_SASHA_10pt_TS600_256.dat
+checksum: dc4f02e31f84b641e41a485c2762054f
+measurement: 2
+parameter_map: IsmrmrdParameterMap_Siemens.xml
+parameter_xsl: IsmrmrdParameterMap_Siemens_T1Mapping_SASHA.xsl
+
+measurement_id: "41837_62600029_62600034_613"
+protocol_name: pre_SASHA_10pt_TS600_256
+receiver_channels: 14
+field_strength: 1.49399996
+num_waveforms: 1115
+num_acquisitions: 719
+measurement_uid: 613
+kspace_step1s: [0, 123]
+kspace_step2s: [0, 0]
+averages: [0, 0]
+slices: [0, 0]
+contrasts: [0, 0]
+phases: [0, 0]
+repetitions: [0, 0]
+sets: [0, 10]
+segments: [0, 0]

@@ -878,20 +878,20 @@ int main(int argc, char* argv[]) {
             uint32_t dma_length = scanhead.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
             uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
-            //Check if this is synch data, if so, it must be handled differently.
-            if (scanhead.aulEvalInfoMask[0] & (1 << 5)) {
-                uint32_t last_scan_counter = acquisitions - 1;
-
-                auto waveforms = readSyncdata(siemens_dat, VBFILE, acquisitions, dma_length, scanhead, header,
-                                            last_scan_counter, skip_syncdata, current_offset);
-                for (auto &w : waveforms) {
-                    serializer.serialize(w);
+            //This check only makes sense in VD line files.
+            if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number - 1].measId_)) {
+                //Something must have gone terribly wrong. Bail out.
+                if (first_call) {
+                    std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries["
+                            << measurement_number - 1 << "].measId_)" << std::endl;
+                    std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
                 }
-                sync_data_packets++;
-                continue;
+                scanhead.lMeasUID = ParcFileEntries[measurement_number - 1].measId_;
             }
 
             if (first_call) {
+                first_call = false;
+
                 uint32_t time_stamp = scanhead.ulTimeStamp;
 
                 // convert to acqusition date and time
@@ -935,18 +935,18 @@ int main(int argc, char* argv[]) {
                 serializer.serialize(header);
             }
 
-            //This check only makes sense in VD line files.
-            if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number - 1].measId_)) {
-                //Something must have gone terribly wrong. Bail out.
-                if (first_call) {
-                    std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries["
-                            << measurement_number - 1 << "].measId_)" << std::endl;
-                    std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
-                }
-                scanhead.lMeasUID = ParcFileEntries[measurement_number - 1].measId_;
-            }
+            //Check if this is synch data, if so, it must be handled differently.
+            if (scanhead.aulEvalInfoMask[0] & (1 << 5)) {
+                uint32_t last_scan_counter = acquisitions - 1;
 
-            if (first_call) first_call = false;
+                auto waveforms = readSyncdata(siemens_dat, VBFILE, acquisitions, dma_length, scanhead, header,
+                                            last_scan_counter, skip_syncdata, current_offset);
+                for (auto &w : waveforms) {
+                    serializer.serialize(w);
+                }
+                sync_data_packets++;
+                continue;
+            }
 
             //Allocate data for channels
             std::vector<ChannelHeaderAndData> channels = readChannelHeaders(siemens_dat, VBFILE, mdh, scanhead, current_offset);
