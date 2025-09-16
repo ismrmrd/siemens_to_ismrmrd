@@ -1,35 +1,39 @@
+name: Conda
+
 on:
+  push:
+    branches: [master]
+    tags: ["v*.*.*"]
   pull_request:
-    branches:    
-      - master
-  release:
-    types:
-      - created
+    branches: [master]
   workflow_dispatch:
 
 jobs:
-  build-conda-packages:
+  conda-build:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-13]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: siemens-to-ismrmrd-build
           environment-file: conda/environment.yml
           python-version: 3.9
           auto-activate-base: false
+
       - name: Build conda package
         shell: bash -l {0}
         working-directory: conda
         run: |
           ./package.sh
           echo "Packages built: $(find build_pkg -name siemens_to_ismrmrd*.tar.bz2)"
+
       - name: Push conda package
         shell: bash -l {0}
-        if: ${{ github.event_name == 'release' }}
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         env:
           ANACONDA_TOKEN: ${{ secrets.ANACONDA_TOKEN }}
         working-directory: conda

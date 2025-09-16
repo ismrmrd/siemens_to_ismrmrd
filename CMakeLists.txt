@@ -17,9 +17,23 @@ message(STATUS "Looking for packages in : ${CMAKE_PREFIX_PATH}")
 
 #VERSIONING
 set(SIEMENS_TO_ISMRMRD_VERSION_MAJOR 1)
-set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 2)
-set(SIEMENS_TO_ISMRMRD_VERSION_PATCH 13)
+set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 3)
+set(SIEMENS_TO_ISMRMRD_VERSION_PATCH 0)
 set(SIEMENS_TO_ISMRMRD_VERSION_STRING ${SIEMENS_TO_ISMRMRD_VERSION_MAJOR}.${SIEMENS_TO_ISMRMRD_VERSION_MINOR}.${SIEMENS_TO_ISMRMRD_VERSION_PATCH})
+
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg.json VCPKG_JSON)
+string(JSON VCPKG_VERSION_STRING GET ${VCPKG_JSON} version)
+
+if (NOT VCPKG_VERSION_STRING STREQUAL SIEMENS_TO_ISMRMRD_VERSION_STRING)
+    message("")
+    message("-----------------------------------------------")
+    message("           !! VCPKG VERSION ERROR!!            ")
+    message("    Vcpkg version in vcpkg.json must match     ")
+    message(" SIEMENS_TO_ISMRMRD version in CMakeLists.txt  ")
+    message("-----------------------------------------------")
+    message("")
+    message(FATAL_ERROR "     FATAL VCPKG VERSION ERROR")
+endif ()
 
 # Generate the converter_version.h header file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/converter_version.in ${CMAKE_CURRENT_SOURCE_DIR}/converter_version.h)

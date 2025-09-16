@@ -58,3 +58,4 @@ RUN cd /opt/code/siemens_to_ismrmrd/test && \
 FROM mcr.microsoft.com/devcontainers/base:jammy AS siemens_to_ismrmrd
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
 COPY --from=siemens_to_ismrmrd_build /usr/local/bin/siemens_to_ismrmrd /usr/local/bin/siemens_to_ismrmrd
+COPY --from=siemens_to_ismrmrd_build /usr/local/bin/ismrmrd_to_siemens /usr/local/bin/ismrmrd_to_siemens

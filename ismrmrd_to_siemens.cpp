@@ -39,7 +39,7 @@ namespace po = boost::program_options;
 #include <io.h>
 #include <fcntl.h>
 #endif
-#include <iostream>
+#include <fstream>
 
 
 enum SIEMENS_MESSAGE_ID {
@@ -215,7 +215,7 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    std::unique_ptr<std::istream> infile;
+    std::unique_ptr<std::ifstream> infile;
     if (ismrmrd_filename.length() != 0)
     {
         infile = std::make_unique<std::ifstream>(ismrmrd_filename.c_str(), std::ios::binary);
@@ -228,7 +228,7 @@ int main(int argc, char* argv[]) {
         std::cerr << "ISMRMRD file is: " << ismrmrd_filename << std::endl;
     }
 
-    std::unique_ptr<std::ostream> outfile;
+    std::unique_ptr<std::ofstream> outfile;
     if (output_filename.length() != 0)
     {
         outfile = std::make_unique<std::ofstream>(output_filename.c_str(), std::ios::binary);

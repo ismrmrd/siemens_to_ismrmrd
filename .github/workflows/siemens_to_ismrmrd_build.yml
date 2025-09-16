@@ -1,0 +1,121 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+    tags: ["v*.*.*"]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  docker-build:
+    name: Build Linux binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          docker build . --file Dockerfile --tag siemens_to_ismrmrd
+
+          container_id=$(docker create siemens_to_ismrmrd)
+          docker cp "$container_id:/usr/local/bin/siemens_to_ismrmrd" ./
+          docker cp "$container_id:/usr/local/bin/ismrmrd_to_siemens" ./
+          docker rm "$container_id"
+
+      - name: Test
+        run: |
+          ./siemens_to_ismrmrd -h
+          ./ismrmrd_to_siemens -v
+
+      - name: Package
+        run: tar -czvf siemens_to_ismrmrd_linux_x86_64.tar.gz siemens_to_ismrmrd ismrmrd_to_siemens
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: siemens_to_ismrmrd_linux_x86_64.tar.gz
+          overwrite: true
+
+  windows-build:
+    name: Build Windows binaries
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Create Build Environment
+      shell: pwsh
+      run: cmake -E make_directory ${{github.workspace}}/build
+
+    - name: Configure CMake and install dependencies
+      shell: pwsh
+      working-directory: ${{github.workspace}}/build
+      run: |-
+          cmake "$env:GITHUB_WORKSPACE" -D CMAKE_BUILD_TYPE=Release `
+            -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
+            -D VCPKG_TARGET_TRIPLET=x64-windows-static `
+            -D BUILD_DYNAMIC=OFF
+
+    - name: Build
+      working-directory: ${{github.workspace}}/build
+      shell: pwsh
+      run: cmake --build . --config Release --target siemens_to_ismrmrd --target ismrmrd_to_siemens
+
+    - name: Test
+      working-directory: ${{github.workspace}}/build
+      shell: pwsh
+      run: |
+        .\Release\siemens_to_ismrmrd.exe -h
+        .\Release\ismrmrd_to_siemens.exe -v
+
+    - name: Package
+      shell: pwsh
+      run: Compress-Archive -Path ${{github.workspace}}/build/Release/siemens_to_ismrmrd.exe ${{github.workspace}}/build/Release/ismrmrd_to_siemens.exe -DestinationPath siemens_to_ismrmrd_windows_x86_64.zip
+
+    - name: Upload
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-binaries
+        path: siemens_to_ismrmrd_windows_x86_64.zip
+        overwrite: true
+
+  release:
+    name: Publish binaries
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    needs: [docker-build, windows-build]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-release
+      url: https://github.com/ismrmrd/siemens_to_ismrmrd/releases
+    permissions:
+      contents: write
+    steps:
+    - name: Download Linux binaries
+      uses: actions/download-artifact@v4
+      with:
+        name: linux-binaries
+
+    - name: Download Windows binaries
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-binaries
+
+    - name: Generate Checksums
+      run: |
+        sha256sum siemens_to_ismrmrd_linux_x86_64.tar.gz > sha256-checksums.txt
+        sha256sum siemens_to_ismrmrd_windows_x86_64.zip >> sha256-checksums.txt
+
+    - name: Publish Artifacts
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          sha256-checksums.txt
+          siemens_to_ismrmrd_linux_x86_64.tar.gz
+          siemens_to_ismrmrd_windows_x86_64.zip
+        fail_on_unmatched_files: true
+        body: |
+          See also:
+          - [siemens_to_ismrmrd on Conda](https://anaconda.org/ismrmrd/siemens_to_ismrmrd)
+        append_body: true
