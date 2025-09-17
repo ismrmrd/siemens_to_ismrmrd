@@ -45,34 +45,37 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Create Build Environment
-      shell: pwsh
-      run: cmake -E make_directory ${{github.workspace}}/build
-
-    - name: Configure CMake and install dependencies
-      shell: pwsh
-      working-directory: ${{github.workspace}}/build
-      run: |-
-          cmake "$env:GITHUB_WORKSPACE" -D CMAKE_BUILD_TYPE=Release `
-            -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
-            -D VCPKG_TARGET_TRIPLET=x64-windows-static `
-            -D BUILD_DYNAMIC=OFF
-
-    - name: Build
-      working-directory: ${{github.workspace}}/build
-      shell: pwsh
-      run: cmake --build . --config Release --target siemens_to_ismrmrd --target ismrmrd_to_siemens
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build
+    - name: Install static ISMRMRD library
       shell: pwsh
       run: |
+        git clone https://github.com/ismrmrd/ismrmrd.git
+        cd ismrmrd
+        git checkout $(cat ${{github.workspace}}\dependencies\ismrmrd)
+        mkdir build
+        cd build
+        cmake ../ -D CMAKE_BUILD_TYPE=Release `
+          -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
+          -D VCPKG_TARGET_TRIPLET=x64-windows-static `
+          -D BUILD_STATIC=ON `
+          -D USE_HDF5_DATASET_SUPPORT=OFF
+        cmake --build . --config Release --target all_build --target install
+
+    - name: Build and test Siemens converter
+      shell: pwsh
+      run: |
+        mkdir build
+        cd build
+        cmake .. -D CMAKE_BUILD_TYPE=Release `
+          -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake `
+          -D VCPKG_TARGET_TRIPLET=x64-windows-static `
+          -D BUILD_DYNAMIC=OFF
+        cmake --build . --config Release --target siemens_to_ismrmrd --target ismrmrd_to_siemens
         .\Release\siemens_to_ismrmrd.exe -h
         .\Release\ismrmrd_to_siemens.exe -v
 
     - name: Package
       shell: pwsh
-      run: Compress-Archive -Path ${{github.workspace}}/build/Release/siemens_to_ismrmrd.exe ${{github.workspace}}/build/Release/ismrmrd_to_siemens.exe -DestinationPath siemens_to_ismrmrd_windows_x86_64.zip
+      run: Compress-Archive -Path ${{github.workspace}}/build/Release/siemens_to_ismrmrd.exe, ${{github.workspace}}/build/Release/ismrmrd_to_siemens.exe -DestinationPath siemens_to_ismrmrd_windows_x86_64.zip
 
     - name: Upload
       uses: actions/upload-artifact@v4
@@ -83,7 +86,7 @@ jobs:
 
   release:
     name: Publish binaries
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
     needs: [docker-build, windows-build]
     runs-on: ubuntu-latest
     environment:
