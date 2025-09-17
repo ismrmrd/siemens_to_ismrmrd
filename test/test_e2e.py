@@ -25,7 +25,7 @@ def test_e2e(spec: Spec, request, fetch_test_data, convert_datfile, validate_out
 
 @pytest.fixture
 def convert_datfile(local_test_data_path, tmp_path):
-    """Runs the Pingvin on the input test data, producing an output file."""
+    """Runs siemens_to_ismrmrd on the input test data, producing an output file."""
     def _convert_datfile(spec):
         input_file = local_test_data_path(spec.datfile)
         output_file = os.path.join(tmp_path, spec.name + ".output.ismrmrd")

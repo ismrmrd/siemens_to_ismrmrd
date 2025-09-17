@@ -111,6 +111,9 @@ void readScanHeader(std::istream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHead
 std::vector<ChannelHeaderAndData>
 readChannelHeaders(std::istream &siemens_dat, bool VBFILE, const sMDH& mdh, const sScanHeader &scanhead, size_t& current_offset);
 
+// Helper function to efficiently skip bytes in a stream (which may be stdin)
+bool skipBytes(std::istream &stream, size_t bytes_to_skip, size_t& current_offset);
+
 int xml_file_is_valid(std::string &xml, std::string &schema_file) {
     xmlDocPtr doc;
     //parse an XML in-memory block and build a tree.
@@ -194,6 +197,42 @@ bool is_number(const std::string &s) {
         }
     }
     return ret;
+}
+
+// Helper function to efficiently skip bytes in a stream (which may be stdin)
+bool skipBytes(std::istream &stream, size_t bytes_to_skip, size_t& current_offset) {
+    if (bytes_to_skip == 0) {
+        return true;
+    }
+
+    // Use a buffer to read chunks instead of single bytes for better performance
+    const size_t buffer_size = 8192; // 8KB buffer
+    char buffer[buffer_size];
+
+    size_t remaining = bytes_to_skip;
+
+    while (remaining > 0) {
+        size_t to_read = std::min(remaining, buffer_size);
+
+        stream.read(buffer, to_read);
+
+        // Check if read was successful
+        std::streamsize bytes_read = stream.gcount();
+        if (bytes_read == 0) {
+            // End of stream or error
+            return false;
+        }
+
+        current_offset += bytes_read;
+        remaining -= bytes_read;
+
+        // If we read less than requested, we've hit the end of stream
+        if (static_cast<size_t>(bytes_read) < to_read) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 std::string get_time_string(size_t hours, size_t mins, size_t secs) {
@@ -437,7 +476,7 @@ std::string ws2s(const std::wstring &wstr) {
 
 int main(int argc, char* argv[]) {
 #ifdef _WIN32
-    // Change std::cin/std::cout to binary mode
+    // Change stdin/stdout to binary mode
     _setmode(_fileno(stdout), _O_BINARY);
     _setmode(_fileno(stdin), _O_BINARY);
 #endif
@@ -731,11 +770,9 @@ int main(int argc, char* argv[]) {
 
         // find the beginning of the desired measurement
         auto skip = ParcFileEntries[measurement_number - 1].off_ - current_offset;
-        // TODO: Should use seekg here when the input is a file - it's faster than reading and discarding bytes
-        for (size_t i = 0; i < skip; i++) {
-            char dummy;
-            siemens_dat.read(&dummy, 1);
-            current_offset++;
+        if (!skipBytes(siemens_dat, skip, current_offset)) {
+            std::cerr << "ERROR: Failed to skip to measurement data" << std::endl;
+            return -1;
         }
 
         uint32_t dma_length = 0, num_buffers = 0;
@@ -1005,28 +1042,20 @@ int main(int argc, char* argv[]) {
                 }
             }
         }
-
-        if (ParcRaidHead.count_ == measurement_number) {
-            // TODO: Reimplement without `tellg()` and `seekg()` vvvvv
-
-            // size_t end_position = siemens_dat.tellg();
-            // siemens_dat.seekg(0, std::ios::end);
-            // size_t eof_position = siemens_dat.tellg();
-            // if (end_position != eof_position) {
-            //     size_t additional_bytes = eof_position - end_position;
-            //     std::cerr << "WARNING: End of file was not reached during conversion. There are " <<
-            //             additional_bytes << " additional bytes at the end of file." << std::endl;
-            // }
-        }
     } // Loop through multiple measurements in multi-raid
 
     // Read the rest of the file, if any
+    const size_t buffer_size = 8192;
+    char buffer[buffer_size];
     size_t tail_count = 0;
-    char c;
-    while (siemens_dat.get(c)) {
-        tail_count++;
+    while (siemens_dat.read(buffer, buffer_size) || siemens_dat.gcount() > 0) {
+        tail_count += siemens_dat.gcount();
     }
-    // std::cerr << "Read " << tail_count << " bytes at the end of the file." << std::endl;
+
+    if (ParcRaidHead.count_ == measurement_number && tail_count > 0) {
+        std::cerr << "WARNING: End of file was not reached during conversion. There are " <<
+                tail_count << " additional bytes at the end of file." << std::endl;
+    }
 
     return 0;
 }
@@ -1044,18 +1073,6 @@ readChannelHeaders(std::istream &siemens_dat, bool VBFILE, const sMDH& firstMDH,
             } else {
                 siemens_dat.read(reinterpret_cast<char*>(&mdh), sizeof(sMDH));
                 current_offset += sizeof(sMDH);
-
-                /*
-                if (mdh.ushUsedChannels != scanhead.ushUsedChannels) {
-                    std::cerr << "WARNING: Channel count mismatch in MDH for channel " << c << ". Expected "
-                              << scanhead.ushUsedChannels << ", got " << mdh.ushUsedChannels << "." << std::endl;
-                }
-
-                if (mdh.ushSamplesInScan != scanhead.ushSamplesInScan) {
-                    std::cerr << "WARNING: Sample count mismatch in MDH for channel " << c << ". Expected "
-                              << scanhead.ushSamplesInScan << ", got " << mdh.ushSamplesInScan << "." << std::endl;
-                }
-                */
             }
             channels[c].header.ulTypeAndChannelLength = 0;
             channels[c].header.lMeasUID = mdh.lMeasUID;
@@ -1401,26 +1418,13 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::istream &siemens_dat, bool VBFI
     if (VBFILE) {
         len = dma_length - sizeof(sMDH);
         //Is VB magic? For now let's assume it's not, and that this is just Siemens secret sauce.
-        char dummy;
-        for (size_t i = 0; i < len; i++) {
-            siemens_dat.read(&dummy, 1);
-            current_offset++;
+        if (!skipBytes(siemens_dat, len, current_offset)) {
+            std::cerr << "WARNING: Failed to skip VB file secret sauce section" << std::endl;
         }
         return std::vector<ISMRMRD::Waveform>();
     } else {
         len = dma_length - sizeof(sScanHeader);
         size_t target_offset = current_offset + len;
-
-        // NOTE: BEGIN WORKAROUND
-        // TODO: Update this to remove `seekg()` and `tellg()`
-        // Currently skipping syncdata in order to get "streaming" mode working
-        // char dummy;
-        // for (size_t i = 0; i < len; i++) {
-        //     siemens_dat.read(&dummy, 1);
-        //     current_offset++;
-        // }
-        // return std::vector<ISMRMRD::Waveform>();
-        // NOTE: END WORKAROUND
 
         uint32_t packetSize;
         siemens_dat.read((char *) &packetSize, sizeof(uint32_t));
@@ -1435,10 +1439,8 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::istream &siemens_dat, bool VBFI
 
         if ((skip_syncdata) || (packedID.find("PMU") == packedID.npos)) { //packedID indicates this isn't PMU data, so let's jump ship.
             auto skip = target_offset - current_offset;
-            char dummy;
-            for (size_t i = 0; i < skip; i++) {
-                siemens_dat.read(&dummy, 1);
-                current_offset++;
+            if (!skipBytes(siemens_dat, skip, current_offset)) {
+                std::cerr << "WARNING: Failed to skip PMU data section" << std::endl;
             }
             return std::vector<ISMRMRD::Waveform>();
         }
@@ -1549,10 +1551,8 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::istream &siemens_dat, bool VBFI
         if (waveforms.size()) makeWaveformHeader(header); //Add the header if needed
 
         auto skip = target_offset - current_offset;
-        char dummy;
-        for (size_t i = 0; i < skip; i++) {
-            siemens_dat.read(&dummy, 1);
-            current_offset++;
+        if (!skipBytes(siemens_dat, skip, current_offset)) {
+            std::cerr << "WARNING: Failed to skip to end of waveform data" << std::endl;
         }
         return waveforms;
     }

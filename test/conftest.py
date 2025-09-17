@@ -53,11 +53,11 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         '--echo-log-on-failure', action='store_true', default=False,
-        help='Capture and print Pingvin logs on test failure.'
+        help='Capture and print siemens_to_ismrmrd output on test failure.'
     )
     parser.addoption(
         '--save-results', action='store', default="",
-        help='Save Pingvin output and logs in the specified directory.'
+        help='Save siemens_to_ismrmrd output in the specified directory.'
     )
     parser.addoption(
         '--download-all', action='store_true', default=False,
