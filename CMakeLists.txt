@@ -68,13 +68,6 @@ if (WIN32)
     add_definitions(-D__BUILD_CONVERTER_TINYXML__)
 endif()
 
-if (APPLE)
-  if (CMAKE_APPLE_SILICON_PROCESSOR STREQUAL "x86_64")
-    # Needed for Boost <= 1.80 on OSX x86_64 with C++17 compiler
-    add_definitions(-D_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
-  endif()
-endif()
-
 # Added for static linking!!!
 if (BUILD_DYNAMIC)
     set(Boost_USE_STATIC_LIBS OFF)
