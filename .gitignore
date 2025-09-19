@@ -4,3 +4,4 @@ build_debug/
 .DS_Store
 *.swp
 converter_version.h
+__pycache__/

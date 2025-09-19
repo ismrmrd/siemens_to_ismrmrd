@@ -502,7 +502,6 @@ int main(int argc, char* argv[]) {
     bool header_only = false;
     bool append_buffers = false;
     bool all_measurements = false;
-    bool multi_meas_file = false;
     bool skip_syncdata = false;
     bool attachTrajectory = false;
     bool list = false;
@@ -517,12 +516,11 @@ int main(int argc, char* argv[]) {
         ("file,f", po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file (defaults to stdin)>")
         ("VB", po::value<bool>(&VBFILE)->implicit_value(true), "<Input file is from VB instead of VD>")
         ("measNum,z", po::value<int>(&measurement_number)->default_value(1), "<Measurement number (with negative indexing)>")
-        ("allMeas,Z", po::value<bool>(&all_measurements)->implicit_value(true), "<All measurements flag>")
-        ("multiMeasFile,M", po::value<bool>(&multi_meas_file)->implicit_value(true), "<Multiple measurements in single output file flag>")
+        ("allMeas,Z", po::value<bool>(&all_measurements)->implicit_value(true), "<Extract all measurements>")
         ("skipSyncData", po::value<bool>(&skip_syncdata)->implicit_value(true), "<Skip syncdata (PMU) conversion>")
         ("attachTrajectory", po::value<bool>(&attachTrajectory)->implicit_value(true), "<Attach trajectories using vds design>")
-        ("pMap,m", po::value<std::string>(&parammap_file), "<Parameter map XML file>")
-        ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
+        ("pMap,m", po::value<std::string>(&parammap_file), "<Choose embedded parameter map XML file>")
+        ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Choose embedded parameter stylesheet XSL file>")
         ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
         ("user-stylesheet", po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
         ("output,o", po::value<std::string>(), "<ISMRMRD output file (defaults to stdout)>")
@@ -530,8 +528,8 @@ int main(int argc, char* argv[]) {
         ("extract,e", po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X", po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F", po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
-        ("headerOnly,H", po::value<bool>(&header_only)->implicit_value(true), "<HEADER ONLY flag (create xml header only)>")
-        ("bufferAppend,B", po::value<bool>(&append_buffers)->implicit_value(true), "<Append Siemens protocol buffers (bas64) to user parameters>")
+        ("headerOnly,H", po::value<bool>(&header_only)->implicit_value(true), "<Produce ISMRMRD XML header only>")
+        ("bufferAppend,B", po::value<bool>(&append_buffers)->implicit_value(true), "<Append Siemens protocol buffers (base64) to user parameters>")
         ("studyDate", po::value<std::string>(&study_date_user_supplied), "<User can supply study date, in the format of yyyy-mm-dd>");
 
     po::options_description display_options("Allowed options");
@@ -540,20 +538,21 @@ int main(int argc, char* argv[]) {
         ("version,v", "Prints converter version and ISMRMRD version")
         ("file,f", "<SIEMENS dat file (defaults to stdin)>")
         ("VB", "<Input file is from VB instead of VD>")
-        ("measNum,z", "<Measurement number>")
-        ("allMeas,Z", "<All measurements flag>")
-        ("multiMeasFile,M", "<Multiple measurements in single file flag>")
+        ("measNum,z", "<Measurement number (with negative indexing)>")
+        ("allMeas,Z", "<Extract all measurements>")
         ("skipSyncData", "<Skip syncdata (PMU) conversion>")
         ("attachTrajectory", "<Attach trajectories using vds design>")
-        ("pMap,m", "<Parameter map XML>")
-        ("pMapStyle,x", "<Parameter stylesheet XSL>")
+        ("pMap,m", "<Choose embedded parameter map XML>")
+        ("pMapStyle,x", "<Choose embedded parameter stylesheet XSL>")
+        ("user-map", "<Provide a parameter map XML file>")
+        ("user-stylesheet", "<Provide a parameter stylesheet XSL file>")
         ("output,o", "<ISMRMRD output file (defaults to stdout)>")
         ("list,l", "<List embedded files>")
         ("extract,e", "<Extract embedded file>")
         ("debug,X", "<Debug XML flag>")
         ("flashPatRef,F", "<FLASH PAT REF flag>")
-        ("headerOnly,H", "<HEADER ONLY flag (create xml header only)>")
-        ("bufferAppend,B", "<Append protocol buffers>")
+        ("headerOnly,H", "<Produce ISMRMRD XML header only>")
+        ("bufferAppend,B", "<Append Siemens protocol buffers (base64) to user parameters>")
         ("studyDate", "<User can supply study date, in the format of yyyy-mm-dd>");
 
     po::variables_map vm;
@@ -648,6 +647,20 @@ int main(int argc, char* argv[]) {
         std::cerr << "Output file not specified -- using stdout" << std::endl;
     }
 
+    std::unique_ptr<std::ofstream> outfile;
+    if (ismrmrd_file.length() > 0) {
+        outfile = std::make_unique<std::ofstream>(ismrmrd_file, std::ios::out | std::ios::binary);
+        if (!outfile->good()) {
+            std::cerr << "Could not open output file: " << ismrmrd_file << std::endl;
+            return -1;
+        }
+    } else {
+        ismrmrd_file = "stdout";
+    }
+    std::ostream& output = outfile ? *outfile : std::cout;
+    ISMRMRD::OStreamView ws(output);
+    ISMRMRD::ProtocolSerializer serializer(ws);
+
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
 
     std::istream& siemens_dat = infile ? *infile : std::cin;
@@ -688,9 +701,7 @@ int main(int argc, char* argv[]) {
     std::vector<MrParcRaidFileEntry> ParcFileEntries = readParcFileEntries(siemens_dat, ParcRaidHead, VBFILE, current_offset);
 
     // Loop through all measurements in multi-raid
-    std::string ismrmrd_file_orig = ismrmrd_file;
     unsigned int firstMeas, lastMeas;
-
     if (all_measurements)
     {
         firstMeas = 1;
@@ -704,31 +715,6 @@ int main(int argc, char* argv[]) {
 
     for (unsigned int currentMeas = firstMeas; currentMeas <= lastMeas; currentMeas++) {
         measurement_number = currentMeas;
-
-        if (all_measurements)
-        {
-            if (!multi_meas_file && ismrmrd_file_orig.length() > 0)
-            {
-                // Add the measurement number as a suffix to the filename, excluding the file extension
-                std::vector<std::string> v;
-                boost::algorithm::split(v, ismrmrd_file_orig, boost::is_any_of("."));
-
-                if (v.size() > 1)
-                {
-                    std::stringstream ss;
-                    ss << v.at(v.size()-2) << "_" << currentMeas;
-                    v.at(v.size()-2) = ss.str();
-                    ismrmrd_file = boost::algorithm::join(v, ".");
-                }
-                else
-                {
-                    // No file extension found
-                    std::stringstream ss;
-                    ss << ismrmrd_file_orig << "_" << currentMeas;
-                    ismrmrd_file = ss.str();
-                }
-            }
-        }
 
         std::cerr << "-----------------------------------------------------------------" << std::endl;
         if (all_measurements)
@@ -878,18 +864,6 @@ int main(int argc, char* argv[]) {
             append_buffers_to_xml_header(buffers, num_buffers, header);
         }
 
-        std::unique_ptr<std::ofstream> outfile;
-        if (ismrmrd_file.length() > 0) {
-            outfile = std::make_unique<std::ofstream>(ismrmrd_file, std::ios::out | std::ios::binary);
-            if (!outfile->good()) {
-                std::cerr << "Could not open output file: " << ismrmrd_file << std::endl;
-                return -1;
-            }
-        }
-        std::ostream& output = outfile ? *outfile : std::cout;
-        ISMRMRD::OStreamView ws(output);
-        ISMRMRD::ProtocolSerializer serializer(ws);
-
         //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profilesISMRMRD::NDArray<float> traj;
 //        auto traj = getTrajectory(wip_double, trajectory, dwell_time_0, radial_views);
         ISMRMRD::NDArray<float> traj;
@@ -1013,8 +987,6 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        serializer.close();
-
         //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
         std::streamoff mystery_bytes = (std::streamoff) (ParcFileEntries[measurement_number - 1].off_ +
                                                         ParcFileEntries[measurement_number - 1].len_) - current_offset;
@@ -1043,6 +1015,8 @@ int main(int argc, char* argv[]) {
             }
         }
     } // Loop through multiple measurements in multi-raid
+
+    serializer.close();
 
     // Read the rest of the file, if any
     const size_t buffer_size = 8192;

@@ -5,9 +5,19 @@
 
 
 template <typename T>
-void log_image(ISMRMRD::Image<T> &img)
+void read_and_log_image(ISMRMRD::ProtocolDeserializer &deserializer)
 {
-    std::cerr << "IMAGE " << img.getHead().image_series_index << ", " << img.getHead().image_index << std::endl;
+    ISMRMRD::Image<T> img;
+    deserializer.deserialize(img);
+    std::cout << "IMAGE " << img.getHead().image_series_index << ", " << img.getHead().image_index << std::endl;
+}
+
+template <typename T>
+void read_and_log_ndarray(ISMRMRD::ProtocolDeserializer &deserializer)
+{
+    ISMRMRD::NDArray<T> arr;
+    deserializer.deserialize(arr);
+    std::cout << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
 }
 
 
@@ -32,91 +42,59 @@ int main(int argc, char** argv)
 
             std::stringstream xmlstream;
             ISMRMRD::serialize(hdr, xmlstream);
-            std::cerr << "Header: " << xmlstream.str().size() << " bytes" << std::endl;
+            std::cout << "Header: " << xmlstream.str().size() << " bytes" << std::endl;
         } else if (deserializer.peek() == ISMRMRD::ISMRMRD_MESSAGE_ACQUISITION) {
             ISMRMRD::Acquisition acq;
             deserializer.deserialize(acq);
-            std::cerr << "ACQUISITION " << acq.getHead().measurement_uid << ", " << acq.getNumberOfDataElements() << std::endl;
+            std::cout << "ACQUISITION " << acq.getHead().measurement_uid << ", " << acq.getNumberOfDataElements() << std::endl;
         } else if (deserializer.peek() == ISMRMRD::ISMRMRD_MESSAGE_IMAGE) {
             if (deserializer.peek_image_data_type() == ISMRMRD::ISMRMRD_USHORT) {
-                ISMRMRD::Image<unsigned short> img;
-                deserializer.deserialize(img);
-                log_image(img);
+                read_and_log_image<unsigned short>(deserializer);
             } else if (deserializer.peek_image_data_type() == ISMRMRD::ISMRMRD_SHORT) {
-                ISMRMRD::Image<short> img;
-                deserializer.deserialize(img);
-                log_image(img);
+                read_and_log_image<short>(deserializer);
             } else if (deserializer.peek_image_data_type() == ISMRMRD::ISMRMRD_UINT) {
-                ISMRMRD::Image<unsigned int> img;
-                deserializer.deserialize(img);
-                log_image(img);
+                read_and_log_image<unsigned int>(deserializer);
             } else if (deserializer.peek_image_data_type() == ISMRMRD::ISMRMRD_INT) {
-                ISMRMRD::Image<int> img;
-                deserializer.deserialize(img);
-                log_image(img);
+                read_and_log_image<int>(deserializer);
             } else if (deserializer.peek_image_data_type() == ISMRMRD::ISMRMRD_FLOAT) {
-                ISMRMRD::Image<float> img;
-                deserializer.deserialize(img);
-                log_image(img);
+                read_and_log_image<float>(deserializer);
             } else if (deserializer.peek_image_data_type() == ISMRMRD::ISMRMRD_DOUBLE) {
-                ISMRMRD::Image<double> img;
-                deserializer.deserialize(img);
-                log_image(img);
+                read_and_log_image<double>(deserializer);
             } else if (deserializer.peek_image_data_type() == ISMRMRD::ISMRMRD_CXFLOAT) {
-                ISMRMRD::Image<std::complex<float> > img;
-                deserializer.deserialize(img);
-                log_image(img);
+                read_and_log_image<std::complex<float> >(deserializer);
             } else if (deserializer.peek_image_data_type() == ISMRMRD::ISMRMRD_CXDOUBLE) {
-                ISMRMRD::Image<std::complex<double> > img;
-                deserializer.deserialize(img);
-                log_image(img);
+                read_and_log_image<std::complex<double> >(deserializer);
             } else {
                 throw std::runtime_error("Unknown image type");
             }
         } else if (deserializer.peek() == ISMRMRD::ISMRMRD_MESSAGE_WAVEFORM) {
             ISMRMRD::Waveform wfm;
             deserializer.deserialize(wfm);
-            std::cerr << "WAVEFORM " << wfm.size() << std::endl;
+            std::cout << "WAVEFORM " << wfm.size() << std::endl;
         } else if (deserializer.peek() == ISMRMRD::ISMRMRD_MESSAGE_NDARRAY) {
             if (deserializer.peek_ndarray_data_type() == ISMRMRD::ISMRMRD_USHORT) {
-                ISMRMRD::NDArray<unsigned short> arr;
-                deserializer.deserialize(arr);
-                std::cerr << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
+                read_and_log_ndarray<unsigned short>(deserializer);
             } else if (deserializer.peek_ndarray_data_type() == ISMRMRD::ISMRMRD_SHORT) {
-                ISMRMRD::NDArray<short> arr;
-                deserializer.deserialize(arr);
-                std::cerr << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
+                read_and_log_ndarray<short>(deserializer);
             } else if (deserializer.peek_ndarray_data_type() == ISMRMRD::ISMRMRD_UINT) {
-                ISMRMRD::NDArray<unsigned int> arr;
-                deserializer.deserialize(arr);
-                std::cerr << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
+                read_and_log_ndarray<unsigned int>(deserializer);
             } else if (deserializer.peek_ndarray_data_type() == ISMRMRD::ISMRMRD_INT) {
-                ISMRMRD::NDArray<int> arr;
-                deserializer.deserialize(arr);
-                std::cerr << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
+                read_and_log_ndarray<int>(deserializer);
             } else if (deserializer.peek_ndarray_data_type() == ISMRMRD::ISMRMRD_FLOAT) {
-                ISMRMRD::NDArray<float> arr;
-                deserializer.deserialize(arr);
-                std::cerr << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
+                read_and_log_ndarray<float>(deserializer);
             } else if (deserializer.peek_ndarray_data_type() == ISMRMRD::ISMRMRD_DOUBLE) {
-                ISMRMRD::NDArray<double> arr;
-                deserializer.deserialize(arr);
-                std::cerr << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
+                read_and_log_ndarray<double>(deserializer);
             } else if (deserializer.peek_ndarray_data_type() == ISMRMRD::ISMRMRD_CXFLOAT) {
-                ISMRMRD::NDArray<std::complex<float> > arr;
-                deserializer.deserialize(arr);
-                std::cerr << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
+                read_and_log_ndarray<std::complex<float> >(deserializer);
             } else if (deserializer.peek_ndarray_data_type() == ISMRMRD::ISMRMRD_CXDOUBLE) {
-                ISMRMRD::NDArray<std::complex<double> > arr;
-                deserializer.deserialize(arr);
-                std::cerr << "NDARRAY " << arr.getNDim() << ", " << arr.getDataType() << std::endl;
+                read_and_log_ndarray<std::complex<double> >(deserializer);
             } else {
                 throw std::runtime_error("Unknown nd array type");
             }
         } else if (deserializer.peek() == ISMRMRD::ISMRMRD_MESSAGE_TEXT) {
             ISMRMRD::TextMessage txt;
             deserializer.deserialize(txt);
-            std::cerr << "TEXT MESSAGE: " << txt.message << std::endl;
+            std::cout << "TEXT MESSAGE: " << txt.message << std::endl;
         } else {
             std::stringstream ss;
             ss << "Unknown message type " << deserializer.peek();
