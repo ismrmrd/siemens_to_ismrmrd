@@ -1,0 +1,22 @@
+datfile: tse/meas_MID00450_FID76726_SAX_TE62_DIR_TSE/meas_MID00450_FID76726_SAX_TE62_DIR_TSE.dat
+checksum: 72b10d19eb14f558bc30c0e27e1af5f0
+measurement: 1
+parameter_map: IsmrmrdParameterMap_Siemens.xml
+parameter_xsl: IsmrmrdParameterMap_Siemens.xsl
+
+measurement_id: "45387_913413239_913413249_411"
+protocol_name: AdjCoilSens
+receiver_channels: 30
+field_strength: 2.89362001
+num_waveforms: 0
+num_acquisitions: 1842
+measurement_uid: 411
+kspace_step1s: [0, 127]
+kspace_step2s: [0, 31]
+averages: [0, 1]
+slices: [0, 0]
+contrasts: [0, 0]
+phases: [0, 0]
+repetitions: [0, 0]
+sets: [0, 1]
+segments: [0, 0]

@@ -1,0 +1,22 @@
+datfile: spiral/meas_MID00080_FID16005_MiniIRT_B0.dat
+checksum: 31865ce197491bb675e095a1d6096d36
+measurement: 2
+parameter_map: IsmrmrdParameterMap_Siemens.xml
+parameter_xsl: IsmrmrdParameterMap_Siemens_B0REF.xsl
+
+measurement_id: "41624_10304760_69956466_80"
+protocol_name: MiniIRT_B0
+receiver_channels: 12
+field_strength: 0.55000001
+num_waveforms: 0
+num_acquisitions: 672
+measurement_uid: 80
+kspace_step1s: [0, 23]
+kspace_step2s: [0, 0]
+averages: [0, 0]
+slices: [0, 0]
+contrasts: [0, 0]
+phases: [0, 0]
+repetitions: [0, 23]
+sets: [0, 1]
+segments: [0, 0]

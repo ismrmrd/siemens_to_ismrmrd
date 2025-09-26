@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.21)
 
 project(SIEMENS-TO-ISMRMRD)
 
@@ -17,9 +17,23 @@ message(STATUS "Looking for packages in : ${CMAKE_PREFIX_PATH}")
 
 #VERSIONING
 set(SIEMENS_TO_ISMRMRD_VERSION_MAJOR 1)
-set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 2)
-set(SIEMENS_TO_ISMRMRD_VERSION_PATCH 13)
+set(SIEMENS_TO_ISMRMRD_VERSION_MINOR 3)
+set(SIEMENS_TO_ISMRMRD_VERSION_PATCH 0)
 set(SIEMENS_TO_ISMRMRD_VERSION_STRING ${SIEMENS_TO_ISMRMRD_VERSION_MAJOR}.${SIEMENS_TO_ISMRMRD_VERSION_MINOR}.${SIEMENS_TO_ISMRMRD_VERSION_PATCH})
+
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/vcpkg.json VCPKG_JSON)
+string(JSON VCPKG_VERSION_STRING GET ${VCPKG_JSON} version)
+
+if (NOT VCPKG_VERSION_STRING STREQUAL SIEMENS_TO_ISMRMRD_VERSION_STRING)
+    message("")
+    message("-----------------------------------------------")
+    message("           !! VCPKG VERSION ERROR!!            ")
+    message("    Vcpkg version in vcpkg.json must match     ")
+    message(" SIEMENS_TO_ISMRMRD version in CMakeLists.txt  ")
+    message("-----------------------------------------------")
+    message("")
+    message(FATAL_ERROR "     FATAL VCPKG VERSION ERROR")
+endif ()
 
 # Generate the converter_version.h header file
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/converter_version.in ${CMAKE_CURRENT_SOURCE_DIR}/converter_version.h)
@@ -38,18 +52,20 @@ if(NOT CMAKE_BUILD_TYPE)
       FORCE)
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+
 if (WIN32)
     ADD_DEFINITIONS(-DWIN32 -D_WIN32 -D_WINDOWS)
-    # ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
+    ADD_DEFINITIONS(-DUNICODE -D_UNICODE)
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /MP")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W3")
+    # https://devblogs.microsoft.com/cppblog/msvc-now-correctly-reports-__cplusplus/
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:__cplusplus")
     set (CMAKE_EXE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_SHARED_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_STATIC_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     set (CMAKE_MODULE_LINKER_FLAGS_DEBUG "/debug /INCREMENTAL:NO")
     add_definitions(-D__BUILD_CONVERTER_TINYXML__)
-else()
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --std=c++11")
 endif()
 
 # Added for static linking!!!
@@ -58,23 +74,14 @@ if (BUILD_DYNAMIC)
     message("Building dynamically linked application.")
 else()
    set(Boost_USE_STATIC_LIBS ON)
+   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
    message("Building statically linked application.")
 endif()
 
-# set(Boost_USE_STATIC_LIBS OFF)
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_RUNTIME OFF)
-
-
-find_package(Boost COMPONENTS system thread program_options filesystem timer REQUIRED)
+find_package(Boost COMPONENTS system program_options filesystem REQUIRED)
 find_package(ISMRMRD 1.14.2 REQUIRED)
-find_package(HDF5  REQUIRED COMPONENTS C)
-
-include_directories( ${ISMRMRD_INCLUDE_DIR} ${HDF5_C_INCLUDE_DIR} )
-link_directories( ${ISMRMRD_LIB_DIR} )
 
 add_executable(embed base64.cpp embed.cpp)
-
 target_link_libraries(embed ${Boost_LIBRARIES})
 
 add_custom_command(
@@ -107,13 +114,29 @@ add_custom_command(
                 ${ISMRMRD_SCHEMA_DIR}/ismrmrd.xsd
                 )
 
+set(SIEMENS_TO_ISMRMRD_LINK_LIBRARIES ISMRMRD::ISMRMRD ${Boost_LIBRARIES})
+
+if (NOT BUILD_DYNAMIC)
+  find_library(STATIC_LIBXML2_LIBRARY NAMES libxml2.a libxml2.lib REQUIRED)
+  message(STATUS "STATIC_LIBXML2_LIBRARY: ${STATIC_LIBXML2_LIBRARY}")
+  set(LIBXML2_LIBRARY ${STATIC_LIBXML2_LIBRARY})
+
+  find_library(STATIC_LIBXSLT_LIBRARY NAMES libxslt.a libxslt.lib REQUIRED)
+  message(STATUS "STATIC_LIBXSLT_LIBRARY: ${STATIC_LIBXSLT_LIBRARY}")
+  set(LIBXSLT_LIBRARY ${STATIC_LIBXSLT_LIBRARY})
+endif()
+
 find_package(LibXml2 REQUIRED)
 find_package(LibXslt REQUIRED)
+message(STATUS "Found libxml2: ${LIBXML2_LIBRARIES}")
+message(STATUS "Found libxslt: ${LIBXSLT_LIBRARIES}")
+list(APPEND SIEMENS_TO_ISMRMRD_LINK_LIBRARIES LibXml2::LibXml2 LibXslt::LibXslt)
 
-include_directories(${Boost_INCLUDE_DIR} ${LIBXML2_INCLUDE_DIR} ${LIBXSLT_INCLUDE_DIR})
-
-if(WIN32)
-    link_directories(${Boost_LIBRARY_DIRS})
+if (NOT BUILD_DYNAMIC)
+  if (NOT WIN32)
+    find_library(STATIC_LIBZ_LIBRARY NAMES libz.a libz.lib REQUIRED)
+    list(APPEND SIEMENS_TO_ISMRMRD_LINK_LIBRARIES ${STATIC_LIBZ_LIBRARY})
+  endif()
 endif()
 
 add_executable(siemens_to_ismrmrd
@@ -130,13 +153,29 @@ add_executable(siemens_to_ismrmrd
                ${schema_files}
                )
 
-target_link_libraries(siemens_to_ismrmrd ${LIBXSLT_LIBRARIES} ${LIBXML2_LIBRARIES})
+target_link_libraries(siemens_to_ismrmrd ${SIEMENS_TO_ISMRMRD_LINK_LIBRARIES})
 
-target_link_libraries(siemens_to_ismrmrd
-                        ISMRMRD::ISMRMRD
-                        ${Boost_LIBRARIES} )
+if (NOT BUILD_DYNAMIC AND NOT WIN32)
+  target_link_options(siemens_to_ismrmrd PRIVATE -static-libgcc -static-libstdc++ -static)
+endif()
 
 install(TARGETS siemens_to_ismrmrd DESTINATION bin)
+
+
+add_executable(ismrmrd_to_siemens ismrmrd_to_siemens.cpp)
+
+target_link_libraries(ismrmrd_to_siemens ${SIEMENS_TO_ISMRMRD_LINK_LIBRARIES})
+
+if (NOT BUILD_DYNAMIC AND NOT WIN32)
+  target_link_options(ismrmrd_to_siemens PRIVATE -static-libgcc -static-libstdc++ -static)
+endif()
+
+install(TARGETS ismrmrd_to_siemens DESTINATION bin)
+
+
+add_executable(ismrmrd_inspect_stream inspect.cpp)
+target_link_libraries(ismrmrd_inspect_stream ISMRMRD::ISMRMRD)
+
 
 # Create package
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)

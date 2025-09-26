@@ -73,7 +73,7 @@ namespace XProtocol
             param_generic =
                 '<'
                 >> lexeme[+(char_ - '.')[at_c<1>(_val) += _1]] >> '.'
-                //		  >> quoted_string[std::cout << "GENERIC: " << at_c<1>(_val) << ", " << (at_c<0>(_val) = _1) << std::endl]
+                //		  >> quoted_string[std::cerr << "GENERIC: " << at_c<1>(_val) << ", " << (at_c<0>(_val) = _1) << std::endl]
                 >> quoted_string[at_c<0>(_val) = _1]
                 >> '>' >> '{'
                 >> *burn_properties
@@ -92,7 +92,7 @@ namespace XProtocol
             param_array =
                 lit("<ParamArray.")[at_c<1>(_val) = std::string("ParamArray")]
                 >> quoted_string[at_c<0>(_val) = _1]
-                //				                    >> quoted_string[std::cout << "ARRAY: " << at_c<1>(_val) << ", " << _1 << std::endl]
+                //				                    >> quoted_string[std::cerr << "ARRAY: " << at_c<1>(_val) << ", " << _1 << std::endl]
                 >> '>' >> '{'
                 >> *((lit("<Visible>") >> quoted_string) | (lit("<DefaultSize>") >> long_) | (lit("<MinSize>") >> long_) | (lit("<Label>") >> quoted_string) | (lit("<MaxSize>") >> long_) | (lit("<Comment>") >> quoted_string)) //Burn this
                 >> lit("<Default>")
@@ -167,7 +167,7 @@ namespace XProtocol
 
         if (!r || (iter != end))
         {
-            std::cout << input << std::endl;
+            std::cerr << input << std::endl;
             return -1;
         }
 
