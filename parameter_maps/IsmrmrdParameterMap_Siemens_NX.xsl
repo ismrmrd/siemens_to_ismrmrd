@@ -106,6 +106,32 @@
                 <patientPosition>
                     <xsl:value-of select="siemens/YAPS/tPatientPosition"/>
                 </patientPosition>
+                <relativeTablePosition>
+                    <x>
+                    <xsl:choose>
+                        <xsl:when test="siemens/DICOM/lGlobalTablePosSag">
+                            <xsl:value-of select="siemens/DICOM/lGlobalTablePosSag"/>
+                        </xsl:when>
+                        <xsl:otherwise>0.0</xsl:otherwise>
+                    </xsl:choose>
+                    </x>
+                    <y>
+                    <xsl:choose>
+                        <xsl:when test="siemens/DICOM/lGlobalTablePosCor">
+                            <xsl:value-of select="siemens/DICOM/lGlobalTablePosCor"/>
+                        </xsl:when>
+                        <xsl:otherwise>0.0</xsl:otherwise>
+                    </xsl:choose>
+                    </y>
+                    <z>
+                    <xsl:choose>
+                        <xsl:when test="siemens/DICOM/lGlobalTablePosTra">
+                            <xsl:value-of select="siemens/DICOM/lGlobalTablePosTra"/>
+                        </xsl:when>
+                        <xsl:otherwise>0.0</xsl:otherwise>
+                    </xsl:choose>
+                    </z>
+                </relativeTablePosition>
                 <protocolName>
                     <xsl:value-of select="siemens/MEAS/tProtocolName"/>
                 </protocolName>
