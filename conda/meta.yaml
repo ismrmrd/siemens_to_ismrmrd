@@ -28,6 +28,14 @@ requirements:
     - libxml2>=2.9
     - libxslt=1.1
 
+test:
+  requires:
+    - ismrmrd-python==1.14.2
+    - pytest>=8.4.2
+    - PyYAML>=6.0.2
+  source_files:
+    - test
+
 about:
   home: https://github.com/ismrmrd/siemens_to_ismrmrd
   license: MIT

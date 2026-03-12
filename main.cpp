@@ -18,20 +18,26 @@
 #include "ConverterXml.h"
 
 #include "ismrmrd/ismrmrd.h"
-#include "ismrmrd/dataset.h"
 #include "ismrmrd/version.h"
 #include "ismrmrd/xml.h"
+#include "ismrmrd/waveform.h"
+#include "ismrmrd/serialization.h"
+#include "ismrmrd/serialization_iostream.h"
 #include "converter_version.h"
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
 
 #include <boost/filesystem.hpp>
-#include <boost/locale/encoding_utf.hpp>
+#include <boost/locale.hpp>
 using boost::locale::conv::utf_to_utf;
 
 #include <iomanip>
 
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -69,18 +75,18 @@ void calc_traj(double* xgrad, double* ygrad, int ngrad, int Nints, double Tgsamp
                double** weights);
 
 
-std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
+std::vector<ISMRMRD::Waveform> readSyncdata(std::istream &siemens_dat, bool VBFILE, unsigned long acquisitions,
                                             uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header,
-                                            long scan_counter, bool skip_syncdata);
+                                            long scan_counter, bool skip_syncdata, size_t& current_offset);
 
 std::string select_file(const std::string &, const std::string &, bool, unsigned int);
 std::string get_file_content(const std::string &file);
 
 
 std::vector<MrParcRaidFileEntry>
-readParcFileEntries(std::ifstream &siemens_dat, const MrParcRaidFileHeader &ParcRaidHead, bool VBFILE);
+readParcFileEntries(std::istream &siemens_dat, const MrParcRaidFileHeader &ParcRaidHead, bool VBFILE, size_t& current_offset);
 
-std::vector<MeasurementHeaderBuffer> readMeasurementHeaderBuffers(std::ifstream &siemens_dat, uint32_t num_buffers);
+std::vector<MeasurementHeaderBuffer> readMeasurementHeaderBuffers(std::istream &siemens_dat, uint32_t num_buffers, size_t& current_offset);
 
 std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_content, uint32_t num_buffers,
                           std::vector<MeasurementHeaderBuffer> &buffers, std::vector<std::string> &wip_double,
@@ -100,10 +106,13 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
                bool isAdjustCoilSens, bool isAdjQuietCoilSens, bool isVB, bool isNX, bool attachTrajectory, ISMRMRD::NDArray<float> &traj,
                const sScanHeader &scanhead, const std::vector<ChannelHeaderAndData> &channels);
 
-void readScanHeader(std::ifstream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHeader &scanhead);
+void readScanHeader(std::istream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHeader &scanhead, size_t& current_offset);
 
 std::vector<ChannelHeaderAndData>
-readChannelHeaders(std::ifstream &siemens_dat, bool VBFILE, const sScanHeader &scanhead);
+readChannelHeaders(std::istream &siemens_dat, bool VBFILE, const sMDH& mdh, const sScanHeader &scanhead, size_t& current_offset);
+
+// Helper function to efficiently skip bytes in a stream (which may be stdin)
+bool skipBytes(std::istream &stream, size_t bytes_to_skip, size_t& current_offset);
 
 int xml_file_is_valid(std::string &xml, std::string &schema_file) {
     xmlDocPtr doc;
@@ -190,6 +199,42 @@ bool is_number(const std::string &s) {
     return ret;
 }
 
+// Helper function to efficiently skip bytes in a stream (which may be stdin)
+bool skipBytes(std::istream &stream, size_t bytes_to_skip, size_t& current_offset) {
+    if (bytes_to_skip == 0) {
+        return true;
+    }
+
+    // Use a buffer to read chunks instead of single bytes for better performance
+    const size_t buffer_size = 8192; // 8KB buffer
+    char buffer[buffer_size];
+
+    size_t remaining = bytes_to_skip;
+
+    while (remaining > 0) {
+        size_t to_read = std::min(remaining, buffer_size);
+
+        stream.read(buffer, to_read);
+
+        // Check if read was successful
+        std::streamsize bytes_read = stream.gcount();
+        if (bytes_read == 0) {
+            // End of stream or error
+            return false;
+        }
+
+        current_offset += bytes_read;
+        remaining -= bytes_read;
+
+        // If we read less than requested, we've hit the end of stream
+        if (static_cast<size_t>(bytes_read) < to_read) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 std::string get_time_string(size_t hours, size_t mins, size_t secs) {
     std::stringstream str;
     str << std::setw(2) << std::setfill('0') << hours << ":"
@@ -233,12 +278,12 @@ bool fill_ismrmrd_header(ISMRMRD::IsmrmrdHeader &h, const std::string &study_dat
             if(study_date_needed && !study_date.empty())
             {
                 study.studyDate.set(study_date);
-                std::cout << "Study date: " << study_date << std::endl;
+                std::cerr << "Study date: " << study_date << std::endl;
             }
 
             if (study_time_needed && !study_time.empty()) {
                 study.studyTime.set(study_time);
-                std::cout << "Study time: " << study_time << std::endl;
+                std::cerr << "Study time: " << study_time << std::endl;
             }
 
             h.studyInformation.set(study);
@@ -303,7 +348,7 @@ std::string ProcessParameterMap(const XProtocol::XNode &node, const char *mapfil
                 boost::split(split_path, source, boost::is_any_of("."), boost::token_compress_on);
 
                 if (is_number(split_path[0])) {
-                    std::cout << "First element of path (" << source << ") cannot be numeric" << std::endl;
+                    std::cerr << "First element of path (" << source << ") cannot be numeric" << std::endl;
                     continue;
                 }
 
@@ -311,7 +356,7 @@ std::string ProcessParameterMap(const XProtocol::XNode &node, const char *mapfil
                 for (unsigned int i = 1; i < split_path.size() - 1; i++) {
                     /*
                     if (is_number(split_path[i]) && (i != split_path.size())) {
-                    std::cout << "Numeric index not supported inside path for source = " << source << std::endl;
+                    std::cerr << "Numeric index not supported inside path for source = " << source << std::endl;
                     continue;
                     }*/
 
@@ -331,14 +376,14 @@ std::string ProcessParameterMap(const XProtocol::XNode &node, const char *mapfil
                 if (n) {
                     parameters = boost::apply_visitor(XProtocol::getStringValueArray(), *n);
                 } else {
-                    std::cout << "Search path: " << search_path << " not found." << std::endl;
+                    std::cerr << "Search path: " << search_path << " not found." << std::endl;
                 }
 
                 if (index >= 0) {
                     if (parameters.size() > index) {
                         out_n.add(destination, parameters[index]);
                     } else {
-                        std::cout << "Parameter index (" << index << ") not valid for search path " << search_path
+                        std::cerr << "Parameter index (" << index << ") not valid for search path " << search_path
                                   << std::endl;
                         continue;
                     }
@@ -346,11 +391,11 @@ std::string ProcessParameterMap(const XProtocol::XNode &node, const char *mapfil
                     out_n.add(destination, parameters);
                 }
             } else {
-                std::cout << "Malformed parameter map" << std::endl;
+                std::cerr << "Malformed parameter map" << std::endl;
             }
         }
     } else {
-        std::cout << "Malformed parameter map (parameters section not found)" << std::endl;
+        std::cerr << "Malformed parameter map (parameters section not found)" << std::endl;
         return std::string("");
     }
     return XmlToString(out_doc);
@@ -430,6 +475,12 @@ std::string ws2s(const std::wstring &wstr) {
 }
 
 int main(int argc, char* argv[]) {
+#ifdef _WIN32
+    // Change stdin/stdout to binary mode
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stdin), _O_BINARY);
+#endif
+
     std::string siemens_dat_filename;
     int measurement_number;
 
@@ -441,17 +492,16 @@ int main(int argc, char* argv[]) {
 
     std::string schema_file_name;
 
-    std::string ismrmrd_group;
     std::string date_time = get_date_time_string();
 
     std::string study_date_user_supplied;
 
+    bool VBFILE = false;
     bool debug_xml = false;
     bool flash_pat_ref_scan = false;
     bool header_only = false;
     bool append_buffers = false;
     bool all_measurements = false;
-    bool multi_meas_file = false;
     bool skip_syncdata = false;
     bool attachTrajectory = false;
     bool list = false;
@@ -463,50 +513,46 @@ int main(int argc, char* argv[]) {
     desc.add_options()
         ("help,h", "Produce HELP message")
         ("version,v", "Prints converter version and ISMRMRD version")
-        ("file,f", po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file>")
+        ("file,f", po::value<std::string>(&siemens_dat_filename), "<SIEMENS dat file (defaults to stdin)>")
+        ("VB", po::value<bool>(&VBFILE)->implicit_value(true), "<Input file is from VB instead of VD>")
         ("measNum,z", po::value<int>(&measurement_number)->default_value(1), "<Measurement number (with negative indexing)>")
-        ("allMeas,Z", po::value<bool>(&all_measurements)->implicit_value(true), "<All measurements flag>")
-        ("multiMeasFile,M", po::value<bool>(&multi_meas_file)->implicit_value(true), "<Multiple measurements in single output file flag>")
+        ("allMeas,Z", po::value<bool>(&all_measurements)->implicit_value(true), "<Extract all measurements>")
         ("skipSyncData", po::value<bool>(&skip_syncdata)->implicit_value(true), "<Skip syncdata (PMU) conversion>")
         ("attachTrajectory", po::value<bool>(&attachTrajectory)->implicit_value(true), "<Attach trajectories using vds design>")
-        ("pMap,m", po::value<std::string>(&parammap_file), "<Parameter map XML file>")
-        ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Parameter stylesheet XSL file>")
+        ("pMap,m", po::value<std::string>(&parammap_file), "<Choose embedded parameter map XML file>")
+        ("pMapStyle,x", po::value<std::string>(&parammap_xsl), "<Choose embedded parameter stylesheet XSL file>")
         ("user-map", po::value<std::string>(&usermap_file), "<Provide a parameter map XML file>")
         ("user-stylesheet", po::value<std::string>(&usermap_xsl), "<Provide a parameter stylesheet XSL file>")
-        ("output,o", po::value<std::string>(), "<ISMRMRD output file (defaults to the input file name, with .mrd extension)>")
-        ("outputGroup,g", po::value<std::string>(&ismrmrd_group)->default_value("dataset"),
-            "<ISMRMRD output group>")
-            ("list,l", po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
+        ("output,o", po::value<std::string>(), "<ISMRMRD output file (defaults to stdout)>")
+        ("list,l", po::value<bool>(&list)->implicit_value(true), "<List embedded files>")
         ("extract,e", po::value<std::string>(&to_extract), "<Extract embedded file>")
         ("debug,X", po::value<bool>(&debug_xml)->implicit_value(true), "<Debug XML flag>")
         ("flashPatRef,F", po::value<bool>(&flash_pat_ref_scan)->implicit_value(true), "<FLASH PAT REF flag>")
-        ("headerOnly,H", po::value<bool>(&header_only)->implicit_value(true),
-            "<HEADER ONLY flag (create xml header only)>")
-            ("bufferAppend,B", po::value<bool>(&append_buffers)->implicit_value(true),
-                "<Append Siemens protocol buffers (bas64) to user parameters>")
-                ("studyDate", po::value<std::string>(&study_date_user_supplied),
-                    "<User can supply study date, in the format of yyyy-mm-dd>");
+        ("headerOnly,H", po::value<bool>(&header_only)->implicit_value(true), "<Produce ISMRMRD XML header only>")
+        ("bufferAppend,B", po::value<bool>(&append_buffers)->implicit_value(true), "<Append Siemens protocol buffers (base64) to user parameters>")
+        ("studyDate", po::value<std::string>(&study_date_user_supplied), "<User can supply study date, in the format of yyyy-mm-dd>");
 
     po::options_description display_options("Allowed options");
     display_options.add_options()
         ("help,h", "Produce HELP message")
         ("version,v", "Prints converter version and ISMRMRD version")
-        ("file,f", "<SIEMENS dat file>")
-        ("measNum,z", "<Measurement number>")
-        ("allMeas,Z", "<All measurements flag>")
-        ("multiMeasFile,M", "<Multiple measurements in single file flag>")
+        ("file,f", "<SIEMENS dat file (defaults to stdin)>")
+        ("VB", "<Input file is from VB instead of VD>")
+        ("measNum,z", "<Measurement number (with negative indexing)>")
+        ("allMeas,Z", "<Extract all measurements>")
         ("skipSyncData", "<Skip syncdata (PMU) conversion>")
         ("attachTrajectory", "<Attach trajectories using vds design>")
-        ("pMap,m", "<Parameter map XML>")
-        ("pMapStyle,x", "<Parameter stylesheet XSL>")
-        ("output,o", "<ISMRMRD output file>")
-        ("outputGroup,g", "<ISMRMRD output group>")
+        ("pMap,m", "<Choose embedded parameter map XML>")
+        ("pMapStyle,x", "<Choose embedded parameter stylesheet XSL>")
+        ("user-map", "<Provide a parameter map XML file>")
+        ("user-stylesheet", "<Provide a parameter stylesheet XSL file>")
+        ("output,o", "<ISMRMRD output file (defaults to stdout)>")
         ("list,l", "<List embedded files>")
         ("extract,e", "<Extract embedded file>")
         ("debug,X", "<Debug XML flag>")
         ("flashPatRef,F", "<FLASH PAT REF flag>")
-        ("headerOnly,H", "<HEADER ONLY flag (create xml header only)>")
-        ("bufferAppend,B", "<Append protocol buffers>")
+        ("headerOnly,H", "<Produce ISMRMRD XML header only>")
+        ("bufferAppend,B", "<Append Siemens protocol buffers (base64) to user parameters>")
         ("studyDate", "<User can supply study date, in the format of yyyy-mm-dd>");
 
     po::variables_map vm;
@@ -516,14 +562,14 @@ int main(int argc, char* argv[]) {
         po::notify(vm);
 
         if (vm.count("help")) {
-            std::cout << display_options << "\n";
+            std::cerr << display_options << "\n";
             return 0;
         }
 
         if (vm.count("version")) {
-            std::cout << "Converter version is: " << SIEMENS_TO_ISMRMRD_VERSION_MAJOR << "."
+            std::cerr << "Converter version is: " << SIEMENS_TO_ISMRMRD_VERSION_MAJOR << "."
                 << SIEMENS_TO_ISMRMRD_VERSION_MINOR << "." << SIEMENS_TO_ISMRMRD_VERSION_PATCH << "\n";
-            std::cout << "Built against ISMRMRD version: " << ISMRMRD_VERSION_MAJOR << "." << ISMRMRD_VERSION_MINOR
+            std::cerr << "Built against ISMRMRD version: " << ISMRMRD_VERSION_MAJOR << "." << ISMRMRD_VERSION_MINOR
                 << "." << ISMRMRD_VERSION_PATCH << "\n";
             return 0;
         }
@@ -538,14 +584,14 @@ int main(int argc, char* argv[]) {
     if (!usermap_file.empty()) {
         if (!parammap_file.empty()) throw std::runtime_error("Specifying both --user-map and -m is not allowed.");
 
-        std::cout << "WARNING: Specifying --user-map is deprecated; use -m instead." << std::endl;
+        std::cerr << "WARNING: Specifying --user-map is deprecated; use -m instead." << std::endl;
         parammap_file = usermap_file;
     }
 
     if (!usermap_xsl.empty()) {
         if (!parammap_xsl.empty()) throw std::runtime_error("Specifying both --user-stylesheet and -x is not allowed.");
 
-        std::cout << "WARNING: Specifying --user-stylesheet is deprecated; use -x instead." << std::endl;
+        std::cerr << "WARNING: Specifying --user-stylesheet is deprecated; use -x instead." << std::endl;
         parammap_xsl = usermap_xsl;
     }
 
@@ -555,10 +601,10 @@ int main(int argc, char* argv[]) {
     // List embedded parameter maps if requested
     if (list) {
         std::map<std::string, std::string>::iterator iter;
-        std::cout << "Embedded Files: " << std::endl;
+        std::cerr << "Embedded Files: " << std::endl;
         for (iter = global_embedded_files.begin(); iter != global_embedded_files.end(); ++iter) {
             if (iter->first != "ismrmrd.xsd") {
-                std::cout << "    " << iter->first << std::endl;
+                std::cerr << "    " << iter->first << std::endl;
             }
         }
         return 0;
@@ -569,7 +615,7 @@ int main(int argc, char* argv[]) {
         std::string contents = load_embedded(to_extract);
         std::ofstream outfile(to_extract.c_str());
         outfile.write(contents.c_str(), contents.size());
-        std::cout << to_extract << " successfully extracted. " << std::endl;
+        std::cerr << to_extract << " successfully extracted. " << std::endl;
         return 0;
     }
 
@@ -579,65 +625,72 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    // Siemens file must be specified
-    if (siemens_dat_filename.length() == 0) {
-        std::cerr << "Missing Siemens DAT filename" << std::endl;
-        std::cerr << display_options << "\n";
-        return -1;
-    }
-
     // Check if Siemens file is valid
-    std::ifstream infile(siemens_dat_filename.c_str());
-    if (!infile) {
-        std::cerr << "Provided Siemens file can not be open or does not exist." << std::endl;
-        std::cerr << display_options << "\n";
-        return -1;
+    std::unique_ptr<std::istream> infile;
+    if (siemens_dat_filename.length() != 0)
+    {
+        infile = std::make_unique<std::ifstream>(siemens_dat_filename.c_str(), std::ios::binary);
+        if (!infile->good())
+        {
+            std::cerr << "Provided Siemens file can not be open or does not exist." << std::endl;
+            std::cerr << display_options << "\n";
+            return -1;
+        }
+        std::cerr << "Siemens file is: " << siemens_dat_filename << std::endl;
     }
-    std::cout << "Siemens file is: " << siemens_dat_filename << std::endl;
 
     std::string ismrmrd_file;
-    if (!vm.count("output"))
+    if (vm.count("output"))
     {
-        boost::filesystem::path siemens_dat_path(siemens_dat_filename);
-        ismrmrd_file = siemens_dat_path.replace_extension(".mrd").string();
-        std::cout << "Output file not specified -- using " << ismrmrd_file << std::endl;
-    } else {
         ismrmrd_file = vm["output"].as<std::string>();
+    } else {
+        std::cerr << "Output file not specified -- using stdout" << std::endl;
     }
+
+    std::unique_ptr<std::ofstream> outfile;
+    if (ismrmrd_file.length() > 0) {
+        outfile = std::make_unique<std::ofstream>(ismrmrd_file, std::ios::out | std::ios::binary);
+        if (!outfile->good()) {
+            std::cerr << "Could not open output file: " << ismrmrd_file << std::endl;
+            return -1;
+        }
+    } else {
+        ismrmrd_file = "stdout";
+    }
+    std::ostream& output = outfile ? *outfile : std::cout;
+    ISMRMRD::OStreamView ws(output);
+    ISMRMRD::ProtocolSerializer serializer(ws);
 
     std::string schema_file_name_content = load_embedded("ismrmrd.xsd");
 
-    std::ifstream siemens_dat(siemens_dat_filename.c_str(), std::ios::binary);
-
+    std::istream& siemens_dat = infile ? *infile : std::cin;
+    size_t current_offset = 0;
     MrParcRaidFileHeader ParcRaidHead;
-
-    siemens_dat.read((char*)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
-
-    bool VBFILE = false;
-
-    if (ParcRaidHead.hdSize_ > 32) {
-        VBFILE = true;
-
-        //Rewind, we have no raid file header.
-        siemens_dat.seekg(0, std::ios::beg);
-
+    if (VBFILE) {
+        // No raid file header.
+        std::cerr << "Reading VB line file." << std::endl;
         ParcRaidHead.hdSize_ = ParcRaidHead.count_;
         ParcRaidHead.count_ = 1;
-    }
-    else if (ParcRaidHead.hdSize_ != 0) {
-        //This is a VB line data file
-        std::cerr << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported."
-            << std::endl;
-        return -1;
+    } else {
+        std::cerr << "Reading VD line file." << std::endl;
+        siemens_dat.read((char *)(&ParcRaidHead), sizeof(MrParcRaidFileHeader));
+        current_offset += sizeof(MrParcRaidFileHeader);
+        if (ParcRaidHead.hdSize_ != 0)
+        {
+            // This is a VB line data file
+            std::cerr << "Only VD line files with MrParcRaidFileHeader.hdSize_ == 0 (MR_PARC_RAID_ALLDATA) supported."
+                      << std::endl;
+            return -1;
+        }
     }
 
     if (measurement_number < 0) {
         // negative indexing support ('-1' returns the last measurement)
         if (-measurement_number > ParcRaidHead.count_)
         {
-            std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
+            std::cerr << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
                 << std::endl;
-            std::cout << "Using negative indexing, you are trying to convert measurement number: " << measurement_number
+            std::cerr << "Using negative indexing, you are trying to convert measurement number: " << measurement_number
                 << std::endl;
             return -1;
         }
@@ -645,17 +698,16 @@ int main(int argc, char* argv[]) {
         measurement_number = ParcRaidHead.count_ + measurement_number + 1;
     }
 
-    // Loop through all measurements in multi-raid
-    std::string ismrmrd_file_orig = ismrmrd_file;
-    std::string ismrmrd_group_orig = ismrmrd_group;
-    unsigned int firstMeas, lastMeas;
+    std::vector<MrParcRaidFileEntry> ParcFileEntries = readParcFileEntries(siemens_dat, ParcRaidHead, VBFILE, current_offset);
 
+    // Loop through all measurements in multi-raid
+    unsigned int firstMeas, lastMeas;
     if (all_measurements)
     {
         firstMeas = 1;
         lastMeas  = ParcRaidHead.count_;
-    } 
-    else 
+    }
+    else
     {
         firstMeas = measurement_number;
         lastMeas  = measurement_number;
@@ -664,70 +716,28 @@ int main(int argc, char* argv[]) {
     for (unsigned int currentMeas = firstMeas; currentMeas <= lastMeas; currentMeas++) {
         measurement_number = currentMeas;
 
+        std::cerr << "-----------------------------------------------------------------" << std::endl;
         if (all_measurements)
         {
-            if (multi_meas_file)
-            {
-                // Add the measurement number as a suffix to the group name
-                ismrmrd_group = ismrmrd_group_orig;
-                ismrmrd_group.append("_");
-                ismrmrd_group.append(std::to_string(currentMeas));
-            }
-            else
-            {
-                // Add the measurement number as a suffix to the filename, excluding the file extension
-                std::vector<std::string> v;
-                boost::algorithm::split(v, ismrmrd_file_orig, boost::is_any_of("."));
-
-                if (v.size() > 1)
-                {
-                    std::stringstream ss;
-                    ss << v.at(v.size()-2) << "_" << currentMeas;
-                    v.at(v.size()-2) = ss.str();
-                    ismrmrd_file = boost::algorithm::join(v, ".");
-                }
-                else
-                {
-                    // No file extension found
-                    std::stringstream ss;
-                    ss << ismrmrd_file_orig << "_" << currentMeas;
-                    ismrmrd_file = ss.str();
-                }
-            }
-
-            // Reset file position
-            if (!VBFILE)
-            {
-                siemens_dat.seekg(sizeof(MrParcRaidFileHeader), std::ios::beg);
-            }
-            else
-            {
-                siemens_dat.seekg(0, std::ios::beg);
-            }
-        }
-
-        std::cout << "-----------------------------------------------------------------" << std::endl;
-        if (all_measurements)
-        {
-            std::cout << "Converting measurement " << currentMeas << "/" << lastMeas << " into file " << ismrmrd_file << " in group " << ismrmrd_group << std::endl;
+            std::cerr << "Converting measurement " << currentMeas << "/" << lastMeas << " into file " << ismrmrd_file << std::endl;
         }
         else
         {
-            std::cout << "Converting measurement " << currentMeas << " into file " << ismrmrd_file << " in group " << ismrmrd_group << std::endl;
+            std::cerr << "Converting measurement " << currentMeas << " into file " << ismrmrd_file << std::endl;
         }
-        std::cout << "-----------------------------------------------------------------" << std::endl;
+        std::cerr << "-----------------------------------------------------------------" << std::endl;
 
         if (!VBFILE && measurement_number > ParcRaidHead.count_) {
-            std::cout << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
+            std::cerr << "The file you are trying to convert has only " << ParcRaidHead.count_ << " measurements."
                 << std::endl;
-            std::cout << "You are trying to convert measurement number: " << measurement_number << std::endl;
+            std::cerr << "You are trying to convert measurement number: " << measurement_number << std::endl;
             return -1;
         }
 
         //if it is a VB scan
         if (VBFILE && measurement_number != 1) {
-            std::cout << "The file you are trying to convert is a VB file and it has only one measurement." << std::endl;
-            std::cout << "You tried to convert measurement number: " << measurement_number << std::endl;
+            std::cerr << "The file you are trying to convert is a VB file and it has only one measurement." << std::endl;
+            std::cerr << "You tried to convert measurement number: " << measurement_number << std::endl;
             return -1;
         }
 
@@ -740,29 +750,33 @@ int main(int argc, char* argv[]) {
         }
         std::string parammap_actual_file = select_file(parammap_file, default_parammap, all_measurements, currentMeas);
         std::string parammap_file_content = get_file_content(parammap_actual_file);
-        std::cout << "Using parameter map: " << parammap_actual_file << std::endl;
+        std::cerr << "Using parameter map: " << parammap_actual_file << std::endl;
 
-        std::cout << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
-
-        std::vector<MrParcRaidFileEntry> ParcFileEntries = readParcFileEntries(siemens_dat, ParcRaidHead, VBFILE);
+        std::cerr << "This file contains " << ParcRaidHead.count_ << " measurement(s)." << std::endl;
 
         // find the beginning of the desired measurement
-        siemens_dat.seekg(ParcFileEntries[measurement_number - 1].off_, std::ios::beg);
+        auto skip = ParcFileEntries[measurement_number - 1].off_ - current_offset;
+        if (!skipBytes(siemens_dat, skip, current_offset)) {
+            std::cerr << "ERROR: Failed to skip to measurement data" << std::endl;
+            return -1;
+        }
 
         uint32_t dma_length = 0, num_buffers = 0;
 
         siemens_dat.read((char*)(&dma_length), sizeof(uint32_t));
         siemens_dat.read((char*)(&num_buffers), sizeof(uint32_t));
+        current_offset += sizeof(uint32_t) * 2;
 
-        //std::cout << "Measurement header DMA length: " << mhead.dma_length << std::endl;
+        //std::cerr << "Measurement header DMA length: " << mhead.dma_length << std::endl;
 
-        auto buffers = readMeasurementHeaderBuffers(siemens_dat, num_buffers);
+        auto buffers = readMeasurementHeaderBuffers(siemens_dat, num_buffers, current_offset);
 
         //We need to be on a 32 byte boundary after reading the buffers
-        long long int position_in_meas =
-            (long long int) (siemens_dat.tellg()) - ParcFileEntries[measurement_number - 1].off_;
+        size_t position_in_meas = current_offset - ParcFileEntries[measurement_number - 1].off_;
         if (position_in_meas % 32 != 0) {
-            siemens_dat.seekg(32 - (position_in_meas % 32), std::ios::cur);
+            char dummy[32];
+            siemens_dat.read(dummy, 32 - (position_in_meas % 32));
+            current_offset += 32 - (position_in_meas % 32);
         }
 
         // Measurement header done!
@@ -800,9 +814,9 @@ int main(int argc, char* argv[]) {
             isVB = true;
         }
 
-        std::cout << "Baseline: " << baseLineString << std::endl;
-        std::cout << "Software version: " << software_version << std::endl;
-        std::cout << "Protocol name: " << protocol_name << std::endl;
+        std::cerr << "Baseline: " << baseLineString << std::endl;
+        std::cerr << "Software version: " << software_version << std::endl;
+        std::cerr << "Protocol name: " << protocol_name << std::endl;
 
         bool isNX = false;
         if ((baseLineString.find("NXVA") != std::string::npos) || (software_version.find("syngo MR XA") != std::string::npos) )
@@ -813,15 +827,15 @@ int main(int argc, char* argv[]) {
         if (isNX)
         {
             int nxVersion = atoi(software_version.substr(11).c_str());
-            std::cout << "Detected Numaris/X version: " << nxVersion << std::endl;
+            std::cerr << "Detected Numaris/X version: " << nxVersion << std::endl;
             if (nxVersion > 30)
             {
                 skip_syncdata = true;
-                std::cout << "Disabling parsing of syncdata due to incompatibility!" << std::endl;
+                std::cerr << "Disabling parsing of syncdata due to incompatibility!" << std::endl;
             }
         }
 
-        std::cout << "Dwell time: " << dwell_time_0 << std::endl;
+        std::cerr << "Dwell time: " << dwell_time_0 << std::endl;
 
         if (debug_xml) {
             std::ofstream o("xml_raw.xml");
@@ -837,7 +851,7 @@ int main(int argc, char* argv[]) {
         }
         std::string parammap_xsl_actual_file = select_file(parammap_xsl, default_parammap_xsl, all_measurements, currentMeas);
         std::string parammap_xsl_content = get_file_content(parammap_xsl_actual_file);
-        std::cout << "Using parameter XSL: " << parammap_xsl_actual_file << std::endl;
+        std::cerr << "Using parameter XSL: " << parammap_xsl_actual_file << std::endl;
 
 
         ISMRMRD::IsmrmrdHeader header;
@@ -850,10 +864,6 @@ int main(int argc, char* argv[]) {
             append_buffers_to_xml_header(buffers, num_buffers, header);
         }
 
-        // Free memory used for MeasurementHeaderBuffers
-
-
-        auto ismrmrd_dataset = boost::make_shared<ISMRMRD::Dataset>(ismrmrd_file.c_str(), ismrmrd_group.c_str(), true);
         //If this is a spiral acquisition, we will calculate the trajectory and add it to the individual profilesISMRMRD::NDArray<float> traj;
 //        auto traj = getTrajectory(wip_double, trajectory, dwell_time_0, radial_views);
         ISMRMRD::NDArray<float> traj;
@@ -861,16 +871,15 @@ int main(int argc, char* argv[]) {
         uint32_t last_mask = 0;
         unsigned long int acquisitions = 1;
         unsigned long int sync_data_packets = 0;
-        sMDH mdh;//For VB line
         bool first_call = true;
 
         while (!(last_mask & 1) && //Last scan not encountered
             (((ParcFileEntries[measurement_number - 1].off_ + ParcFileEntries[measurement_number - 1].len_) -
-                siemens_dat.tellg()) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
+                current_offset) > sizeof(sScanHeader)))  //not reached end of measurement without acqend
         {
-            size_t position_in_meas = siemens_dat.tellg();
+            sMDH mdh;//For VB line
             sScanHeader scanhead;
-            readScanHeader(siemens_dat, VBFILE, mdh, scanhead);
+            readScanHeader(siemens_dat, VBFILE, mdh, scanhead, current_offset);
 
             if (!siemens_dat) {
                 std::cerr << "Error reading header at acquisition " << acquisitions << "." << std::endl;
@@ -880,19 +889,20 @@ int main(int argc, char* argv[]) {
             uint32_t dma_length = scanhead.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
             uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
-            //Check if this is synch data, if so, it must be handled differently.
-            if (scanhead.aulEvalInfoMask[0] & (1 << 5)) {
-                uint32_t last_scan_counter = acquisitions - 1;
-
-                auto waveforms = readSyncdata(siemens_dat, VBFILE, acquisitions, dma_length, scanhead, header,
-                                            last_scan_counter, skip_syncdata);
-                for (auto &w : waveforms)
-                    ismrmrd_dataset->appendWaveform(w);
-                sync_data_packets++;
-                continue;
+            //This check only makes sense in VD line files.
+            if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number - 1].measId_)) {
+                //Something must have gone terribly wrong. Bail out.
+                if (first_call) {
+                    std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries["
+                            << measurement_number - 1 << "].measId_)" << std::endl;
+                    std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
+                }
+                scanhead.lMeasUID = ParcFileEntries[measurement_number - 1].measId_;
             }
 
             if (first_call) {
+                first_call = false;
+
                 uint32_t time_stamp = scanhead.ulTimeStamp;
 
                 // convert to acqusition date and time
@@ -928,29 +938,29 @@ int main(int argc, char* argv[]) {
 
                 //This means we should only create XML header and exit
                 if (header_only) {
-                    std::ofstream header_out_file(ismrmrd_file.c_str());
-                    header_out_file << xml_config;
+                    output << xml_config;
                     return -1;
                 }
 
-                // Create an ISMRMRD dataset
+                // Write out the Header
+                serializer.serialize(header);
             }
 
-            //This check only makes sense in VD line files.
-            if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number - 1].measId_)) {
-                //Something must have gone terribly wrong. Bail out.
-                if (first_call) {
-                    std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries["
-                            << measurement_number - 1 << "].measId_)" << std::endl;
-                    std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
+            //Check if this is synch data, if so, it must be handled differently.
+            if (scanhead.aulEvalInfoMask[0] & (1 << 5)) {
+                uint32_t last_scan_counter = acquisitions - 1;
+
+                auto waveforms = readSyncdata(siemens_dat, VBFILE, acquisitions, dma_length, scanhead, header,
+                                            last_scan_counter, skip_syncdata, current_offset);
+                for (auto &w : waveforms) {
+                    serializer.serialize(w);
                 }
-                scanhead.lMeasUID = ParcFileEntries[measurement_number - 1].measId_;
+                sync_data_packets++;
+                continue;
             }
-
-            if (first_call) first_call = false;
 
             //Allocate data for channels
-            std::vector<ChannelHeaderAndData> channels = readChannelHeaders(siemens_dat, VBFILE, scanhead);
+            std::vector<ChannelHeaderAndData> channels = readChannelHeaders(siemens_dat, VBFILE, mdh, scanhead, current_offset);
 
             if (!siemens_dat) {
                 std::cerr << "Error reading data at acquisition " << acquisitions << "." << std::endl;
@@ -961,11 +971,11 @@ int main(int argc, char* argv[]) {
             last_mask = scanhead.aulEvalInfoMask[0];
 
             if (scanhead.aulEvalInfoMask[0] & 1) {
-                std::cout << "Last scan reached..." << std::endl;
+                std::cerr << "Last scan reached..." << std::endl;
                 break;
             }
 
-            ismrmrd_dataset->appendAcquisition(
+            serializer.serialize(
                     getAcquisition(flash_pat_ref_scan, trajectory, dwell_time_0, global_table_pos, max_channels, isAdjustCoilSens,
                                 isAdjQuietCoilSens, isVB, isNX, attachTrajectory, traj, scanhead, channels));
 
@@ -977,62 +987,67 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        ismrmrd_dataset->writeHeader(xml_config);
-
         //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
         std::streamoff mystery_bytes = (std::streamoff) (ParcFileEntries[measurement_number - 1].off_ +
-                                                        ParcFileEntries[measurement_number - 1].len_) -
-                                    siemens_dat.tellg();
+                                                        ParcFileEntries[measurement_number - 1].len_) - current_offset;
 
         if (mystery_bytes > 0) {
             if (mystery_bytes != MYSTERY_BYTES_EXPECTED) {
-                // Something in not quite right
+                // Something is not quite right
                 std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
                 std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].off_ = "
                         << ParcFileEntries[measurement_number - 1].off_ << std::endl;
                 std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].len_ = "
                         << ParcFileEntries[measurement_number - 1].len_ << std::endl;
-                std::cerr << "siemens_dat.tellg() = " << siemens_dat.tellg() << std::endl;
+                std::cerr << "current_offset = " << current_offset << std::endl;
                 std::cerr << "Please check the result." << std::endl;
             } else {
                 // Read the mystery bytes
                 char mystery_data[MYSTERY_BYTES_EXPECTED];
                 siemens_dat.read(reinterpret_cast<char *>(&mystery_data), mystery_bytes);
-                //After this we have to be on a 512 byte boundary
-                if (siemens_dat.tellg() % 512) {
-                    siemens_dat.seekg(512 - (siemens_dat.tellg() % 512), std::ios::cur);
+                current_offset += mystery_bytes;
+                // After this we have to be on a 512 byte boundary
+                if (current_offset % 512) {
+                    char dummy[512];
+                    siemens_dat.read(dummy, 512 - (current_offset % 512));
+                    current_offset += 512 - (current_offset % 512);
                 }
             }
         }
-
-        size_t end_position = siemens_dat.tellg();
-        siemens_dat.seekg(0, std::ios::end);
-        size_t eof_position = siemens_dat.tellg();
-        if (end_position != eof_position && ParcRaidHead.count_ == measurement_number) {
-            size_t additional_bytes = eof_position - end_position;
-            std::cerr << "WARNING: End of file was not reached during conversion. There are " <<
-                    additional_bytes << " additional bytes at the end of file." << std::endl;
-        }
     } // Loop through multiple measurements in multi-raid
+
+    serializer.close();
+
+    // Read the rest of the file, if any
+    const size_t buffer_size = 8192;
+    char buffer[buffer_size];
+    size_t tail_count = 0;
+    while (siemens_dat.read(buffer, buffer_size) || siemens_dat.gcount() > 0) {
+        tail_count += siemens_dat.gcount();
+    }
+
+    if (ParcRaidHead.count_ == measurement_number && tail_count > 0) {
+        std::cerr << "WARNING: End of file was not reached during conversion. There are " <<
+                tail_count << " additional bytes at the end of file." << std::endl;
+    }
 
     return 0;
 }
 
 std::vector<ChannelHeaderAndData>
-readChannelHeaders(std::ifstream &siemens_dat, bool VBFILE, const sScanHeader &scanhead) {
+readChannelHeaders(std::istream &siemens_dat, bool VBFILE, const sMDH& firstMDH, const sScanHeader &scanhead, size_t& current_offset) {
     size_t nchannels = scanhead.ushUsedChannels;
     auto channels = std::vector<ChannelHeaderAndData>(nchannels);
-    
+
     for (unsigned int c = 0; c < nchannels; c++) {
         if (VBFILE) {
-            if (c == 0) {
-                // Rewind to read mdh again 
-                // It was read once to create scanhead 
-                // Not all parameters are present in scanhead
-                siemens_dat.seekg(-sizeof(sMDH), std::ios_base::cur);
-            }
             sMDH mdh;
-            siemens_dat.read(reinterpret_cast<char*>(&mdh), sizeof(sMDH));
+            if (c == 0) {
+                mdh = firstMDH;
+            } else {
+                siemens_dat.read(reinterpret_cast<char*>(&mdh), sizeof(sMDH));
+                current_offset += sizeof(sMDH);
+            }
             channels[c].header.ulTypeAndChannelLength = 0;
             channels[c].header.lMeasUID = mdh.lMeasUID;
             channels[c].header.ulScanCounter = mdh.ulScanCounter;
@@ -1042,22 +1057,27 @@ readChannelHeaders(std::ifstream &siemens_dat, bool VBFILE, const sScanHeader &s
             channels[c].header.ulChannelId = mdh.ushChannelId;
             channels[c].header.ulUnused3 = 0;
             channels[c].header.ulCRC = 0;
+
         } else {
             siemens_dat.read(reinterpret_cast<char *>(&channels[c].header), sizeof(sChannelHeader));
+            current_offset += sizeof(sChannelHeader);
         }
 
         size_t nsamples = scanhead.ushSamplesInScan;
         channels[c].data = std::vector<complex_float_t>(nsamples);
         siemens_dat.read(reinterpret_cast<char *>(&channels[c].data[0]), nsamples * sizeof(complex_float_t));
+        current_offset += nsamples * sizeof(complex_float_t);
     }
     return channels;
 }
 
-void readScanHeader(std::ifstream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHeader &scanhead) {
+void readScanHeader(std::istream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHeader &scanhead, size_t& current_offset) {
     siemens_dat.read(reinterpret_cast<char *>(&scanhead.ulFlagsAndDMALength), sizeof(uint32_t));
+    current_offset += sizeof(uint32_t);
 
     if (VBFILE) {
         siemens_dat.read(reinterpret_cast<char *>(&mdh) + sizeof(uint32_t), sizeof(sMDH) - sizeof(uint32_t));
+        current_offset += sizeof(sMDH) - sizeof(uint32_t);
         scanhead.lMeasUID = mdh.lMeasUID;
         scanhead.ulScanCounter = mdh.ulScanCounter;
         scanhead.ulTimeStamp = mdh.ulTimeStamp;
@@ -1090,6 +1110,7 @@ void readScanHeader(std::ifstream &siemens_dat, bool VBFILE, sMDH &mdh, sScanHea
     } else {
         siemens_dat.read(reinterpret_cast<char *>(&scanhead) + sizeof(uint32_t),
                          sizeof(sScanHeader) - sizeof(uint32_t));
+        current_offset += sizeof(sScanHeader) - sizeof(uint32_t);
     }
 }
 
@@ -1111,18 +1132,18 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     ismrmrd_acq.discard_post() = scanhead.sCutOff.ushPost;
     ismrmrd_acq.center_sample() = scanhead.ushKSpaceCentreColumn;
 
-    // std::cout << "isAdjustCoilSens, isVB : " << isAdjustCoilSens << " " << isVB << std::endl;
+    // std::cerr << "isAdjustCoilSens, isVB : " << isAdjustCoilSens << " " << isVB << std::endl;
 
     if (scanhead.aulEvalInfoMask[0] & (1ULL << 25))
     { //This is noise
         ismrmrd_acq.sample_time_us() = compute_noise_sample_in_us(scanhead.ushSamplesInScan, isAdjustCoilSens,
                                                                   isAdjQuietCoilSens, isVB, isNX);
 
-        // std::cout << "Noise sample time us :" << ismrmrd_acq.sample_time_us() << std::endl;
+        // std::cerr << "Noise sample time us :" << ismrmrd_acq.sample_time_us() << std::endl;
     } else {
         ismrmrd_acq.sample_time_us() = dwell_time_0 / 1000.0f;
     }
-    // std::cout << "ismrmrd_acq.sample_time_us(): " << ismrmrd_acq.sample_time_us() << std::endl;
+    // std::cerr << "ismrmrd_acq.sample_time_us(): " << ismrmrd_acq.sample_time_us() << std::endl;
 
     ismrmrd_acq.position()[0] = scanhead.sSliceData.sSlicePosVec.flSag;// + (float) (global_table_pos[0]);
     ismrmrd_acq.position()[1] = scanhead.sSliceData.sSlicePosVec.flCor;// + (float) (global_table_pos[1]);
@@ -1141,12 +1162,12 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
                                               ismrmrd_acq.read_dir(),
                                               ismrmrd_acq.slice_dir());
 
-    //std::cout << "scanhead.ulScanCounter         = " << scanhead.ulScanCounter << std::endl;
-    //std::cout << "quat         = [" << quat[0] << " " << quat[1] << " " << quat[2] << " " << quat[3] << "]" << std::endl;
-    //std::cout << "phase_dir    = [" << ismrmrd_acq.phase_dir()[0] << " " << ismrmrd_acq.phase_dir()[1] << " " << ismrmrd_acq.phase_dir()[2] << "]" << std::endl;
-    //std::cout << "read_dir     = [" << ismrmrd_acq.read_dir()[0] << " " << ismrmrd_acq.read_dir()[1] << " " << ismrmrd_acq.read_dir()[2] << "]" << std::endl;
-    //std::cout << "slice_dir    = [" << ismrmrd_acq.slice_dir()[0] << " " << ismrmrd_acq.slice_dir()[1] << " " << ismrmrd_acq.slice_dir()[2] << "]" << std::endl;
-    //std::cout << "--------------------------------------------------------" << std::endl;
+    //std::cerr << "scanhead.ulScanCounter         = " << scanhead.ulScanCounter << std::endl;
+    //std::cerr << "quat         = [" << quat[0] << " " << quat[1] << " " << quat[2] << " " << quat[3] << "]" << std::endl;
+    //std::cerr << "phase_dir    = [" << ismrmrd_acq.phase_dir()[0] << " " << ismrmrd_acq.phase_dir()[1] << " " << ismrmrd_acq.phase_dir()[2] << "]" << std::endl;
+    //std::cerr << "read_dir     = [" << ismrmrd_acq.read_dir()[0] << " " << ismrmrd_acq.read_dir()[1] << " " << ismrmrd_acq.read_dir()[2] << "]" << std::endl;
+    //std::cerr << "slice_dir    = [" << ismrmrd_acq.slice_dir()[0] << " " << ismrmrd_acq.slice_dir()[1] << " " << ismrmrd_acq.slice_dir()[2] << "]" << std::endl;
+    //std::cerr << "--------------------------------------------------------" << std::endl;
 
     ismrmrd_acq.patient_table_position()[0] = (float) scanhead.lPTABPosX;
     ismrmrd_acq.patient_table_position()[1] = (float) scanhead.lPTABPosY;
@@ -1277,7 +1298,7 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
 
 
     if (scanhead.ulScanCounter % 1000 == 0) {
-        std::cout << "wrote scan : " << scanhead.ulScanCounter << std::endl;
+        std::cerr << "wrote scan : " << scanhead.ulScanCounter << std::endl;
     }
 
     return ismrmrd_acq;
@@ -1363,37 +1384,39 @@ const std::map<PMU_Type, int> waveformId = {{PMU_Type::ECG1, 0},
 std::set<PMU_Type> PMU_Types = {PMU_Type::ECG1, PMU_Type::ECG2, PMU_Type::ECG3, PMU_Type::ECG4, PMU_Type::PULS,
                                 PMU_Type::RESP, PMU_Type::EXT1, PMU_Type::EXT2, PMU_Type::END};
 
-std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBFILE, unsigned long acquisitions,
+std::vector<ISMRMRD::Waveform> readSyncdata(std::istream &siemens_dat, bool VBFILE, unsigned long acquisitions,
                                             uint32_t dma_length, sScanHeader scanheader, ISMRMRD::IsmrmrdHeader &header,
-                                            long last_scan_counter, bool skip_syncdata) {
+                                            long last_scan_counter, bool skip_syncdata, size_t& current_offset) {
 
     size_t len = 0;
     if (VBFILE) {
         len = dma_length - sizeof(sMDH);
         //Is VB magic? For now let's assume it's not, and that this is just Siemens secret sauce.
-        siemens_dat.seekg(len, siemens_dat.cur);
+        if (!skipBytes(siemens_dat, len, current_offset)) {
+            std::cerr << "WARNING: Failed to skip VB file secret sauce section" << std::endl;
+        }
         return std::vector<ISMRMRD::Waveform>();
     } else {
         len = dma_length - sizeof(sScanHeader);
+        size_t target_offset = current_offset + len;
 
-//        siemens_dat.seekg(len,siemens_dat.cur);
-//        return std::vector<ISMRMRD::Waveform>();
-        auto cur_pos = siemens_dat.tellg();
         uint32_t packetSize;
         siemens_dat.read((char *) &packetSize, sizeof(uint32_t));
+        current_offset += sizeof(uint32_t);
         std::string packedID;
         {
             char packedIDArr[52];
             siemens_dat.read(packedIDArr, 52);
+            current_offset += 52;
             packedID = packedIDArr;
-
         }
 
         if ((skip_syncdata) || (packedID.find("PMU") == packedID.npos)) { //packedID indicates this isn't PMU data, so let's jump ship.
-            siemens_dat.seekg(cur_pos);
-            siemens_dat.seekg(len, siemens_dat.cur);
+            auto skip = target_offset - current_offset;
+            if (!skipBytes(siemens_dat, skip, current_offset)) {
+                std::cerr << "WARNING: Failed to skip PMU data section" << std::endl;
+            }
             return std::vector<ISMRMRD::Waveform>();
-
         }
 
         bool learning_phase = packedID.find("PMULearnPhase") != packedID.npos;
@@ -1405,9 +1428,12 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
         siemens_dat.read((char *) &timestamp, sizeof(uint32_t));
         siemens_dat.read((char *) &packerNr, sizeof(uint32_t));
         siemens_dat.read((char *) &duration, sizeof(uint32_t));
+        current_offset += 5 * sizeof(uint32_t);
 
         PMU_Type magic;
         siemens_dat.read((char *) &magic, sizeof(uint32_t));
+        current_offset += sizeof(uint32_t);
+
         //Read in all the PMU data first, to figure out if we have multiple ECGs.
         std::map<PMU_Type, std::tuple<std::vector<PMUdata>, uint32_t >> pmu_map;
         std::set<PMU_Type> ecg_types = {PMU_Type::ECG1, PMU_Type::ECG2, PMU_Type::ECG3, PMU_Type::ECG4};
@@ -1417,10 +1443,13 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
             uint32_t period;
 
             siemens_dat.read((char *) &period, sizeof(uint32_t));
+            current_offset += sizeof(uint32_t);
 
             //Allocate and read data
             std::vector<PMUdata> data(duration / period);
             siemens_dat.read((char *) data.data(), data.size() * sizeof(PMUdata));
+            current_offset += data.size() * sizeof(PMUdata);
+
             //Split into ECG and PMU sets.
             if (ecg_types.count(magic)) {
                 ecg_map[magic] = std::make_tuple(std::move(data), period);
@@ -1429,10 +1458,10 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
             }
             //Read next tag
             siemens_dat.read((char *) &magic, sizeof(uint32_t));
+            current_offset += sizeof(uint32_t);
+
             if (!PMU_Types.count(magic))
                 throw std::runtime_error("Malformed file");
-
-
         }
 
         //Have to handle ECG separately.
@@ -1462,16 +1491,14 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
                     std::copy(data.begin(), data.end(), ecg_waveform_data);
                     ecg_waveform_data += data.size();
 
-                    for (auto i = 0; i < number_of_elements; i++) trigger_data[i] |= trigger[i];
-
+                    for (auto i = 0; i < number_of_elements; i++) {
+                        trigger_data[i] |= trigger[i];
+                    }
                 }
 
 //                ecg_waveform.head.sample_time_us = sample_time_us.at(PMU_Type::ECG1);
                 waveforms.push_back(std::move(ecg_waveform));
-
-
             }
-
 
             for (auto key_val : pmu_map) {
                 auto tup = unpack_pmu(std::get<0>(key_val.second));
@@ -1481,17 +1508,12 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
                 auto waveform = ISMRMRD::Waveform(data.size(), 2);
                 waveform.head.waveform_id = waveformId.at(key_val.first) + 5 * learning_phase;
                 std::copy(data.begin(), data.end(), waveform.data);
-
                 std::copy(trigger.begin(), trigger.end(), waveform.data + data.size());
-
 //                waveform.head.sample_time_us = sample_time_us.at(key_val.first);
                 waveforms.push_back(std::move(waveform));
             }
             //Figure out number of ECG channels
-
-
         }
-
 
         for (auto &waveform : waveforms) {
             waveform.head.time_stamp = timestamp;
@@ -1502,11 +1524,11 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::ifstream &siemens_dat, bool VBF
 
         if (waveforms.size()) makeWaveformHeader(header); //Add the header if needed
 
-        siemens_dat.seekg(cur_pos);
-        siemens_dat.seekg(len, siemens_dat.cur);
+        auto skip = target_offset - current_offset;
+        if (!skipBytes(siemens_dat, skip, current_offset)) {
+            std::cerr << "WARNING: Failed to skip to end of waveform data" << std::endl;
+        }
         return waveforms;
-
-
     }
 }
 
@@ -1552,7 +1574,7 @@ getTrajectory(const std::vector<std::string> &wip_double, const Trajectory &traj
         calc_vds(smax, gmax, sample_time, sample_time, interleaves, &fov, nfov, krmax, ngmax, &xgrad, &ygrad, &ngrad);
 
         /*
-        std::cout << "Calculated trajectory for spiral: " << std::endl
+        std::cerr << "Calculated trajectory for spiral: " << std::endl
         << "sample_time: " << sample_time << std::endl
         << "smax: " << smax << std::endl
         << "gmax: " << gmax << std::endl
@@ -1686,7 +1708,6 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             std::stringstream sstream;
             sstream << "Failed to parse XProtocol for buffer " << buffers[b].name;
             throw std::runtime_error(sstream.str());
-
         }
 
         //Get some parameters - wip long
@@ -1695,7 +1716,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 wip_long = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
+                std::cerr << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
             }
             if (wip_long.size() == 0) {
                 std::stringstream sstream;
@@ -1711,7 +1732,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 wip_double = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "Search path: MEAS.sWipMemBlock.adFree not found." << std::endl;
+                std::cerr << "Search path: MEAS.sWipMemBlock.adFree not found." << std::endl;
             }
             if (wip_double.size() == 0) {
                 std::stringstream sstream;
@@ -1728,7 +1749,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
+                std::cerr << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
             }
             if (temp.size() == 0) {
                 std::stringstream sstream;
@@ -1747,7 +1768,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "Search path: MEAS.sKSpace.ucTrajectory not found." << std::endl;
+                std::cerr << "Search path: MEAS.sKSpace.ucTrajectory not found." << std::endl;
             }
             if (temp.size() != 1) {
                 std::stringstream sstream;
@@ -1758,7 +1779,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
 
                 int traj = atoi(temp[0].c_str());
                 trajectory = Trajectory(traj);
-                std::cout << "Trajectory is: " << traj << std::endl;
+                std::cerr << "Trajectory is: " << traj << std::endl;
             }
         }
 
@@ -1769,7 +1790,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "YAPS.iMaxNoOfRxChannels" << std::endl;
+                std::cerr << "YAPS.iMaxNoOfRxChannels" << std::endl;
             }
             if (temp.size() != 1) {
                 std::stringstream sstream;
@@ -1790,7 +1811,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "MEAS.sKSpace.lPhaseEncodingLines not found" << std::endl;
+                std::cerr << "MEAS.sKSpace.lPhaseEncodingLines not found" << std::endl;
             }
             if (temp.size() != 1) {
                 std::stringstream sstream;
@@ -1805,7 +1826,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "YAPS.iNoOfFourierLines not found" << std::endl;
+                std::cerr << "YAPS.iNoOfFourierLines not found" << std::endl;
             }
             if (temp.size() != 1) {
                 std::stringstream sstream;
@@ -1822,10 +1843,10 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "YAPS.lFirstFourierLine not found" << std::endl;
+                std::cerr << "YAPS.lFirstFourierLine not found" << std::endl;
             }
             if (temp.size() != 1) {
-                std::cout << "Failed to find YAPS.lFirstFourierLine array" << std::endl;
+                std::cerr << "Failed to find YAPS.lFirstFourierLine array" << std::endl;
                 has_FirstFourierLine = false;
             } else {
                 lFirstFourierLine = atoi(temp[0].c_str());
@@ -1837,7 +1858,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "MEAS.sKSpace.lPartitions not found" << std::endl;
+                std::cerr << "MEAS.sKSpace.lPartitions not found" << std::endl;
             }
             if (temp.size() != 1) {
                 std::stringstream sstream;
@@ -1867,10 +1888,10 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "YAPS.lFirstFourierPartition not found" << std::endl;
+                std::cerr << "YAPS.lFirstFourierPartition not found" << std::endl;
             }
             if (temp.size() != 1) {
-                std::cout << "Failed to find YAPS.lFirstFourierPartition array" << std::endl;
+                std::cerr << "Failed to find YAPS.lFirstFourierPartition array" << std::endl;
                 has_FirstFourierPartition = false;
             } else {
                 lFirstFourierPartition = atoi(temp[0].c_str());
@@ -1904,8 +1925,8 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
                 center_partition = 0;
             }
 
-            std::cout << "center_line = " << center_line << std::endl;
-            std::cout << "center_partition = " << center_partition << std::endl;
+            std::cerr << "center_line = " << center_line << std::endl;
+            std::cerr << "center_partition = " << center_partition << std::endl;
         }
 
         //Get some parameters - radial views
@@ -1915,7 +1936,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "MEAS.sKSpace.lRadialViews not found" << std::endl;
+                std::cerr << "MEAS.sKSpace.lRadialViews not found" << std::endl;
             }
             if (temp.size() != 1) {
                 std::stringstream sstream;
@@ -1942,7 +1963,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
                     }
                 }
                 else {
-                    std::cout << "DICOM.lGlobalTablePosSag not found" << std::endl;
+                    std::cerr << "DICOM.lGlobalTablePosSag not found" << std::endl;
                     global_table_pos[0] = 0;
                 }
 
@@ -1959,7 +1980,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
                     }
                 }
                 else {
-                    std::cout << "DICOM.lGlobalTablePosCor not found" << std::endl;
+                    std::cerr << "DICOM.lGlobalTablePosCor not found" << std::endl;
                     global_table_pos[1] = 0;
                 }
 
@@ -1976,7 +1997,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
                     }
                 }
                 else {
-                    std::cout << "DICOM.lGlobalTablePosTra not found" << std::endl;
+                    std::cerr << "DICOM.lGlobalTablePosTra not found" << std::endl;
                     global_table_pos[2] = 0;
                 }
             }//Get some parameters - protocol name
@@ -1986,7 +2007,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             if (n2) {
                 temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
             } else {
-                std::cout << "HEADER.tProtocolName not found" << std::endl;
+                std::cerr << "HEADER.tProtocolName not found" << std::endl;
             }
             if (temp.size() != 1) {
                 std::stringstream sstream;
@@ -2024,7 +2045,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         }
 
         if (baseLineString.empty()) {
-            std::cout << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString"
+            std::cerr << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString"
                       << std::endl;
         }
 
@@ -2049,21 +2070,24 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
     throw std::runtime_error("No Meas buffer found in Siemens dataset");
 }
 
-std::vector<MeasurementHeaderBuffer> readMeasurementHeaderBuffers(std::ifstream &siemens_dat, uint32_t num_buffers) {
+std::vector<MeasurementHeaderBuffer> readMeasurementHeaderBuffers(std::istream &siemens_dat, uint32_t num_buffers, size_t& current_offset) {
     auto buffers = std::vector<MeasurementHeaderBuffer>(num_buffers);
 
-    std::cout << "Number of parameter buffers: " << num_buffers << std::endl;
+    std::cerr << "Number of parameter buffers: " << num_buffers << std::endl;
 
     char tmp_bufname[32];
     for (int b = 0; b < num_buffers; b++) {
         siemens_dat.getline(tmp_bufname, 32, '\0');
-        std::cout << "Buffer Name: " << tmp_bufname << std::endl;
+        std::cerr << "Buffer Name: " << tmp_bufname << std::endl;
         buffers[b].name = std::string(tmp_bufname);
+        current_offset += buffers[b].name.length() + 1;
         uint32_t buflen = 0;
         siemens_dat.read((char *) (&buflen), sizeof(buflen));
+        current_offset += sizeof(buflen);
         char *bytebuf = new char[buflen + 1];
         bytebuf[buflen] = 0;
         siemens_dat.read(bytebuf, buflen);
+        current_offset += buflen;
         std::wstring output = utf_to_utf<wchar_t>(bytebuf, bytebuf + buflen);
         buffers[b].buf = ws2s(output);
         delete[] bytebuf;
@@ -2072,29 +2096,26 @@ std::vector<MeasurementHeaderBuffer> readMeasurementHeaderBuffers(std::ifstream 
 }
 
 std::vector<MrParcRaidFileEntry>
-readParcFileEntries(std::ifstream &siemens_dat, const MrParcRaidFileHeader &ParcRaidHead, bool VBFILE) {
+readParcFileEntries(std::istream &siemens_dat, const MrParcRaidFileHeader &ParcRaidHead, bool VBFILE, size_t& current_offset) {
     std::vector<MrParcRaidFileEntry> ParcFileEntries(64);
 
     if (VBFILE) {
-        std::cout << "VB line file detected." << std::endl;
         //In case of VB file, we are just going to fill these with zeros. It doesn't exist.
         for (unsigned int i = 0; i < 64; i++) {
             memset(&ParcFileEntries[i], 0, sizeof(MrParcRaidFileEntry));
         }
 
         ParcFileEntries[0].off_ = 0;
-        siemens_dat.seekg(0, std::ios_base::end); //Rewind a bit, we have no raid file header.
-        ParcFileEntries[0].len_ = siemens_dat.tellg(); //This is the whole size of the dat file
-        siemens_dat.seekg(0, std::ios_base::beg); //Rewind a bit, we have no raid file header.
+        ParcFileEntries[0].len_ = UINT64_MAX; // VB files have no raid file header, so we just set the length to max.
 
-        std::cout << "Protocol name: " << ParcFileEntries[0].protName_ << std::endl; // blank
+        std::cerr << "Protocol name: " << ParcFileEntries[0].protName_ << std::endl; // blank
     } else {
-        std::cout << "VD line file detected." << std::endl;
         for (unsigned int i = 0; i < 64; i++) {
             siemens_dat.read((char *) (&ParcFileEntries[i]), sizeof(MrParcRaidFileEntry));
+            current_offset += sizeof(MrParcRaidFileEntry);
 
             if (i < ParcRaidHead.count_) {
-                std::cout << "Protocol name [" << i+1 << "]: " << ParcFileEntries[i].protName_ << std::endl;
+                std::cerr << "Protocol name [" << i+1 << "]: " << ParcFileEntries[i].protName_ << std::endl;
             }
         }
     }
