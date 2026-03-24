@@ -20,7 +20,12 @@ const XNode* getChildNodeByName::operator()(const XNodeParamArray& node) const {
 	const_cast<XNodeParamArray&>(node).expand_children();
 	const XNode* ret = 0;
 	if (index < node.children_.size()) {
-		ret =  &node.children_[index];
+		ret = &node.children_[index];
+	} else {
+		// Out-of-range index: use the default node (XProtocol semantics: unset
+		// elements implicitly take the default value).  This makes tightly-sized
+		// NX/XA arrays behave the same as VD arrays padded with empty { } blocks.
+		ret = &node.default_;
 	}
 
 	if (!ret) {

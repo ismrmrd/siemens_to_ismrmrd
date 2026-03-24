@@ -879,6 +879,7 @@ int main(int argc, char* argv[]) {
         {
             sMDH mdh;//For VB line
             sScanHeader scanhead;
+            size_t packet_start_offset = current_offset;
             readScanHeader(siemens_dat, VBFILE, mdh, scanhead, current_offset);
 
             if (!siemens_dat) {
@@ -889,15 +890,22 @@ int main(int argc, char* argv[]) {
             uint32_t dma_length = scanhead.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
             uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
-            //This check only makes sense in VD line files.
-            if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number - 1].measId_)) {
-                //Something must have gone terribly wrong. Bail out.
-                if (first_call) {
-                    std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries["
-                            << measurement_number - 1 << "].measId_)" << std::endl;
-                    std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
+            // This check only makes sense in VD line files.
+            // Sync data (PMU/waveform) packets can legitimately carry an lMeasUID that differs from the
+            // parent measurement's measId_ — this is normal Siemens scanner behaviour.  For actual scan
+            // data a mismatch would indicate a retro-recon or corrupted dataset.
+            // In both cases we override lMeasUID so the ISMRMRD output is self-consistent.
+            if (!VBFILE && (scanhead.lMeasUID != (int32_t)ParcFileEntries[measurement_number - 1].measId_)) {
+                bool is_sync = (scanhead.aulEvalInfoMask[0] & MDH_SYNCDATA) != 0;
+                if (!is_sync) {
+                    std::cerr << "Unexpected lMeasUID mismatch on scan packet in measurement "
+                            << measurement_number << ": "
+                            << "scanhead.lMeasUID=" << scanhead.lMeasUID
+                            << " != ParcFileEntries[" << measurement_number - 1 << "].measId_="
+                            << ParcFileEntries[measurement_number - 1].measId_
+                            << ". Overriding lMeasUID." << std::endl;
                 }
-                scanhead.lMeasUID = ParcFileEntries[measurement_number - 1].measId_;
+                scanhead.lMeasUID = (int32_t)ParcFileEntries[measurement_number - 1].measId_;
             }
 
             if (first_call) {
@@ -967,6 +975,15 @@ int main(int argc, char* argv[]) {
                 break;
             }
 
+            // Skip any trailing bytes within the DMA block not consumed by readChannelHeaders
+            // (e.g. NX/XA ACQEND packets embed a 32-byte payload after the scan header with nChannels=0)
+            {
+                size_t expected_packet_end = packet_start_offset + dma_length;
+                if (current_offset < expected_packet_end) {
+                    skipBytes(siemens_dat, expected_packet_end - current_offset, current_offset);
+                }
+            }
+
             acquisitions++;
             last_mask = scanhead.aulEvalInfoMask[0];
 
@@ -987,32 +1004,35 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
+        // Mystery bytes: old VD-line files have 160 trailing bytes after the last scan
+        // followed by padding to a 512-byte boundary.  NX/XA files embed extra bytes
+        // inside the ACQEND DMA block (already consumed above), so mystery_bytes == 0,
+        // but they still pad each measurement to a 512-byte boundary.
         std::streamoff mystery_bytes = (std::streamoff) (ParcFileEntries[measurement_number - 1].off_ +
                                                         ParcFileEntries[measurement_number - 1].len_) - current_offset;
 
         if (mystery_bytes > 0) {
             if (mystery_bytes != MYSTERY_BYTES_EXPECTED) {
-                // Something is not quite right
-                std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
+                // Unexpected — warn but skip so we stay in sync
+                std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes
+                        << " (expected " << MYSTERY_BYTES_EXPECTED << ")" << std::endl;
                 std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].off_ = "
                         << ParcFileEntries[measurement_number - 1].off_ << std::endl;
                 std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].len_ = "
                         << ParcFileEntries[measurement_number - 1].len_ << std::endl;
                 std::cerr << "current_offset = " << current_offset << std::endl;
                 std::cerr << "Please check the result." << std::endl;
-            } else {
-                // Read the mystery bytes
-                char mystery_data[MYSTERY_BYTES_EXPECTED];
-                siemens_dat.read(reinterpret_cast<char *>(&mystery_data), mystery_bytes);
-                current_offset += mystery_bytes;
-                // After this we have to be on a 512 byte boundary
-                if (current_offset % 512) {
-                    char dummy[512];
-                    siemens_dat.read(dummy, 512 - (current_offset % 512));
-                    current_offset += 512 - (current_offset % 512);
-                }
             }
+            // Always skip mystery bytes (whether expected count or not) to stay in sync
+            skipBytes(siemens_dat, mystery_bytes, current_offset);
+        }
+
+        // Advance to the next 512-byte boundary (inter-measurement and EOF padding)
+        if (mystery_bytes >= 0 && current_offset % 512 != 0) {
+            char dummy[512];
+            size_t pad = 512 - (current_offset % 512);
+            siemens_dat.read(dummy, pad);
+            current_offset += pad;
         }
     } // Loop through multiple measurements in multi-raid
 
