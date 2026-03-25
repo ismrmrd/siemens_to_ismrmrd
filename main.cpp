@@ -438,7 +438,7 @@ std::string load_embedded(std::string name) {
         contents = base64_decode(encoded);
     } else {
         std::stringstream sstream;
-        sstream << "ERROR: File " << name << " is not embedded!";
+        sstream << "File " << name << " is not embedded!";
         throw std::runtime_error(sstream.str());
     }
     return contents;
@@ -757,8 +757,7 @@ int main(int argc, char* argv[]) {
         // find the beginning of the desired measurement
         auto skip = ParcFileEntries[measurement_number - 1].off_ - current_offset;
         if (!skipBytes(siemens_dat, skip, current_offset)) {
-            std::cerr << "ERROR: Failed to skip to measurement data" << std::endl;
-            return -1;
+            throw std::runtime_error("Failed to skip to measurement data");
         }
 
         uint32_t dma_length = 0, num_buffers = 0;
@@ -927,7 +926,7 @@ int main(int argc, char* argv[]) {
 
                 // if some of the ismrmrd header fields are not filled, here is a place to take some further actions
                 if (!fill_ismrmrd_header(header, study_date_user_supplied, study_time)) {
-                    std::cerr << "Failed to further fill XML header" << std::endl;
+                    std::cerr << "WARNING: Failed to further fill XML header" << std::endl;
                 }
 
                 std::stringstream sstream;
@@ -935,8 +934,7 @@ int main(int argc, char* argv[]) {
                 xml_config = sstream.str();
 
                 if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0) {
-                    std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
-                    return -1;
+                    throw std::runtime_error("Generated XML is not valid according to the ISMRMRD schema");
                 }
 
                 if (debug_xml) {
@@ -1249,9 +1247,9 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 23))) {
         ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING);
     } else {
-        if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22)))
-            ismrmrd_acq.setFlag(
-                    ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
+        if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22))) {
+            ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
+        }
     }
 
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 24))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_REVERSE);
@@ -1261,9 +1259,9 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_RTFEEDBACK_DATA);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 2))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_HPFEEDBACK_DATA);
     if ((scanhead.aulEvalInfoMask[1] & (1ULL << 51-32))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
-    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 10)))
-        ismrmrd_acq.setFlag(
-                ISMRMRD::ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA);
+    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 10))) {
+        ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA);
+    }
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 5))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
     // if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_REPETITION);
 
@@ -1480,8 +1478,9 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::istream &siemens_dat, bool VBFI
             siemens_dat.read((char *) &magic, sizeof(uint32_t));
             current_offset += sizeof(uint32_t);
 
-            if (!PMU_Types.count(magic))
+            if (!PMU_Types.count(magic)) {
                 throw std::runtime_error("Malformed file");
+            }
         }
 
         //Have to handle ECG separately.
@@ -1661,8 +1660,7 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
     int xslt_result = xsltSaveResultToString(&out_ptr, &xslt_length, res, cur);
 
     if (xslt_result < 0) {
-        std::cerr << "Failed to save converted doc to string" << std::endl;
-
+        std::cerr << "WARNING: Failed to save converted doc to string" << std::endl;
     }
 
     std::string xml_result = std::string((char *) out_ptr, xslt_length);
@@ -1700,14 +1698,16 @@ static bool getXProtocolValues(const XProtocol::XNode &root,
     const XProtocol::XNode *n = boost::apply_visitor(
         XProtocol::getChildNodeByName(path), root);
     if (!n) {
-        if (log_missing)
+        if (log_missing) {
             std::cerr << "Search path: " << path << " not found." << std::endl;
+        }
         return false;
     }
     out = boost::apply_visitor(XProtocol::getStringValueArray(), *n);
     if (out.empty()) {
-        if (log_missing)
+        if (log_missing) {
             std::cerr << "Search path: " << path << " found but node is empty." << std::endl;
+        }
         return false;
     }
     return true;
@@ -1719,8 +1719,9 @@ static bool getXProtocolValue(const XProtocol::XNode &root,
                               std::string &out,
                               bool log_missing = true) {
     std::vector<std::string> temp;
-    if (!getXProtocolValues(root, path, temp, log_missing))
+    if (!getXProtocolValues(root, path, temp, log_missing)) {
         return false;
+    }
     out = temp[0];
     return true;
 }
@@ -1744,7 +1745,6 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
     for (unsigned int b = 0; b < num_buffers; b++) {
         if (buffers[b].name.compare("Meas") != 0) continue;
 
-
         std::string config_buffer = std::string(&buffers[b].buf[0], buffers[b].buf.size() - 2);
         XProtocol::XNode n;
 
@@ -1765,26 +1765,30 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         }
 
         //Get some parameters - wip long
-        if (!getXProtocolValues(n, "MEAS.sWipMemBlock.alFree", wip_long))
+        if (!getXProtocolValues(n, "MEAS.sWipMemBlock.alFree", wip_long)) {
             throw std::runtime_error("Failed to find WIP long parameters");
+        }
 
         //Get some parameters - wip double
-        if (!getXProtocolValues(n, "MEAS.sWipMemBlock.adFree", wip_double))
+        if (!getXProtocolValues(n, "MEAS.sWipMemBlock.adFree", wip_double)) {
             throw std::runtime_error("Failed to find WIP double parameters");
+        }
 
         //Get some parameters - dwell times
         {
             std::string tmp;
-            if (!getXProtocolValue(n, "MEAS.sRXSPEC.alDwellTime", tmp))
+            if (!getXProtocolValue(n, "MEAS.sRXSPEC.alDwellTime", tmp)) {
                 throw std::runtime_error("Failed to find dwell times");
+            }
             dwell_time_0 = atoi(tmp.c_str());
         }
 
         //Get some parameters - trajectory
         {
             std::string tmp;
-            if (!getXProtocolValue(n, "MEAS.sKSpace.ucTrajectory", tmp))
+            if (!getXProtocolValue(n, "MEAS.sKSpace.ucTrajectory", tmp)) {
                 throw std::runtime_error("Failed to find appropriate trajectory array");
+            }
             int traj = atoi(tmp.c_str());
             trajectory = Trajectory(traj);
             std::cerr << "Trajectory is: " << traj << std::endl;
@@ -1793,8 +1797,9 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         //Get some parameters - max channels
         {
             std::string tmp;
-            if (!getXProtocolValue(n, "YAPS.iMaxNoOfRxChannels", tmp))
+            if (!getXProtocolValue(n, "YAPS.iMaxNoOfRxChannels", tmp)) {
                 throw std::runtime_error("Failed to find YAPS.iMaxNoOfRxChannels array");
+            }
             max_channels = atoi(tmp.c_str());
         }
 
@@ -1803,22 +1808,26 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
             std::string tmp;
 
             // get the center line parameters
-            if (!getXProtocolValue(n, "MEAS.sKSpace.lPhaseEncodingLines", tmp))
+            if (!getXProtocolValue(n, "MEAS.sKSpace.lPhaseEncodingLines", tmp)) {
                 throw std::runtime_error("Failed to find MEAS.sKSpace.lPhaseEncodingLines array");
+            }
             lPhaseEncodingLines = atoi(tmp.c_str());
 
-            if (!getXProtocolValue(n, "YAPS.iNoOfFourierLines", tmp))
+            if (!getXProtocolValue(n, "YAPS.iNoOfFourierLines", tmp)) {
                 throw std::runtime_error("Failed to find YAPS.iNoOfFourierLines array");
+            }
             iNoOfFourierLines = atoi(tmp.c_str());
 
             long lFirstFourierLine = 0;
             bool has_FirstFourierLine = getXProtocolValue(n, "YAPS.lFirstFourierLine", tmp);
-            if (has_FirstFourierLine)
+            if (has_FirstFourierLine) {
                 lFirstFourierLine = atoi(tmp.c_str());
+            }
 
             // get the center partition parameters
-            if (!getXProtocolValue(n, "MEAS.sKSpace.lPartitions", tmp))
+            if (!getXProtocolValue(n, "MEAS.sKSpace.lPartitions", tmp)) {
                 throw std::runtime_error("Failed to find MEAS.sKSpace.lPartitions array");
+            }
             lPartitions = atoi(tmp.c_str());
 
             // Note: iNoOfFourierPartitions is sometimes absent for 2D sequences
@@ -1827,8 +1836,9 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
 
             long lFirstFourierPartition = 0;
             bool has_FirstFourierPartition = getXProtocolValue(n, "YAPS.lFirstFourierPartition", tmp);
-            if (has_FirstFourierPartition)
+            if (has_FirstFourierPartition) {
                 lFirstFourierPartition = atoi(tmp.c_str());
+            }
 
             // set the values
             if (has_FirstFourierLine) // bottom half for partial fourier
@@ -1864,8 +1874,9 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         //Get some parameters - radial views
         {
             std::string tmp;
-            if (!getXProtocolValue(n, "MEAS.sKSpace.lRadialViews", tmp))
+            if (!getXProtocolValue(n, "MEAS.sKSpace.lRadialViews", tmp)) {
                 throw std::runtime_error("Failed to find MEAS.sKSpace.lRadialViews array");
+            }
             radial_views = atoi(tmp.c_str());
         }
         //Get some parameters - global table position
@@ -1879,35 +1890,31 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         //Get some parameters - protocol name
         {
             std::string tmp;
-            if (!getXProtocolValue(n, "HEADER.tProtocolName", tmp))
+            if (!getXProtocolValue(n, "HEADER.tProtocolName", tmp)) {
                 throw std::runtime_error("Failed to find HEADER.tProtocolName");
+            }
             protocol_name = tmp;
         }
 
         // Get some parameters - base line
         {
             std::string tmp;
-            if (getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tBaselineString", tmp, false) ||
-                getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tMeasuredBaselineString", tmp, false)) {
+            if (getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tBaselineString", tmp) ||
+                getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tMeasuredBaselineString", tmp)) {
                 baseLineString = tmp;
-            }
-            if (baseLineString.empty()) {
-                std::cerr << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString"
-                          << std::endl;
             }
         }
 
         // Get software version
         {
             std::string tmp;
-            if (getXProtocolValue(n, "Dicom.SoftwareVersions", tmp, false))
+            if (getXProtocolValue(n, "Dicom.SoftwareVersions", tmp)) {
                 software_version = tmp;
+            }
         }
 
         //xml_config = ProcessParameterMap(n, parammap_file);
         return ProcessParameterMap(n, parammap_file_content.c_str());
-
-
     }
     throw std::runtime_error("No Meas buffer found in Siemens dataset");
 }
