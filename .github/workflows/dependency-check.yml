@@ -10,15 +10,24 @@ jobs:
   build:
     name: check dependency
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Get ISMRMRD hash
+      - name: Get ISMRMRD latest tag
         run: |
-          currentHash=$(curl -s https://api.github.com/repos/ismrmrd/ismrmrd/commits/master | jq -r .sha)
-          echo $currentHash > dependencies/ismrmrd
+          tagInfo=$(curl -s https://api.github.com/repos/ismrmrd/ismrmrd/tags | jq -r '.[0]')
+          tag=$(echo "$tagInfo" | jq -r '.name')
+          sha=$(echo "$tagInfo" | jq -r '.commit.sha')
+          echo "$sha" > dependencies/ismrmrd
+          echo "ISMRMRD_TAG=$tag" >> "$GITHUB_ENV"
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v3
+        uses: peter-evans/create-pull-request@v7
         with:
           delete-branch: true
+          title: "Update ISMRMRD dependency to ${{ env.ISMRMRD_TAG }}"
+          body: "ISMRMRD has a new release: [${{ env.ISMRMRD_TAG }}](https://github.com/ismrmrd/ismrmrd/releases/tag/${{ env.ISMRMRD_TAG }})"
+          commit-message: "Update ISMRMRD dependency to ${{ env.ISMRMRD_TAG }}"
