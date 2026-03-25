@@ -1640,11 +1640,10 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
 
     params[nbparams] = NULL;
 
-    xmlSubstituteEntitiesDefault(1);
+    const int parse_flags = XML_PARSE_NOENT | XML_PARSE_DTDLOAD;
 
-    xmlLoadExtDtdDefaultValue = 1;
-
-    xml_doc = xmlParseMemory(parammap_xsl_content.c_str(), parammap_xsl_content.size());
+    xml_doc = xmlReadMemory(parammap_xsl_content.c_str(), parammap_xsl_content.size(),
+                            NULL, NULL, parse_flags);
 
     if (xml_doc == NULL) {
         std::stringstream sstream;
@@ -1654,7 +1653,7 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
     }
 
     cur = xsltParseStylesheetDoc(xml_doc);
-    doc = xmlParseMemory(xml_config.c_str(), xml_config.size());
+    doc = xmlReadMemory(xml_config.c_str(), xml_config.size(), NULL, NULL, parse_flags);
     res = xsltApplyStylesheet(cur, doc, params);
 
     xmlChar *out_ptr = NULL;
@@ -1690,6 +1689,42 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
     return xml_result;
 }
 
+// Looks up `path` in the XProtocol tree `root`, retrieves all string values, and
+// logs a diagnostic message if the node is missing or empty.
+// Returns true on success.  Pass log_missing=false to suppress diagnostics for
+// paths that are optional and known to be absent in some scan types.
+static bool getXProtocolValues(const XProtocol::XNode &root,
+                               const std::string &path,
+                               std::vector<std::string> &out,
+                               bool log_missing = true) {
+    const XProtocol::XNode *n = boost::apply_visitor(
+        XProtocol::getChildNodeByName(path), root);
+    if (!n) {
+        if (log_missing)
+            std::cerr << "Search path: " << path << " not found." << std::endl;
+        return false;
+    }
+    out = boost::apply_visitor(XProtocol::getStringValueArray(), *n);
+    if (out.empty()) {
+        if (log_missing)
+            std::cerr << "Search path: " << path << " found but node is empty." << std::endl;
+        return false;
+    }
+    return true;
+}
+
+// Convenience wrapper: retrieves the first (and typically only) value for `path`.
+static bool getXProtocolValue(const XProtocol::XNode &root,
+                              const std::string &path,
+                              std::string &out,
+                              bool log_missing = true) {
+    std::vector<std::string> temp;
+    if (!getXProtocolValues(root, path, temp, log_missing))
+        return false;
+    out = temp[0];
+    return true;
+}
+
 std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_content, uint32_t num_buffers,
                           std::vector<MeasurementHeaderBuffer> &buffers, std::vector<std::string> &wip_double,
                           Trajectory &trajectory, long &dwell_time_0, long &max_channels, long &radial_views,
@@ -1719,8 +1754,7 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         }
 
         bool is_NX = false;
-        if(config_buffer.find("syngo MR XA11")!=std::string::npos)
-        {
+        if (config_buffer.find("syngo MR XA11") != std::string::npos) {
             is_NX = true;
         }
 
@@ -1731,192 +1765,70 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
         }
 
         //Get some parameters - wip long
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sWipMemBlock.alFree"), n);
-            if (n2) {
-                wip_long = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
-            }
-            if (wip_long.size() == 0) {
-                std::stringstream sstream;
-                sstream << "Failed to find WIP long parameters";
-                throw std::runtime_error(sstream.str());
-
-            }
-        }
+        if (!getXProtocolValues(n, "MEAS.sWipMemBlock.alFree", wip_long))
+            throw std::runtime_error("Failed to find WIP long parameters");
 
         //Get some parameters - wip double
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sWipMemBlock.adFree"), n);
-            if (n2) {
-                wip_double = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "Search path: MEAS.sWipMemBlock.adFree not found." << std::endl;
-            }
-            if (wip_double.size() == 0) {
-                std::stringstream sstream;
-                sstream << "Failed to find WIP double parameters";
-                throw std::runtime_error(sstream.str());
-
-            }
-        }
+        if (!getXProtocolValues(n, "MEAS.sWipMemBlock.adFree", wip_double))
+            throw std::runtime_error("Failed to find WIP double parameters");
 
         //Get some parameters - dwell times
         {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sRXSPEC.alDwellTime"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
-            }
-            if (temp.size() == 0) {
-                std::stringstream sstream;
-                sstream << "Failed to find dwell times";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                dwell_time_0 = atoi(temp[0].c_str());
-            }
+            std::string tmp;
+            if (!getXProtocolValue(n, "MEAS.sRXSPEC.alDwellTime", tmp))
+                throw std::runtime_error("Failed to find dwell times");
+            dwell_time_0 = atoi(tmp.c_str());
         }
 
         //Get some parameters - trajectory
         {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.ucTrajectory"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "Search path: MEAS.sKSpace.ucTrajectory not found." << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find appropriate trajectory array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-
-                int traj = atoi(temp[0].c_str());
-                trajectory = Trajectory(traj);
-                std::cerr << "Trajectory is: " << traj << std::endl;
-            }
+            std::string tmp;
+            if (!getXProtocolValue(n, "MEAS.sKSpace.ucTrajectory", tmp))
+                throw std::runtime_error("Failed to find appropriate trajectory array");
+            int traj = atoi(tmp.c_str());
+            trajectory = Trajectory(traj);
+            std::cerr << "Trajectory is: " << traj << std::endl;
         }
 
         //Get some parameters - max channels
         {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.iMaxNoOfRxChannels"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "YAPS.iMaxNoOfRxChannels" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find YAPS.iMaxNoOfRxChannels array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                max_channels = atoi(temp[0].c_str());
-            }
+            std::string tmp;
+            if (!getXProtocolValue(n, "YAPS.iMaxNoOfRxChannels", tmp))
+                throw std::runtime_error("Failed to find YAPS.iMaxNoOfRxChannels array");
+            max_channels = atoi(tmp.c_str());
         }
 
         //Get some parameters - cartesian encoding bits
         {
+            std::string tmp;
+
             // get the center line parameters
-            const XProtocol::XNode *n2 = apply_visitor(
-                    XProtocol::getChildNodeByName("MEAS.sKSpace.lPhaseEncodingLines"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "MEAS.sKSpace.lPhaseEncodingLines not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find MEAS.sKSpace.lPhaseEncodingLines array";
-                throw std::runtime_error(sstream.str());
+            if (!getXProtocolValue(n, "MEAS.sKSpace.lPhaseEncodingLines", tmp))
+                throw std::runtime_error("Failed to find MEAS.sKSpace.lPhaseEncodingLines array");
+            lPhaseEncodingLines = atoi(tmp.c_str());
 
-            } else {
-                lPhaseEncodingLines = atoi(temp[0].c_str());
-            }
+            if (!getXProtocolValue(n, "YAPS.iNoOfFourierLines", tmp))
+                throw std::runtime_error("Failed to find YAPS.iNoOfFourierLines array");
+            iNoOfFourierLines = atoi(tmp.c_str());
 
-            n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierLines"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "YAPS.iNoOfFourierLines not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find YAPS.iNoOfFourierLines array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                iNoOfFourierLines = atoi(temp[0].c_str());
-            }
-
-            long lFirstFourierLine;
-            bool has_FirstFourierLine = false;
-            n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.lFirstFourierLine"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "YAPS.lFirstFourierLine not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::cerr << "Failed to find YAPS.lFirstFourierLine array" << std::endl;
-                has_FirstFourierLine = false;
-            } else {
-                lFirstFourierLine = atoi(temp[0].c_str());
-                has_FirstFourierLine = true;
-            }
+            long lFirstFourierLine = 0;
+            bool has_FirstFourierLine = getXProtocolValue(n, "YAPS.lFirstFourierLine", tmp);
+            if (has_FirstFourierLine)
+                lFirstFourierLine = atoi(tmp.c_str());
 
             // get the center partition parameters
-            n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lPartitions"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "MEAS.sKSpace.lPartitions not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find MEAS.sKSpace.lPartitions array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                lPartitions = atoi(temp[0].c_str());
-            }
+            if (!getXProtocolValue(n, "MEAS.sKSpace.lPartitions", tmp))
+                throw std::runtime_error("Failed to find MEAS.sKSpace.lPartitions array");
+            lPartitions = atoi(tmp.c_str());
 
             // Note: iNoOfFourierPartitions is sometimes absent for 2D sequences
-            n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierPartitions"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-                if (temp.size() != 1) {
-                    iNoOfFourierPartitions = 1;
-                } else {
-                    iNoOfFourierPartitions = atoi(temp[0].c_str());
-                }
-            } else {
-                iNoOfFourierPartitions = 1;
-            }
+            iNoOfFourierPartitions = getXProtocolValue(n, "YAPS.iNoOfFourierPartitions", tmp, false)
+                                     ? atoi(tmp.c_str()) : 1;
 
-            long lFirstFourierPartition;
-            bool has_FirstFourierPartition = false;
-            n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.lFirstFourierPartition"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "YAPS.lFirstFourierPartition not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::cerr << "Failed to find YAPS.lFirstFourierPartition array" << std::endl;
-                has_FirstFourierPartition = false;
-            } else {
-                lFirstFourierPartition = atoi(temp[0].c_str());
-                has_FirstFourierPartition = true;
-            }
+            long lFirstFourierPartition = 0;
+            bool has_FirstFourierPartition = getXProtocolValue(n, "YAPS.lFirstFourierPartition", tmp);
+            if (has_FirstFourierPartition)
+                lFirstFourierPartition = atoi(tmp.c_str());
 
             // set the values
             if (has_FirstFourierLine) // bottom half for partial fourier
@@ -1951,135 +1863,45 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
 
         //Get some parameters - radial views
         {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lRadialViews"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "MEAS.sKSpace.lRadialViews not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find YAPS.MEAS.sKSpace.lRadialViews array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                radial_views = atoi(temp[0].c_str());
-            }
+            std::string tmp;
+            if (!getXProtocolValue(n, "MEAS.sKSpace.lRadialViews", tmp))
+                throw std::runtime_error("Failed to find MEAS.sKSpace.lRadialViews array");
+            radial_views = atoi(tmp.c_str());
         }
-            //Get some parameters - global table position
-            {
-                const XProtocol::XNode* n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosSag"), n);
-                std::vector<std::string> temp;
-                if (n2) {
-                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-                    if (temp.size() != 1)
-                    {
-                        global_table_pos[0] = 0;
-                    }
-                    else
-                    {
-                        global_table_pos[0] = atol(temp[0].c_str());
-                    }
-                }
-                else {
-                    std::cerr << "DICOM.lGlobalTablePosSag not found" << std::endl;
-                    global_table_pos[0] = 0;
-                }
-
-        n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosCor"), n);
-                if (n2) {
-                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-                    if (temp.size() != 1)
-                    {
-                        global_table_pos[1] = 0;
-                    }
-                    else
-                    {
-                        global_table_pos[1] = atol(temp[0].c_str());
-                    }
-                }
-                else {
-                    std::cerr << "DICOM.lGlobalTablePosCor not found" << std::endl;
-                    global_table_pos[1] = 0;
-                }
-
-                n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosTra"), n);
-                if (n2) {
-                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-                    if (temp.size() != 1)
-                    {
-                        global_table_pos[2] = 0;
-                    }
-                    else
-                    {
-                        global_table_pos[2] = atol(temp[0].c_str());
-                    }
-                }
-                else {
-                    std::cerr << "DICOM.lGlobalTablePosTra not found" << std::endl;
-                    global_table_pos[2] = 0;
-                }
-            }//Get some parameters - protocol name
+        //Get some parameters - global table position
         {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("HEADER.tProtocolName"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "HEADER.tProtocolName not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find HEADER.tProtocolName";
-                throw std::runtime_error(sstream.str());
+            std::string tmp;
+            global_table_pos[0] = getXProtocolValue(n, "DICOM.lGlobalTablePosSag", tmp) ? atol(tmp.c_str()) : 0;
+            global_table_pos[1] = getXProtocolValue(n, "DICOM.lGlobalTablePosCor", tmp) ? atol(tmp.c_str()) : 0;
+            global_table_pos[2] = getXProtocolValue(n, "DICOM.lGlobalTablePosTra", tmp) ? atol(tmp.c_str()) : 0;
+        }
 
-            } else {
-                protocol_name = temp[0];
-            }
+        //Get some parameters - protocol name
+        {
+            std::string tmp;
+            if (!getXProtocolValue(n, "HEADER.tProtocolName", tmp))
+                throw std::runtime_error("Failed to find HEADER.tProtocolName");
+            protocol_name = tmp;
         }
 
         // Get some parameters - base line
         {
-            const XProtocol::XNode *n2 = apply_visitor(
-                    XProtocol::getChildNodeByName("MEAS.sProtConsistencyInfo.tBaselineString"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
+            std::string tmp;
+            if (getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tBaselineString", tmp, false) ||
+                getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tMeasuredBaselineString", tmp, false)) {
+                baseLineString = tmp;
             }
-            if (temp.size() > 0) {
-                baseLineString = temp[0];
+            if (baseLineString.empty()) {
+                std::cerr << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString"
+                          << std::endl;
             }
-        }
-
-        if (baseLineString.empty()) {
-            const XProtocol::XNode *n2 = apply_visitor(
-                    XProtocol::getChildNodeByName("MEAS.sProtConsistencyInfo.tMeasuredBaselineString"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            }
-            if (temp.size() > 0) {
-                baseLineString = temp[0];
-            }
-        }
-
-        if (baseLineString.empty()) {
-            std::cerr << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString"
-                      << std::endl;
         }
 
         // Get software version
         {
-            const XProtocol::XNode* n2 = apply_visitor(
-                XProtocol::getChildNodeByName("Dicom.SoftwareVersions"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            }
-            if (temp.size() > 0) {
-                software_version = temp[0];
-            }
+            std::string tmp;
+            if (getXProtocolValue(n, "Dicom.SoftwareVersions", tmp, false))
+                software_version = tmp;
         }
 
         //xml_config = ProcessParameterMap(n, parammap_file);
