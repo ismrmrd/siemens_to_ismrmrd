@@ -7,6 +7,8 @@ RUN apt-get update \
         python3-venv \
     && apt-get clean
 
+RUN curl -fsSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
+
 RUN mkdir -p /opt/code/siemens_to_ismrmrd
 COPY . /opt/code/siemens_to_ismrmrd/
 

@@ -19,7 +19,8 @@
 				"ms-azuretools.vscode-docker",
 				"ms-vscode.cpptools-extension-pack",
 				"ms-vscode.cmake-tools",
-				"ms-vscode.cpptools"
+				"ms-vscode.cpptools",
+				"nefrob.vscode-just-syntax"
 			]
 		}
 	},
