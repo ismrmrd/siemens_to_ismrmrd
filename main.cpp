@@ -933,23 +933,23 @@ int main(int argc, char* argv[]) {
                 ISMRMRD::serialize(header, sstream);
                 xml_config = sstream.str();
 
-                if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0) {
-                    throw std::runtime_error("Generated XML is not valid according to the ISMRMRD schema");
-                }
-
                 if (debug_xml) {
                     std::ofstream o("processed.xml");
                     o.write(xml_config.c_str(), xml_config.size());
                 }
 
-                //This means we should only create XML header and exit
-                if (header_only) {
-                    output << xml_config;
-                    return -1;
+                if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0) {
+                    throw std::runtime_error("Generated XML is not valid according to the ISMRMRD schema");
                 }
 
                 // Write out the Header
                 serializer.serialize(header);
+
+                // This means we should only write the XML header and exit
+                if (header_only) {
+                    serializer.close();
+                    return 0;
+                }
             }
 
             //Check if this is synch data, if so, it must be handled differently.
