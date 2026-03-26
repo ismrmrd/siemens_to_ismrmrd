@@ -1742,181 +1742,186 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
     long lPartitions = 0;
     long iNoOfFourierPartitions = 0;
     std::string seqString;
+
+    // Find the "Meas" buffer and throw if absent.
+    MeasurementHeaderBuffer *meas_buf = nullptr;
     for (unsigned int b = 0; b < num_buffers; b++) {
-        if (buffers[b].name.compare("Meas") != 0) continue;
-
-        std::string config_buffer = std::string(&buffers[b].buf[0], buffers[b].buf.size() - 2);
-        XProtocol::XNode n;
-
-        if (debug_xml) {
-            std::ofstream o("config_buffer.xprot");
-            o.write(config_buffer.c_str(), config_buffer.size());
+        if (buffers[b].name == "Meas") {
+            meas_buf = &buffers[b];
+            break;
         }
-
-        bool is_NX = false;
-        if (config_buffer.find("syngo MR XA11") != std::string::npos) {
-            is_NX = true;
-        }
-
-        if (ParseXProtocol(config_buffer, n) < 0) {
-            std::stringstream sstream;
-            sstream << "Failed to parse XProtocol for buffer " << buffers[b].name;
-            throw std::runtime_error(sstream.str());
-        }
-
-        //Get some parameters - wip long
-        if (!getXProtocolValues(n, "MEAS.sWipMemBlock.alFree", wip_long)) {
-            throw std::runtime_error("Failed to find WIP long parameters");
-        }
-
-        //Get some parameters - wip double
-        if (!getXProtocolValues(n, "MEAS.sWipMemBlock.adFree", wip_double)) {
-            throw std::runtime_error("Failed to find WIP double parameters");
-        }
-
-        //Get some parameters - dwell times
-        {
-            std::string tmp;
-            if (!getXProtocolValue(n, "MEAS.sRXSPEC.alDwellTime", tmp)) {
-                throw std::runtime_error("Failed to find dwell times");
-            }
-            dwell_time_0 = atoi(tmp.c_str());
-        }
-
-        //Get some parameters - trajectory
-        {
-            std::string tmp;
-            if (!getXProtocolValue(n, "MEAS.sKSpace.ucTrajectory", tmp)) {
-                throw std::runtime_error("Failed to find appropriate trajectory array");
-            }
-            int traj = atoi(tmp.c_str());
-            trajectory = Trajectory(traj);
-            std::cerr << "Trajectory is: " << traj << std::endl;
-        }
-
-        //Get some parameters - max channels
-        {
-            std::string tmp;
-            if (!getXProtocolValue(n, "YAPS.iMaxNoOfRxChannels", tmp)) {
-                throw std::runtime_error("Failed to find YAPS.iMaxNoOfRxChannels array");
-            }
-            max_channels = atoi(tmp.c_str());
-        }
-
-        //Get some parameters - cartesian encoding bits
-        {
-            std::string tmp;
-
-            // get the center line parameters
-            if (!getXProtocolValue(n, "MEAS.sKSpace.lPhaseEncodingLines", tmp)) {
-                throw std::runtime_error("Failed to find MEAS.sKSpace.lPhaseEncodingLines array");
-            }
-            lPhaseEncodingLines = atoi(tmp.c_str());
-
-            if (!getXProtocolValue(n, "YAPS.iNoOfFourierLines", tmp)) {
-                throw std::runtime_error("Failed to find YAPS.iNoOfFourierLines array");
-            }
-            iNoOfFourierLines = atoi(tmp.c_str());
-
-            long lFirstFourierLine = 0;
-            bool has_FirstFourierLine = getXProtocolValue(n, "YAPS.lFirstFourierLine", tmp);
-            if (has_FirstFourierLine) {
-                lFirstFourierLine = atoi(tmp.c_str());
-            }
-
-            // get the center partition parameters
-            if (!getXProtocolValue(n, "MEAS.sKSpace.lPartitions", tmp)) {
-                throw std::runtime_error("Failed to find MEAS.sKSpace.lPartitions array");
-            }
-            lPartitions = atoi(tmp.c_str());
-
-            // Note: iNoOfFourierPartitions is sometimes absent for 2D sequences
-            iNoOfFourierPartitions = getXProtocolValue(n, "YAPS.iNoOfFourierPartitions", tmp, false)
-                                     ? atoi(tmp.c_str()) : 1;
-
-            long lFirstFourierPartition = 0;
-            bool has_FirstFourierPartition = getXProtocolValue(n, "YAPS.lFirstFourierPartition", tmp);
-            if (has_FirstFourierPartition) {
-                lFirstFourierPartition = atoi(tmp.c_str());
-            }
-
-            // set the values
-            if (has_FirstFourierLine) // bottom half for partial fourier
-            {
-                center_line = lPhaseEncodingLines / 2 - (lPhaseEncodingLines - iNoOfFourierLines);
-            } else {
-                center_line = lPhaseEncodingLines / 2;
-            }
-
-            if (iNoOfFourierPartitions > 1) {
-                // 3D
-                if (has_FirstFourierPartition) // bottom half for partial fourier
-                {
-                    center_partition = lPartitions / 2 - (lPartitions - iNoOfFourierPartitions);
-                } else {
-                    center_partition = lPartitions / 2;
-                }
-            } else {
-                // 2D
-                center_partition = 0;
-            }
-
-            // for spiral sequences the center_line and center_partition are zero
-            if (trajectory == Trajectory::TRAJECTORY_SPIRAL) {
-                center_line = 0;
-                center_partition = 0;
-            }
-
-            std::cerr << "center_line = " << center_line << std::endl;
-            std::cerr << "center_partition = " << center_partition << std::endl;
-        }
-
-        //Get some parameters - radial views
-        {
-            std::string tmp;
-            if (!getXProtocolValue(n, "MEAS.sKSpace.lRadialViews", tmp)) {
-                throw std::runtime_error("Failed to find MEAS.sKSpace.lRadialViews array");
-            }
-            radial_views = atoi(tmp.c_str());
-        }
-        //Get some parameters - global table position
-        {
-            std::string tmp;
-            global_table_pos[0] = getXProtocolValue(n, "DICOM.lGlobalTablePosSag", tmp) ? atol(tmp.c_str()) : 0;
-            global_table_pos[1] = getXProtocolValue(n, "DICOM.lGlobalTablePosCor", tmp) ? atol(tmp.c_str()) : 0;
-            global_table_pos[2] = getXProtocolValue(n, "DICOM.lGlobalTablePosTra", tmp) ? atol(tmp.c_str()) : 0;
-        }
-
-        //Get some parameters - protocol name
-        {
-            std::string tmp;
-            if (!getXProtocolValue(n, "HEADER.tProtocolName", tmp)) {
-                throw std::runtime_error("Failed to find HEADER.tProtocolName");
-            }
-            protocol_name = tmp;
-        }
-
-        // Get some parameters - base line
-        {
-            std::string tmp;
-            if (getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tBaselineString", tmp) ||
-                getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tMeasuredBaselineString", tmp)) {
-                baseLineString = tmp;
-            }
-        }
-
-        // Get software version
-        {
-            std::string tmp;
-            if (getXProtocolValue(n, "Dicom.SoftwareVersions", tmp)) {
-                software_version = tmp;
-            }
-        }
-
-        //xml_config = ProcessParameterMap(n, parammap_file);
-        return ProcessParameterMap(n, parammap_file_content.c_str());
     }
-    throw std::runtime_error("No Meas buffer found in Siemens dataset");
+    if (!meas_buf) {
+        throw std::runtime_error("No Meas buffer found in Siemens dataset");
+    }
+
+    std::string config_buffer = std::string(&meas_buf->buf[0], meas_buf->buf.size() - 2);
+    XProtocol::XNode n;
+
+    if (debug_xml) {
+        std::ofstream o("config_buffer.xprot");
+        o.write(config_buffer.c_str(), config_buffer.size());
+    }
+
+    bool is_NX = false;
+    if (config_buffer.find("syngo MR XA") != std::string::npos) {
+        is_NX = true;
+    }
+
+    if (ParseXProtocol(config_buffer, n) < 0) {
+        throw std::runtime_error("Failed to parse XProtocol for Meas buffer");
+    }
+
+    //Get some parameters - wip long
+    if (!getXProtocolValues(n, "MEAS.sWipMemBlock.alFree", wip_long)) {
+        throw std::runtime_error("Failed to find WIP long parameters");
+    }
+
+    //Get some parameters - wip double
+    if (!getXProtocolValues(n, "MEAS.sWipMemBlock.adFree", wip_double)) {
+        throw std::runtime_error("Failed to find WIP double parameters");
+    }
+
+    //Get some parameters - dwell times
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "MEAS.sRXSPEC.alDwellTime", tmp)) {
+            throw std::runtime_error("Failed to find dwell times");
+        }
+        dwell_time_0 = atoi(tmp.c_str());
+    }
+
+    //Get some parameters - trajectory
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "MEAS.sKSpace.ucTrajectory", tmp)) {
+            throw std::runtime_error("Failed to find appropriate trajectory array");
+        }
+        int traj = atoi(tmp.c_str());
+        trajectory = Trajectory(traj);
+        std::cerr << "Trajectory is: " << traj << std::endl;
+    }
+
+    //Get some parameters - max channels
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "YAPS.iMaxNoOfRxChannels", tmp)) {
+            throw std::runtime_error("Failed to find YAPS.iMaxNoOfRxChannels array");
+        }
+        max_channels = atoi(tmp.c_str());
+    }
+
+    //Get some parameters - cartesian encoding bits
+    {
+        std::string tmp;
+
+        // get the center line parameters
+        if (!getXProtocolValue(n, "MEAS.sKSpace.lPhaseEncodingLines", tmp)) {
+            throw std::runtime_error("Failed to find MEAS.sKSpace.lPhaseEncodingLines array");
+        }
+        lPhaseEncodingLines = atoi(tmp.c_str());
+
+        if (!getXProtocolValue(n, "YAPS.iNoOfFourierLines", tmp)) {
+            throw std::runtime_error("Failed to find YAPS.iNoOfFourierLines array");
+        }
+        iNoOfFourierLines = atoi(tmp.c_str());
+
+        long lFirstFourierLine = 0;
+        bool has_FirstFourierLine = getXProtocolValue(n, "YAPS.lFirstFourierLine", tmp);
+        if (has_FirstFourierLine) {
+            lFirstFourierLine = atoi(tmp.c_str());
+        }
+
+        // get the center partition parameters
+        if (!getXProtocolValue(n, "MEAS.sKSpace.lPartitions", tmp)) {
+            throw std::runtime_error("Failed to find MEAS.sKSpace.lPartitions array");
+        }
+        lPartitions = atoi(tmp.c_str());
+
+        // Note: iNoOfFourierPartitions is sometimes absent for 2D sequences
+        iNoOfFourierPartitions = getXProtocolValue(n, "YAPS.iNoOfFourierPartitions", tmp, false)
+                                 ? atoi(tmp.c_str()) : 1;
+
+        long lFirstFourierPartition = 0;
+        bool has_FirstFourierPartition = getXProtocolValue(n, "YAPS.lFirstFourierPartition", tmp);
+        if (has_FirstFourierPartition) {
+            lFirstFourierPartition = atoi(tmp.c_str());
+        }
+
+        // set the values
+        if (has_FirstFourierLine) // bottom half for partial fourier
+        {
+            center_line = lPhaseEncodingLines / 2 - (lPhaseEncodingLines - iNoOfFourierLines);
+        } else {
+            center_line = lPhaseEncodingLines / 2;
+        }
+
+        if (iNoOfFourierPartitions > 1) {
+            // 3D
+            if (has_FirstFourierPartition) // bottom half for partial fourier
+            {
+                center_partition = lPartitions / 2 - (lPartitions - iNoOfFourierPartitions);
+            } else {
+                center_partition = lPartitions / 2;
+            }
+        } else {
+            // 2D
+            center_partition = 0;
+        }
+
+        // for spiral sequences the center_line and center_partition are zero
+        if (trajectory == Trajectory::TRAJECTORY_SPIRAL) {
+            center_line = 0;
+            center_partition = 0;
+        }
+
+        std::cerr << "center_line = " << center_line << std::endl;
+        std::cerr << "center_partition = " << center_partition << std::endl;
+    }
+
+    //Get some parameters - radial views
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "MEAS.sKSpace.lRadialViews", tmp)) {
+            throw std::runtime_error("Failed to find MEAS.sKSpace.lRadialViews array");
+        }
+        radial_views = atoi(tmp.c_str());
+    }
+    //Get some parameters - global table position
+    {
+        std::string tmp;
+        global_table_pos[0] = getXProtocolValue(n, "DICOM.lGlobalTablePosSag", tmp) ? atol(tmp.c_str()) : 0;
+        global_table_pos[1] = getXProtocolValue(n, "DICOM.lGlobalTablePosCor", tmp) ? atol(tmp.c_str()) : 0;
+        global_table_pos[2] = getXProtocolValue(n, "DICOM.lGlobalTablePosTra", tmp) ? atol(tmp.c_str()) : 0;
+    }
+
+    //Get some parameters - protocol name
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "HEADER.tProtocolName", tmp)) {
+            throw std::runtime_error("Failed to find HEADER.tProtocolName");
+        }
+        protocol_name = tmp;
+    }
+
+    // Get some parameters - base line
+    {
+        std::string tmp;
+        if (getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tBaselineString", tmp) ||
+            getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tMeasuredBaselineString", tmp)) {
+            baseLineString = tmp;
+        }
+    }
+
+    // Get software version
+    {
+        std::string tmp;
+        if (getXProtocolValue(n, "Dicom.SoftwareVersions", tmp)) {
+            software_version = tmp;
+        }
+    }
+
+    return ProcessParameterMap(n, parammap_file_content.c_str());
 }
 
 std::vector<MeasurementHeaderBuffer> readMeasurementHeaderBuffers(std::istream &siemens_dat, uint32_t num_buffers, size_t& current_offset) {
