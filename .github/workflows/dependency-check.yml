@@ -3,8 +3,8 @@ on:
   workflow_dispatch:
 
   schedule:
-    # Running 4 times a day
-    - cron:  '0 */6 * * *'
+    # Running once a week
+    - cron:  '12 3 * * 4'
 
 jobs:
   build:
