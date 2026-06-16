@@ -18,19 +18,19 @@ requirements:
     - gcc_linux-64>=9.0.0  # [linux64]
     - gxx_linux-64>=9.0.0  # [linux64]
     - ismrmrd>=1.15.0
-    - libxml2>=2.9
+    - libxml2-devel>=2.14
     - libxslt=1.1
     - ninja=1.12.*
 
   run:
     - ismrmrd>=1.15.0
     - boost {{ boost }}
-    - libxml2>=2.9
+    - libxml2-16>=2.14
     - libxslt=1.1
 
 test:
   requires:
-    - ismrmrd-python==1.14.2
+    - ismrmrd-python==1.15.0
     - pytest>=8.4.2
     - PyYAML>=6.0.2
   source_files:
