@@ -79,7 +79,7 @@ else()
 endif()
 
 find_package(Boost COMPONENTS system program_options filesystem REQUIRED)
-find_package(ISMRMRD 1.14.2 REQUIRED)
+find_package(ISMRMRD 1.15.0 REQUIRED)
 
 add_executable(embed base64.cpp embed.cpp)
 target_link_libraries(embed ${Boost_LIBRARIES})

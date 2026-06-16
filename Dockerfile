@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/base:jammy AS ismrmrd_dev
+FROM mcr.microsoft.com/devcontainers/base:noble AS ismrmrd_dev
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -6,6 +6,8 @@ RUN apt-get update \
         libboost-all-dev libpugixml-dev \
         python3-venv \
     && apt-get clean
+
+RUN curl -fsSL https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 
 RUN mkdir -p /opt/code/siemens_to_ismrmrd
 COPY . /opt/code/siemens_to_ismrmrd/
@@ -55,7 +57,7 @@ RUN cd /opt/code/siemens_to_ismrmrd/test && \
     pip install -r requirements.txt && \
     python -m pytest --download-all --echo-log-on-failure
 
-FROM mcr.microsoft.com/devcontainers/base:jammy AS siemens_to_ismrmrd
+FROM mcr.microsoft.com/devcontainers/base:noble AS siemens_to_ismrmrd
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
 COPY --from=siemens_to_ismrmrd_build /usr/local/bin/siemens_to_ismrmrd /usr/local/bin/siemens_to_ismrmrd
 COPY --from=siemens_to_ismrmrd_build /usr/local/bin/ismrmrd_to_siemens /usr/local/bin/ismrmrd_to_siemens

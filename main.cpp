@@ -438,7 +438,7 @@ std::string load_embedded(std::string name) {
         contents = base64_decode(encoded);
     } else {
         std::stringstream sstream;
-        sstream << "ERROR: File " << name << " is not embedded!";
+        sstream << "File " << name << " is not embedded!";
         throw std::runtime_error(sstream.str());
     }
     return contents;
@@ -757,8 +757,7 @@ int main(int argc, char* argv[]) {
         // find the beginning of the desired measurement
         auto skip = ParcFileEntries[measurement_number - 1].off_ - current_offset;
         if (!skipBytes(siemens_dat, skip, current_offset)) {
-            std::cerr << "ERROR: Failed to skip to measurement data" << std::endl;
-            return -1;
+            throw std::runtime_error("Failed to skip to measurement data");
         }
 
         uint32_t dma_length = 0, num_buffers = 0;
@@ -879,6 +878,7 @@ int main(int argc, char* argv[]) {
         {
             sMDH mdh;//For VB line
             sScanHeader scanhead;
+            size_t packet_start_offset = current_offset;
             readScanHeader(siemens_dat, VBFILE, mdh, scanhead, current_offset);
 
             if (!siemens_dat) {
@@ -889,15 +889,22 @@ int main(int argc, char* argv[]) {
             uint32_t dma_length = scanhead.ulFlagsAndDMALength & MDH_DMA_LENGTH_MASK;
             uint32_t mdh_enable_flags = scanhead.ulFlagsAndDMALength & MDH_ENABLE_FLAGS_MASK;
 
-            //This check only makes sense in VD line files.
-            if (!VBFILE && (scanhead.lMeasUID != ParcFileEntries[measurement_number - 1].measId_)) {
-                //Something must have gone terribly wrong. Bail out.
-                if (first_call) {
-                    std::cerr << "Corrupted or retro-recon dataset detected (scanhead.lMeasUID != ParcFileEntries["
-                            << measurement_number - 1 << "].measId_)" << std::endl;
-                    std::cerr << "Fix the scanhead.lMeasUID ... " << std::endl;
+            // This check only makes sense in VD line files.
+            // Sync data (PMU/waveform) packets can legitimately carry an lMeasUID that differs from the
+            // parent measurement's measId_ — this is normal Siemens scanner behaviour.  For actual scan
+            // data a mismatch would indicate a retro-recon or corrupted dataset.
+            // In both cases we override lMeasUID so the ISMRMRD output is self-consistent.
+            if (!VBFILE && (scanhead.lMeasUID != (int32_t)ParcFileEntries[measurement_number - 1].measId_)) {
+                bool is_sync = (scanhead.aulEvalInfoMask[0] & MDH_SYNCDATA) != 0;
+                if (!is_sync) {
+                    std::cerr << "Unexpected lMeasUID mismatch on scan packet in measurement "
+                            << measurement_number << ": "
+                            << "scanhead.lMeasUID=" << scanhead.lMeasUID
+                            << " != ParcFileEntries[" << measurement_number - 1 << "].measId_="
+                            << ParcFileEntries[measurement_number - 1].measId_
+                            << ". Overriding lMeasUID." << std::endl;
                 }
-                scanhead.lMeasUID = ParcFileEntries[measurement_number - 1].measId_;
+                scanhead.lMeasUID = (int32_t)ParcFileEntries[measurement_number - 1].measId_;
             }
 
             if (first_call) {
@@ -919,31 +926,30 @@ int main(int argc, char* argv[]) {
 
                 // if some of the ismrmrd header fields are not filled, here is a place to take some further actions
                 if (!fill_ismrmrd_header(header, study_date_user_supplied, study_time)) {
-                    std::cerr << "Failed to further fill XML header" << std::endl;
+                    std::cerr << "WARNING: Failed to further fill XML header" << std::endl;
                 }
 
                 std::stringstream sstream;
                 ISMRMRD::serialize(header, sstream);
                 xml_config = sstream.str();
 
-                if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0) {
-                    std::cerr << "Generated XML is not valid according to the ISMRMRD schema" << std::endl;
-                    return -1;
-                }
-
                 if (debug_xml) {
                     std::ofstream o("processed.xml");
                     o.write(xml_config.c_str(), xml_config.size());
                 }
 
-                //This means we should only create XML header and exit
-                if (header_only) {
-                    output << xml_config;
-                    return -1;
+                if (xml_file_is_valid(xml_config, schema_file_name_content) <= 0) {
+                    throw std::runtime_error("Generated XML is not valid according to the ISMRMRD schema");
                 }
 
                 // Write out the Header
                 serializer.serialize(header);
+
+                // This means we should only write the XML header and exit
+                if (header_only) {
+                    serializer.close();
+                    return 0;
+                }
             }
 
             //Check if this is synch data, if so, it must be handled differently.
@@ -967,6 +973,15 @@ int main(int argc, char* argv[]) {
                 break;
             }
 
+            // Skip any trailing bytes within the DMA block not consumed by readChannelHeaders
+            // (e.g. NX/XA ACQEND packets embed a 32-byte payload after the scan header with nChannels=0)
+            {
+                size_t expected_packet_end = packet_start_offset + dma_length;
+                if (current_offset < expected_packet_end) {
+                    skipBytes(siemens_dat, expected_packet_end - current_offset, current_offset);
+                }
+            }
+
             acquisitions++;
             last_mask = scanhead.aulEvalInfoMask[0];
 
@@ -987,32 +1002,35 @@ int main(int argc, char* argv[]) {
             return -1;
         }
 
-        //Mystery bytes. There seems to be 160 mystery bytes at the end of the data.
+        // Mystery bytes: old VD-line files have 160 trailing bytes after the last scan
+        // followed by padding to a 512-byte boundary.  NX/XA files embed extra bytes
+        // inside the ACQEND DMA block (already consumed above), so mystery_bytes == 0,
+        // but they still pad each measurement to a 512-byte boundary.
         std::streamoff mystery_bytes = (std::streamoff) (ParcFileEntries[measurement_number - 1].off_ +
                                                         ParcFileEntries[measurement_number - 1].len_) - current_offset;
 
         if (mystery_bytes > 0) {
             if (mystery_bytes != MYSTERY_BYTES_EXPECTED) {
-                // Something is not quite right
-                std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes << std::endl;
+                // Unexpected — warn but skip so we stay in sync
+                std::cerr << "WARNING: Unexpected number of mystery bytes detected: " << mystery_bytes
+                        << " (expected " << MYSTERY_BYTES_EXPECTED << ")" << std::endl;
                 std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].off_ = "
                         << ParcFileEntries[measurement_number - 1].off_ << std::endl;
                 std::cerr << "ParcFileEntries[" << measurement_number - 1 << "].len_ = "
                         << ParcFileEntries[measurement_number - 1].len_ << std::endl;
                 std::cerr << "current_offset = " << current_offset << std::endl;
                 std::cerr << "Please check the result." << std::endl;
-            } else {
-                // Read the mystery bytes
-                char mystery_data[MYSTERY_BYTES_EXPECTED];
-                siemens_dat.read(reinterpret_cast<char *>(&mystery_data), mystery_bytes);
-                current_offset += mystery_bytes;
-                // After this we have to be on a 512 byte boundary
-                if (current_offset % 512) {
-                    char dummy[512];
-                    siemens_dat.read(dummy, 512 - (current_offset % 512));
-                    current_offset += 512 - (current_offset % 512);
-                }
             }
+            // Always skip mystery bytes (whether expected count or not) to stay in sync
+            skipBytes(siemens_dat, mystery_bytes, current_offset);
+        }
+
+        // Advance to the next 512-byte boundary (inter-measurement and EOF padding)
+        if (mystery_bytes >= 0 && current_offset % 512 != 0) {
+            char dummy[512];
+            size_t pad = 512 - (current_offset % 512);
+            siemens_dat.read(dummy, pad);
+            current_offset += pad;
         }
     } // Loop through multiple measurements in multi-raid
 
@@ -1229,9 +1247,9 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 23))) {
         ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION_AND_IMAGING);
     } else {
-        if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22)))
-            ismrmrd_acq.setFlag(
-                    ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
+        if ((scanhead.aulEvalInfoMask[0] & (1ULL << 22))) {
+            ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_PARALLEL_CALIBRATION);
+        }
     }
 
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 24))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_REVERSE);
@@ -1241,9 +1259,9 @@ getAcquisition(bool flash_pat_ref_scan, const Trajectory &trajectory, long dwell
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_RTFEEDBACK_DATA);
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 2))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_HPFEEDBACK_DATA);
     if ((scanhead.aulEvalInfoMask[1] & (1ULL << 51-32))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
-    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 10)))
-        ismrmrd_acq.setFlag(
-                ISMRMRD::ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA);
+    if ((scanhead.aulEvalInfoMask[0] & (1ULL << 10))) {
+        ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_SURFACECOILCORRECTIONSCAN_DATA);
+    }
     if ((scanhead.aulEvalInfoMask[0] & (1ULL << 5))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_IS_DUMMYSCAN_DATA);
     // if ((scanhead.aulEvalInfoMask[0] & (1ULL << 1))) ismrmrd_acq.setFlag(ISMRMRD::ISMRMRD_ACQ_LAST_IN_REPETITION);
 
@@ -1460,8 +1478,9 @@ std::vector<ISMRMRD::Waveform> readSyncdata(std::istream &siemens_dat, bool VBFI
             siemens_dat.read((char *) &magic, sizeof(uint32_t));
             current_offset += sizeof(uint32_t);
 
-            if (!PMU_Types.count(magic))
+            if (!PMU_Types.count(magic)) {
                 throw std::runtime_error("Malformed file");
+            }
         }
 
         //Have to handle ECG separately.
@@ -1620,11 +1639,10 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
 
     params[nbparams] = NULL;
 
-    xmlSubstituteEntitiesDefault(1);
+    const int parse_flags = XML_PARSE_NOENT | XML_PARSE_DTDLOAD;
 
-    xmlLoadExtDtdDefaultValue = 1;
-
-    xml_doc = xmlParseMemory(parammap_xsl_content.c_str(), parammap_xsl_content.size());
+    xml_doc = xmlReadMemory(parammap_xsl_content.c_str(), parammap_xsl_content.size(),
+                            NULL, NULL, parse_flags);
 
     if (xml_doc == NULL) {
         std::stringstream sstream;
@@ -1634,7 +1652,7 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
     }
 
     cur = xsltParseStylesheetDoc(xml_doc);
-    doc = xmlParseMemory(xml_config.c_str(), xml_config.size());
+    doc = xmlReadMemory(xml_config.c_str(), xml_config.size(), NULL, NULL, parse_flags);
     res = xsltApplyStylesheet(cur, doc, params);
 
     xmlChar *out_ptr = NULL;
@@ -1642,8 +1660,7 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
     int xslt_result = xsltSaveResultToString(&out_ptr, &xslt_length, res, cur);
 
     if (xslt_result < 0) {
-        std::cerr << "Failed to save converted doc to string" << std::endl;
-
+        std::cerr << "WARNING: Failed to save converted doc to string" << std::endl;
     }
 
     std::string xml_result = std::string((char *) out_ptr, xslt_length);
@@ -1670,6 +1687,45 @@ std::string parseXML(bool debug_xml, const std::string &parammap_xsl_content, st
     return xml_result;
 }
 
+// Looks up `path` in the XProtocol tree `root`, retrieves all string values, and
+// logs a diagnostic message if the node is missing or empty.
+// Returns true on success.  Pass log_missing=false to suppress diagnostics for
+// paths that are optional and known to be absent in some scan types.
+static bool getXProtocolValues(const XProtocol::XNode &root,
+                               const std::string &path,
+                               std::vector<std::string> &out,
+                               bool log_missing = true) {
+    const XProtocol::XNode *n = boost::apply_visitor(
+        XProtocol::getChildNodeByName(path), root);
+    if (!n) {
+        if (log_missing) {
+            std::cerr << "Search path: " << path << " not found." << std::endl;
+        }
+        return false;
+    }
+    out = boost::apply_visitor(XProtocol::getStringValueArray(), *n);
+    if (out.empty()) {
+        if (log_missing) {
+            std::cerr << "Search path: " << path << " found but node is empty." << std::endl;
+        }
+        return false;
+    }
+    return true;
+}
+
+// Convenience wrapper: retrieves the first (and typically only) value for `path`.
+static bool getXProtocolValue(const XProtocol::XNode &root,
+                              const std::string &path,
+                              std::string &out,
+                              bool log_missing = true) {
+    std::vector<std::string> temp;
+    if (!getXProtocolValues(root, path, temp, log_missing)) {
+        return false;
+    }
+    out = temp[0];
+    return true;
+}
+
 std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_content, uint32_t num_buffers,
                           std::vector<MeasurementHeaderBuffer> &buffers, std::vector<std::string> &wip_double,
                           Trajectory &trajectory, long &dwell_time_0, long &max_channels, long &radial_views,
@@ -1686,388 +1742,186 @@ std::string readXmlConfig(bool debug_xml, const std::string &parammap_file_conte
     long lPartitions = 0;
     long iNoOfFourierPartitions = 0;
     std::string seqString;
+
+    // Find the "Meas" buffer and throw if absent.
+    MeasurementHeaderBuffer *meas_buf = nullptr;
     for (unsigned int b = 0; b < num_buffers; b++) {
-        if (buffers[b].name.compare("Meas") != 0) continue;
-
-
-        std::string config_buffer = std::string(&buffers[b].buf[0], buffers[b].buf.size() - 2);
-        XProtocol::XNode n;
-
-        if (debug_xml) {
-            std::ofstream o("config_buffer.xprot");
-            o.write(config_buffer.c_str(), config_buffer.size());
+        if (buffers[b].name == "Meas") {
+            meas_buf = &buffers[b];
+            break;
         }
-
-        bool is_NX = false;
-        if(config_buffer.find("syngo MR XA11")!=std::string::npos)
-        {
-            is_NX = true;
-        }
-
-        if (ParseXProtocol(config_buffer, n) < 0) {
-            std::stringstream sstream;
-            sstream << "Failed to parse XProtocol for buffer " << buffers[b].name;
-            throw std::runtime_error(sstream.str());
-        }
-
-        //Get some parameters - wip long
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sWipMemBlock.alFree"), n);
-            if (n2) {
-                wip_long = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
-            }
-            if (wip_long.size() == 0) {
-                std::stringstream sstream;
-                sstream << "Failed to find WIP long parameters";
-                throw std::runtime_error(sstream.str());
-
-            }
-        }
-
-        //Get some parameters - wip double
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sWipMemBlock.adFree"), n);
-            if (n2) {
-                wip_double = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "Search path: MEAS.sWipMemBlock.adFree not found." << std::endl;
-            }
-            if (wip_double.size() == 0) {
-                std::stringstream sstream;
-                sstream << "Failed to find WIP double parameters";
-                throw std::runtime_error(sstream.str());
-
-            }
-        }
-
-        //Get some parameters - dwell times
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sRXSPEC.alDwellTime"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "Search path: MEAS.sWipMemBlock.alFree not found." << std::endl;
-            }
-            if (temp.size() == 0) {
-                std::stringstream sstream;
-                sstream << "Failed to find dwell times";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                dwell_time_0 = atoi(temp[0].c_str());
-            }
-        }
-
-        //Get some parameters - trajectory
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.ucTrajectory"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "Search path: MEAS.sKSpace.ucTrajectory not found." << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find appropriate trajectory array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-
-                int traj = atoi(temp[0].c_str());
-                trajectory = Trajectory(traj);
-                std::cerr << "Trajectory is: " << traj << std::endl;
-            }
-        }
-
-        //Get some parameters - max channels
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.iMaxNoOfRxChannels"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "YAPS.iMaxNoOfRxChannels" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find YAPS.iMaxNoOfRxChannels array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                max_channels = atoi(temp[0].c_str());
-            }
-        }
-
-        //Get some parameters - cartesian encoding bits
-        {
-            // get the center line parameters
-            const XProtocol::XNode *n2 = apply_visitor(
-                    XProtocol::getChildNodeByName("MEAS.sKSpace.lPhaseEncodingLines"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "MEAS.sKSpace.lPhaseEncodingLines not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find MEAS.sKSpace.lPhaseEncodingLines array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                lPhaseEncodingLines = atoi(temp[0].c_str());
-            }
-
-            n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierLines"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "YAPS.iNoOfFourierLines not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find YAPS.iNoOfFourierLines array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                iNoOfFourierLines = atoi(temp[0].c_str());
-            }
-
-            long lFirstFourierLine;
-            bool has_FirstFourierLine = false;
-            n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.lFirstFourierLine"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "YAPS.lFirstFourierLine not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::cerr << "Failed to find YAPS.lFirstFourierLine array" << std::endl;
-                has_FirstFourierLine = false;
-            } else {
-                lFirstFourierLine = atoi(temp[0].c_str());
-                has_FirstFourierLine = true;
-            }
-
-            // get the center partition parameters
-            n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lPartitions"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "MEAS.sKSpace.lPartitions not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find MEAS.sKSpace.lPartitions array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                lPartitions = atoi(temp[0].c_str());
-            }
-
-            // Note: iNoOfFourierPartitions is sometimes absent for 2D sequences
-            n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.iNoOfFourierPartitions"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-                if (temp.size() != 1) {
-                    iNoOfFourierPartitions = 1;
-                } else {
-                    iNoOfFourierPartitions = atoi(temp[0].c_str());
-                }
-            } else {
-                iNoOfFourierPartitions = 1;
-            }
-
-            long lFirstFourierPartition;
-            bool has_FirstFourierPartition = false;
-            n2 = apply_visitor(XProtocol::getChildNodeByName("YAPS.lFirstFourierPartition"), n);
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "YAPS.lFirstFourierPartition not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::cerr << "Failed to find YAPS.lFirstFourierPartition array" << std::endl;
-                has_FirstFourierPartition = false;
-            } else {
-                lFirstFourierPartition = atoi(temp[0].c_str());
-                has_FirstFourierPartition = true;
-            }
-
-            // set the values
-            if (has_FirstFourierLine) // bottom half for partial fourier
-            {
-                center_line = lPhaseEncodingLines / 2 - (lPhaseEncodingLines - iNoOfFourierLines);
-            } else {
-                center_line = lPhaseEncodingLines / 2;
-            }
-
-            if (iNoOfFourierPartitions > 1) {
-                // 3D
-                if (has_FirstFourierPartition) // bottom half for partial fourier
-                {
-                    center_partition = lPartitions / 2 - (lPartitions - iNoOfFourierPartitions);
-                } else {
-                    center_partition = lPartitions / 2;
-                }
-            } else {
-                // 2D
-                center_partition = 0;
-            }
-
-            // for spiral sequences the center_line and center_partition are zero
-            if (trajectory == Trajectory::TRAJECTORY_SPIRAL) {
-                center_line = 0;
-                center_partition = 0;
-            }
-
-            std::cerr << "center_line = " << center_line << std::endl;
-            std::cerr << "center_partition = " << center_partition << std::endl;
-        }
-
-        //Get some parameters - radial views
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("MEAS.sKSpace.lRadialViews"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "MEAS.sKSpace.lRadialViews not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find YAPS.MEAS.sKSpace.lRadialViews array";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                radial_views = atoi(temp[0].c_str());
-            }
-        }
-            //Get some parameters - global table position
-            {
-                const XProtocol::XNode* n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosSag"), n);
-                std::vector<std::string> temp;
-                if (n2) {
-                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-                    if (temp.size() != 1)
-                    {
-                        global_table_pos[0] = 0;
-                    }
-                    else
-                    {
-                        global_table_pos[0] = atol(temp[0].c_str());
-                    }
-                }
-                else {
-                    std::cerr << "DICOM.lGlobalTablePosSag not found" << std::endl;
-                    global_table_pos[0] = 0;
-                }
-
-        n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosCor"), n);
-                if (n2) {
-                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-                    if (temp.size() != 1)
-                    {
-                        global_table_pos[1] = 0;
-                    }
-                    else
-                    {
-                        global_table_pos[1] = atol(temp[0].c_str());
-                    }
-                }
-                else {
-                    std::cerr << "DICOM.lGlobalTablePosCor not found" << std::endl;
-                    global_table_pos[1] = 0;
-                }
-
-                n2 = apply_visitor(XProtocol::getChildNodeByName("DICOM.lGlobalTablePosTra"), n);
-                if (n2) {
-                    temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-                    if (temp.size() != 1)
-                    {
-                        global_table_pos[2] = 0;
-                    }
-                    else
-                    {
-                        global_table_pos[2] = atol(temp[0].c_str());
-                    }
-                }
-                else {
-                    std::cerr << "DICOM.lGlobalTablePosTra not found" << std::endl;
-                    global_table_pos[2] = 0;
-                }
-            }//Get some parameters - protocol name
-        {
-            const XProtocol::XNode *n2 = apply_visitor(XProtocol::getChildNodeByName("HEADER.tProtocolName"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            } else {
-                std::cerr << "HEADER.tProtocolName not found" << std::endl;
-            }
-            if (temp.size() != 1) {
-                std::stringstream sstream;
-                sstream << "Failed to find HEADER.tProtocolName";
-                throw std::runtime_error(sstream.str());
-
-            } else {
-                protocol_name = temp[0];
-            }
-        }
-
-        // Get some parameters - base line
-        {
-            const XProtocol::XNode *n2 = apply_visitor(
-                    XProtocol::getChildNodeByName("MEAS.sProtConsistencyInfo.tBaselineString"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            }
-            if (temp.size() > 0) {
-                baseLineString = temp[0];
-            }
-        }
-
-        if (baseLineString.empty()) {
-            const XProtocol::XNode *n2 = apply_visitor(
-                    XProtocol::getChildNodeByName("MEAS.sProtConsistencyInfo.tMeasuredBaselineString"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            }
-            if (temp.size() > 0) {
-                baseLineString = temp[0];
-            }
-        }
-
-        if (baseLineString.empty()) {
-            std::cerr << "Failed to find MEAS.sProtConsistencyInfo.tBaselineString/tMeasuredBaselineString"
-                      << std::endl;
-        }
-
-        // Get software version
-        {
-            const XProtocol::XNode* n2 = apply_visitor(
-                XProtocol::getChildNodeByName("Dicom.SoftwareVersions"), n);
-            std::vector<std::string> temp;
-            if (n2) {
-                temp = apply_visitor(XProtocol::getStringValueArray(), *n2);
-            }
-            if (temp.size() > 0) {
-                software_version = temp[0];
-            }
-        }
-
-        //xml_config = ProcessParameterMap(n, parammap_file);
-        return ProcessParameterMap(n, parammap_file_content.c_str());
-
-
     }
-    throw std::runtime_error("No Meas buffer found in Siemens dataset");
+    if (!meas_buf) {
+        throw std::runtime_error("No Meas buffer found in Siemens dataset");
+    }
+
+    std::string config_buffer = std::string(&meas_buf->buf[0], meas_buf->buf.size() - 2);
+    XProtocol::XNode n;
+
+    if (debug_xml) {
+        std::ofstream o("config_buffer.xprot");
+        o.write(config_buffer.c_str(), config_buffer.size());
+    }
+
+    bool is_NX = false;
+    if (config_buffer.find("syngo MR XA") != std::string::npos) {
+        is_NX = true;
+    }
+
+    if (ParseXProtocol(config_buffer, n) < 0) {
+        throw std::runtime_error("Failed to parse XProtocol for Meas buffer");
+    }
+
+    //Get some parameters - wip long
+    if (!getXProtocolValues(n, "MEAS.sWipMemBlock.alFree", wip_long)) {
+        throw std::runtime_error("Failed to find WIP long parameters");
+    }
+
+    //Get some parameters - wip double
+    if (!getXProtocolValues(n, "MEAS.sWipMemBlock.adFree", wip_double)) {
+        throw std::runtime_error("Failed to find WIP double parameters");
+    }
+
+    //Get some parameters - dwell times
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "MEAS.sRXSPEC.alDwellTime", tmp)) {
+            throw std::runtime_error("Failed to find dwell times");
+        }
+        dwell_time_0 = atoi(tmp.c_str());
+    }
+
+    //Get some parameters - trajectory
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "MEAS.sKSpace.ucTrajectory", tmp)) {
+            throw std::runtime_error("Failed to find appropriate trajectory array");
+        }
+        int traj = atoi(tmp.c_str());
+        trajectory = Trajectory(traj);
+        std::cerr << "Trajectory is: " << traj << std::endl;
+    }
+
+    //Get some parameters - max channels
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "YAPS.iMaxNoOfRxChannels", tmp)) {
+            throw std::runtime_error("Failed to find YAPS.iMaxNoOfRxChannels array");
+        }
+        max_channels = atoi(tmp.c_str());
+    }
+
+    //Get some parameters - cartesian encoding bits
+    {
+        std::string tmp;
+
+        // get the center line parameters
+        if (!getXProtocolValue(n, "MEAS.sKSpace.lPhaseEncodingLines", tmp)) {
+            throw std::runtime_error("Failed to find MEAS.sKSpace.lPhaseEncodingLines array");
+        }
+        lPhaseEncodingLines = atoi(tmp.c_str());
+
+        if (!getXProtocolValue(n, "YAPS.iNoOfFourierLines", tmp)) {
+            throw std::runtime_error("Failed to find YAPS.iNoOfFourierLines array");
+        }
+        iNoOfFourierLines = atoi(tmp.c_str());
+
+        long lFirstFourierLine = 0;
+        bool has_FirstFourierLine = getXProtocolValue(n, "YAPS.lFirstFourierLine", tmp);
+        if (has_FirstFourierLine) {
+            lFirstFourierLine = atoi(tmp.c_str());
+        }
+
+        // get the center partition parameters
+        if (!getXProtocolValue(n, "MEAS.sKSpace.lPartitions", tmp)) {
+            throw std::runtime_error("Failed to find MEAS.sKSpace.lPartitions array");
+        }
+        lPartitions = atoi(tmp.c_str());
+
+        // Note: iNoOfFourierPartitions is sometimes absent for 2D sequences
+        iNoOfFourierPartitions = getXProtocolValue(n, "YAPS.iNoOfFourierPartitions", tmp, false)
+                                 ? atoi(tmp.c_str()) : 1;
+
+        long lFirstFourierPartition = 0;
+        bool has_FirstFourierPartition = getXProtocolValue(n, "YAPS.lFirstFourierPartition", tmp);
+        if (has_FirstFourierPartition) {
+            lFirstFourierPartition = atoi(tmp.c_str());
+        }
+
+        // set the values
+        if (has_FirstFourierLine) // bottom half for partial fourier
+        {
+            center_line = lPhaseEncodingLines / 2 - (lPhaseEncodingLines - iNoOfFourierLines);
+        } else {
+            center_line = lPhaseEncodingLines / 2;
+        }
+
+        if (iNoOfFourierPartitions > 1) {
+            // 3D
+            if (has_FirstFourierPartition) // bottom half for partial fourier
+            {
+                center_partition = lPartitions / 2 - (lPartitions - iNoOfFourierPartitions);
+            } else {
+                center_partition = lPartitions / 2;
+            }
+        } else {
+            // 2D
+            center_partition = 0;
+        }
+
+        // for spiral sequences the center_line and center_partition are zero
+        if (trajectory == Trajectory::TRAJECTORY_SPIRAL) {
+            center_line = 0;
+            center_partition = 0;
+        }
+
+        std::cerr << "center_line = " << center_line << std::endl;
+        std::cerr << "center_partition = " << center_partition << std::endl;
+    }
+
+    //Get some parameters - radial views
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "MEAS.sKSpace.lRadialViews", tmp)) {
+            throw std::runtime_error("Failed to find MEAS.sKSpace.lRadialViews array");
+        }
+        radial_views = atoi(tmp.c_str());
+    }
+    //Get some parameters - global table position
+    {
+        std::string tmp;
+        global_table_pos[0] = getXProtocolValue(n, "DICOM.lGlobalTablePosSag", tmp) ? atol(tmp.c_str()) : 0;
+        global_table_pos[1] = getXProtocolValue(n, "DICOM.lGlobalTablePosCor", tmp) ? atol(tmp.c_str()) : 0;
+        global_table_pos[2] = getXProtocolValue(n, "DICOM.lGlobalTablePosTra", tmp) ? atol(tmp.c_str()) : 0;
+    }
+
+    //Get some parameters - protocol name
+    {
+        std::string tmp;
+        if (!getXProtocolValue(n, "HEADER.tProtocolName", tmp)) {
+            throw std::runtime_error("Failed to find HEADER.tProtocolName");
+        }
+        protocol_name = tmp;
+    }
+
+    // Get some parameters - base line
+    {
+        std::string tmp;
+        if (getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tBaselineString", tmp) ||
+            getXProtocolValue(n, "MEAS.sProtConsistencyInfo.tMeasuredBaselineString", tmp)) {
+            baseLineString = tmp;
+        }
+    }
+
+    // Get software version
+    {
+        std::string tmp;
+        if (getXProtocolValue(n, "Dicom.SoftwareVersions", tmp)) {
+            software_version = tmp;
+        }
+    }
+
+    return ProcessParameterMap(n, parammap_file_content.c_str());
 }
 
 std::vector<MeasurementHeaderBuffer> readMeasurementHeaderBuffers(std::istream &siemens_dat, uint32_t num_buffers, size_t& current_offset) {

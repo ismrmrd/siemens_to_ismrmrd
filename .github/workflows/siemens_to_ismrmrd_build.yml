@@ -13,7 +13,7 @@ jobs:
     name: Build Linux binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Build
         run: |
@@ -33,7 +33,7 @@ jobs:
         run: tar -czvf siemens_to_ismrmrd_linux_x86_64.tar.gz siemens_to_ismrmrd ismrmrd_to_siemens
 
       - name: Upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-binaries
           path: siemens_to_ismrmrd_linux_x86_64.tar.gz
@@ -43,7 +43,7 @@ jobs:
     name: Build Windows binaries
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Install static ISMRMRD library
       shell: pwsh
@@ -78,7 +78,7 @@ jobs:
       run: Compress-Archive -Path ${{github.workspace}}/build/Release/siemens_to_ismrmrd.exe, ${{github.workspace}}/build/Release/ismrmrd_to_siemens.exe -DestinationPath siemens_to_ismrmrd_windows_x86_64.zip
 
     - name: Upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: windows-binaries
         path: siemens_to_ismrmrd_windows_x86_64.zip
@@ -96,12 +96,12 @@ jobs:
       contents: write
     steps:
     - name: Download Linux binaries
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: linux-binaries
 
     - name: Download Windows binaries
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: windows-binaries
 

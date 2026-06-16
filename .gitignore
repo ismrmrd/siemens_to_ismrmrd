@@ -5,3 +5,4 @@ build_debug/
 *.swp
 converter_version.h
 __pycache__/
+.venv/
