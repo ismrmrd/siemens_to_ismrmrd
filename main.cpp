@@ -11,6 +11,7 @@
 #include <libxslt/transform.h>
 #include <libxslt/xsltutils.h>
 #include <boost/make_shared.hpp>
+#include <regex>
 
 #include "siemensraw.h"
 #include "base64.h"
@@ -819,17 +820,27 @@ int main(int argc, char* argv[]) {
         std::cerr << "Protocol name: " << protocol_name << std::endl;
 
         bool isNX = false;
-        if ((baseLineString.find("NXVA") != std::string::npos) || (software_version.find("syngo MR XA") != std::string::npos) )
+        if ((baseLineString.find("NXVA") != std::string::npos) 
+            || (baseLineString.find("NXVB") != std::string::npos)
+            || (software_version.find("MR XA") != std::string::npos)
+            || (software_version.find("MR XB") != std::string::npos))
         {
             isNX = true;
         }
 
         if (isNX)
         {
-            int nxVersion = atoi(software_version.substr(11).c_str());
-            std::cerr << "Detected Numaris/X version: " << nxVersion << std::endl;
-            if (nxVersion > 30)
-            {
+            std::regex re(R"(Syngo MR (X[A-Z])(\d+))",
+                std::regex_constants::icase);               // XB10 uses uppercase 'Syngo'
+            std::smatch match;
+            int nxVersion;
+            std::string family;
+            if (std::regex_search(software_version, match, re)) {
+                family = match[1];  // XA, XB, XC, ...
+                nxVersion = std::stoi(match[2]);
+            }
+            std::cerr << "Detected Numaris/X version: " << family << nxVersion << std::endl;
+            if ((family == "XA" && nxVersion > 30) || family == "XB") {
                 skip_syncdata = true;
                 std::cerr << "Disabling parsing of syncdata due to incompatibility!" << std::endl;
             }
